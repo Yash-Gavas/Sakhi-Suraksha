@@ -36,50 +36,75 @@ export default function InteractiveMap() {
 
   const [safetyPoints, setSafetyPoints] = useState<SafetyPoint[]>([]);
 
-  const generateNearbyPoints = (userLat: number, userLng: number): SafetyPoint[] => {
-    // Generate realistic safety points within walking/driving distance
+  const fetchNearbyPlaces = async (userLat: number, userLng: number): Promise<SafetyPoint[]> => {
     const points: SafetyPoint[] = [];
-    const pointTypes = [
-      { 
-        type: 'police' as const, 
-        names: ['Police Station', 'Police Outpost', 'Security Checkpoint'],
-        distances: [0.3, 0.8, 1.2] // km
-      },
-      { 
-        type: 'hospital' as const, 
-        names: ['General Hospital', 'Medical Center', 'Emergency Clinic'],
-        distances: [0.5, 1.1, 1.8]
-      },
-      { 
-        type: 'transport' as const, 
-        names: ['Metro Station', 'Bus Terminal', 'Railway Station'],
-        distances: [0.2, 0.6, 0.9]
-      },
-      { 
-        type: 'safe_zone' as const, 
-        names: ['Shopping Mall', '24/7 Store', 'Hotel', 'Government Office'],
-        distances: [0.1, 0.4, 0.7]
-      }
+    
+    const placeTypes = [
+      { type: 'police' as const, query: 'police station' },
+      { type: 'hospital' as const, query: 'hospital' },
+      { type: 'transport' as const, query: 'metro station' },
+      { type: 'safe_zone' as const, query: 'shopping mall' }
     ];
 
-    pointTypes.forEach((category, categoryIndex) => {
-      category.names.forEach((name, nameIndex) => {
-        // Use realistic distances in km
-        const distanceKm = category.distances[nameIndex % category.distances.length];
-        const angle = (categoryIndex * Math.PI / 2) + (nameIndex * Math.PI / 4); // Spread points around user
+    try {
+      for (const placeType of placeTypes) {
+        const response = await fetch(`/api/places/nearby?lat=${userLat}&lng=${userLng}&type=${placeType.query}&radius=5000`);
         
-        // Convert km to approximate degrees (rough approximation: 1 degree ≈ 111km)
-        const distanceDeg = distanceKm / 111;
-        const offsetLat = distanceDeg * Math.cos(angle);
-        const offsetLng = distanceDeg * Math.sin(angle);
-        
-        points.push({
-          id: `${categoryIndex}-${nameIndex}`,
-          name: name,
-          type: category.type,
-          lat: userLat + offsetLat,
-          lng: userLng + offsetLng,
-        });
+        if (response.ok) {
+          const data = await response.json();
+          const places = data.results || [];
+          
+          places.slice(0, 3).forEach((place: any, index: number) => {
+            const distance = calculateDistance(userLat, userLng, place.geometry.location.lat, place.geometry.location.lng);
+            
+            points.push({
+              id: `${placeType.type}-${index}`,
+              name: place.name,
+              type: placeType.type,
+              lat: place.geometry.location.lat,
+              lng: place.geometry.location.lng,
+              distance: distance
+            });
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching places:', error);
+      toast({
+        title: "Places API Error",
+        description: "Unable to fetch real nearby places. Using fallback data.",
+        variant: "destructive",
+      });
+      
+      // Fallback to basic nearby points if API fails
+      return generateFallbackPoints(userLat, userLng);
+    }
+
+    return points.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+  };
+
+  const generateFallbackPoints = (userLat: number, userLng: number): SafetyPoint[] => {
+    const points: SafetyPoint[] = [];
+    const fallbackPoints = [
+      { name: 'Nearest Police Station', type: 'police' as const, distance: 0.8 },
+      { name: 'Emergency Hospital', type: 'hospital' as const, distance: 1.2 },
+      { name: 'Public Transport Hub', type: 'transport' as const, distance: 0.5 },
+      { name: 'Safe Public Area', type: 'safe_zone' as const, distance: 0.3 }
+    ];
+
+    fallbackPoints.forEach((point, index) => {
+      const angle = (index * Math.PI / 2);
+      const distanceDeg = point.distance / 111;
+      const offsetLat = distanceDeg * Math.cos(angle);
+      const offsetLng = distanceDeg * Math.sin(angle);
+      
+      points.push({
+        id: `fallback-${index}`,
+        name: point.name,
+        type: point.type,
+        lat: userLat + offsetLat,
+        lng: userLng + offsetLng,
+        distance: point.distance
       });
     });
 
@@ -119,26 +144,20 @@ export default function InteractiveMap() {
       });
       
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
           const { latitude, longitude, accuracy } = position.coords;
           setUserLocation({ lat: latitude, lng: longitude });
           
-          // Generate safety points around user's actual location
-          const nearbyPoints = generateNearbyPoints(latitude, longitude);
-          const pointsWithDistances = nearbyPoints.map(point => ({
-            ...point,
-            distance: calculateDistance(latitude, longitude, point.lat, point.lng)
-          }));
+          // Fetch real nearby places using Google Places API
+          const realNearbyPlaces = await fetchNearbyPlaces(latitude, longitude);
+          setSafetyPoints(realNearbyPlaces);
           
-          setSafetyPoints(pointsWithDistances);
-          
-          // Sort by distance and get 4 nearest points
-          const sortedPoints = pointsWithDistances.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-          setNearestPoints(sortedPoints.slice(0, 4));
+          // Get 4 nearest points (already sorted by distance from API)
+          setNearestPoints(realNearbyPlaces.slice(0, 4));
           
           toast({
             title: "Location Found",
-            description: `Accuracy: ${Math.round(accuracy)}m. Found ${pointsWithDistances.length} nearby safety points`,
+            description: `Accuracy: ${Math.round(accuracy)}m. Found ${realNearbyPlaces.length} nearby safety points`,
           });
         },
         (error) => {

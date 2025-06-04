@@ -29,6 +29,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Google Places API endpoint for nearby safety points
+  app.get("/api/places/nearby", async (req, res) => {
+    try {
+      const { lat, lng, type, radius = 5000 } = req.query;
+      
+      if (!lat || !lng || !type) {
+        return res.status(400).json({ error: "Missing required parameters: lat, lng, type" });
+      }
+
+      const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Google Places API key not configured" });
+      }
+
+      // Use Google Places Nearby Search API
+      const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${encodeURIComponent(type as string)}&key=${apiKey}`;
+      
+      const response = await fetch(placesUrl);
+      const data = await response.json();
+
+      if (data.status === 'OK') {
+        res.json(data);
+      } else {
+        console.error('Places API error:', data.status, data.error_message);
+        res.status(500).json({ error: `Places API error: ${data.status}` });
+      }
+    } catch (error) {
+      console.error('Error fetching places:', error);
+      res.status(500).json({ error: "Failed to fetch nearby places" });
+    }
+  });
+
   // User routes
   app.patch("/api/user/:id", isAuthenticated, async (req, res) => {
     try {
