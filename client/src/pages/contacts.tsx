@@ -321,7 +321,7 @@ export default function Contacts() {
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-800 mb-2">No Emergency Contacts</h3>
               <p className="text-gray-500 mb-4">Add trusted contacts to receive emergency alerts</p>
-              <Button>
+              <Button onClick={() => setIsDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add First Contact
               </Button>
