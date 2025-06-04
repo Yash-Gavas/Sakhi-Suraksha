@@ -496,6 +496,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // OTP verification endpoints
+  app.post("/api/auth/send-phone-otp", async (req, res) => {
+    try {
+      const { phoneNumber } = req.body;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ message: "Phone number is required" });
+      }
+
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Store OTP in database
+      await storage.createOtpVerification({
+        identifier: phoneNumber,
+        type: 'phone',
+        otp,
+        expiresAt
+      });
+
+      // In a real implementation, you would send SMS via Twilio or similar service
+      console.log(`SMS OTP for ${phoneNumber}: ${otp}`);
+      
+      res.json({ message: "OTP sent successfully" });
+    } catch (error) {
+      console.error("Error sending phone OTP:", error);
+      res.status(500).json({ message: "Failed to send OTP" });
+    }
+  });
+
+  app.post("/api/auth/send-email-otp", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Store OTP in database
+      await storage.createOtpVerification({
+        identifier: email,
+        type: 'email',
+        otp,
+        expiresAt
+      });
+
+      // In a real implementation, you would send email via SendGrid or similar service
+      console.log(`Email OTP for ${email}: ${otp}`);
+      
+      res.json({ message: "OTP sent successfully" });
+    } catch (error) {
+      console.error("Error sending email OTP:", error);
+      res.status(500).json({ message: "Failed to send OTP" });
+    }
+  });
+
+  app.post("/api/auth/verify-phone-otp", async (req, res) => {
+    try {
+      const { phoneNumber, otp } = req.body;
+      
+      if (!phoneNumber || !otp) {
+        return res.status(400).json({ message: "Phone number and OTP are required" });
+      }
+
+      const isValid = await storage.verifyOtp(phoneNumber, 'phone', otp);
+      
+      if (isValid) {
+        res.json({ message: "Phone number verified successfully" });
+      } else {
+        res.status(400).json({ message: "Invalid or expired OTP" });
+      }
+    } catch (error) {
+      console.error("Error verifying phone OTP:", error);
+      res.status(500).json({ message: "Failed to verify OTP" });
+    }
+  });
+
+  app.post("/api/auth/verify-email-otp", async (req, res) => {
+    try {
+      const { email, otp } = req.body;
+      
+      if (!email || !otp) {
+        return res.status(400).json({ message: "Email and OTP are required" });
+      }
+
+      const isValid = await storage.verifyOtp(email, 'email', otp);
+      
+      if (isValid) {
+        res.json({ message: "Email verified successfully" });
+      } else {
+        res.status(400).json({ message: "Invalid or expired OTP" });
+      }
+    } catch (error) {
+      console.error("Error verifying email OTP:", error);
+      res.status(500).json({ message: "Failed to verify OTP" });
+    }
+  });
+
   // SMS and emergency services simulation
   app.post("/api/send-sms", async (req, res) => {
     try {

@@ -258,7 +258,12 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
         <div>
           <Label className="text-sm font-medium mb-2 block">Quick Safe Destinations</Label>
           <div className="grid grid-cols-2 gap-2">
-            {predefinedSafeDestinations.map((dest, index) => (
+            {[
+              { name: "Nearest Hospital", icon: "🏥" },
+              { name: "Police Station", icon: "🚔" },
+              { name: "Fire Station", icon: "🚒" },
+              { name: "Safe Zone", icon: "🛡️" }
+            ].map((dest, index) => (
               <Button
                 key={index}
                 variant="outline"

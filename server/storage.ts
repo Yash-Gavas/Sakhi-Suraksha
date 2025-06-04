@@ -254,6 +254,87 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount || 0) > 0;
   }
 
+  // Home location operations
+  async getHomeLocation(userId: string): Promise<HomeLocation | undefined> {
+    const [homeLocation] = await db.select().from(homeLocations).where(eq(homeLocations.userId, userId));
+    return homeLocation;
+  }
+
+  async setHomeLocation(homeLocation: InsertHomeLocation): Promise<HomeLocation> {
+    const [result] = await db
+      .insert(homeLocations)
+      .values(homeLocation)
+      .onConflictDoUpdate({
+        target: homeLocations.userId,
+        set: {
+          latitude: homeLocation.latitude,
+          longitude: homeLocation.longitude,
+          address: homeLocation.address,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return result;
+  }
+
+  async updateHomeLocation(userId: string, updates: Partial<InsertHomeLocation>): Promise<HomeLocation | undefined> {
+    const [result] = await db
+      .update(homeLocations)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(homeLocations.userId, userId))
+      .returning();
+    return result;
+  }
+
+  // OTP verification operations
+  async createOtpVerification(otp: InsertOtpVerification): Promise<OtpVerification> {
+    const [result] = await db
+      .insert(otpVerifications)
+      .values(otp)
+      .returning();
+    return result;
+  }
+
+  async verifyOtp(identifier: string, type: string, otp: string): Promise<boolean> {
+    const [verification] = await db
+      .select()
+      .from(otpVerifications)
+      .where(
+        and(
+          eq(otpVerifications.identifier, identifier),
+          eq(otpVerifications.type, type),
+          eq(otpVerifications.otp, otp),
+          eq(otpVerifications.isVerified, false)
+        )
+      );
+
+    if (!verification) {
+      return false;
+    }
+
+    // Check if OTP is expired
+    if (new Date() > verification.expiresAt) {
+      return false;
+    }
+
+    // Mark as verified
+    await db
+      .update(otpVerifications)
+      .set({ isVerified: true })
+      .where(eq(otpVerifications.id, verification.id));
+
+    return true;
+  }
+
+  async cleanupExpiredOtps(): Promise<void> {
+    await db
+      .delete(otpVerifications)
+      .where(eq(otpVerifications.expiresAt, new Date()));
+  }
+
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371; // Earth's radius in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
