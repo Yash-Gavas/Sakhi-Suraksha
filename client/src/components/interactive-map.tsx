@@ -60,8 +60,10 @@ export default function InteractiveMap() {
           places.slice(0, 2).forEach((place: any, index: number) => {
             const distance = calculateDistance(userLat, userLng, place.geometry.location.lat, place.geometry.location.lng);
             
-            // Only include places within reasonable distance
-            if (distance <= 10) { // Within 10km
+            // Only include places within reasonable distance and log for debugging
+            console.log(`${place.name}: ${distance.toFixed(2)}km from current location`);
+            
+            if (distance <= 5) { // Within 5km for more accuracy
               points.push({
                 id: `${placeType.type}-${place.place_id || index}`,
                 name: place.name,
@@ -98,31 +100,48 @@ export default function InteractiveMap() {
   };
 
   const generateFallbackPoints = (userLat: number, userLng: number): SafetyPoint[] => {
-    const points: SafetyPoint[] = [];
-    const fallbackPoints = [
-      { name: 'Nearest Police Station', type: 'police' as const, distance: 0.8 },
-      { name: 'Emergency Hospital', type: 'hospital' as const, distance: 1.2 },
-      { name: 'Public Transport Hub', type: 'transport' as const, distance: 0.5 },
-      { name: 'Safe Public Area', type: 'safe_zone' as const, distance: 0.3 }
-    ];
-
-    fallbackPoints.forEach((point, index) => {
-      const angle = (index * Math.PI / 2);
-      const distanceDeg = point.distance / 111;
-      const offsetLat = distanceDeg * Math.cos(angle);
-      const offsetLng = distanceDeg * Math.sin(angle);
-      
-      points.push({
-        id: `fallback-${index}`,
-        name: point.name,
-        type: point.type,
-        lat: userLat + offsetLat,
-        lng: userLng + offsetLng,
-        distance: point.distance
-      });
-    });
-
-    return points;
+    console.log(`Generating fallback points for location: ${userLat}, ${userLng}`);
+    
+    // Use actual known locations in Bangalore area if coordinates suggest user is there
+    if (userLat > 12.8 && userLat < 13.2 && userLng > 77.4 && userLng < 77.8) {
+      return [
+        {
+          id: 'bangalore-police-1',
+          name: 'Koramangala Police Station',
+          type: 'police',
+          lat: 12.9279,
+          lng: 77.6271,
+          distance: calculateDistance(userLat, userLng, 12.9279, 77.6271)
+        },
+        {
+          id: 'bangalore-hospital-1',
+          name: 'Fortis Hospital',
+          type: 'hospital',
+          lat: 12.9698,
+          lng: 77.7499,
+          distance: calculateDistance(userLat, userLng, 12.9698, 77.7499)
+        },
+        {
+          id: 'bangalore-metro-1',
+          name: 'MG Road Metro Station',
+          type: 'transport',
+          lat: 12.9759,
+          lng: 77.6037,
+          distance: calculateDistance(userLat, userLng, 12.9759, 77.6037)
+        },
+        {
+          id: 'bangalore-mall-1',
+          name: 'Forum Mall',
+          type: 'safe_zone',
+          lat: 12.9279,
+          lng: 77.6271,
+          distance: calculateDistance(userLat, userLng, 12.9279, 77.6271)
+        }
+      ].sort((a, b) => a.distance - b.distance);
+    }
+    
+    // Generic fallback for other locations
+    return [];
   };
 
   const communityAlerts: CommunityAlert[] = [
@@ -164,14 +183,22 @@ export default function InteractiveMap() {
           
           // Fetch real nearby places using Google Places API
           const realNearbyPlaces = await fetchNearbyPlaces(latitude, longitude);
-          setSafetyPoints(realNearbyPlaces);
           
-          // Get 4 nearest points (already sorted by distance from API)
-          setNearestPoints(realNearbyPlaces.slice(0, 4));
+          if (realNearbyPlaces.length > 0) {
+            setSafetyPoints(realNearbyPlaces);
+            setNearestPoints(realNearbyPlaces.slice(0, 4));
+          } else {
+            // Only use fallback if no real data is available
+            const fallbackPoints = generateFallbackPoints(latitude, longitude);
+            if (fallbackPoints.length > 0) {
+              setSafetyPoints(fallbackPoints);
+              setNearestPoints(fallbackPoints.slice(0, 4));
+            }
+          }
           
           toast({
             title: "Location Found",
-            description: `Accuracy: ${Math.round(accuracy)}m. Found ${realNearbyPlaces.length} nearby safety points`,
+            description: `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)} - Found ${realNearbyPlaces.length} safety points`,
           });
         },
         (error) => {

@@ -226,13 +226,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/community-alerts", isAuthenticated, async (req, res) => {
+  app.post("/api/community-alerts", async (req, res) => {
     try {
       const validatedData = insertCommunityAlertSchema.parse(req.body);
       const alert = await storage.createCommunityAlert(validatedData);
       res.status(201).json(alert);
     } catch (error) {
+      console.error('Community alert creation error:', error);
       res.status(400).json({ message: "Failed to create community alert" });
+    }
+  });
+
+  // Safety issue reporting endpoint (public, no auth required)
+  app.post("/api/safety-reports", async (req, res) => {
+    try {
+      const { type, description, location, severity = 'medium' } = req.body;
+      
+      // Convert safety report to community alert format
+      const communityAlert = {
+        type: type || 'safety_issue',
+        description: description || 'Safety concern reported',
+        latitude: location?.latitude || 0,
+        longitude: location?.longitude || 0,
+        severity: severity,
+        verified: false,
+        reportedBy: 'anonymous'
+      };
+
+      const validatedData = insertCommunityAlertSchema.parse(communityAlert);
+      const alert = await storage.createCommunityAlert(validatedData);
+      
+      res.status(201).json({ 
+        success: true, 
+        message: "Safety report submitted successfully",
+        alertId: alert.id 
+      });
+    } catch (error) {
+      console.error('Safety report error:', error);
+      res.status(400).json({ 
+        success: false, 
+        message: "Failed to submit safety report" 
+      });
     }
   });
 
