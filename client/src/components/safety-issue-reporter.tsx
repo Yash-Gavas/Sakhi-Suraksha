@@ -23,22 +23,27 @@ export default function SafetyIssueReporter() {
 
   const reportIssueMutation = useMutation({
     mutationFn: async (issueData: any) => {
-      // Since authentication is not working, store locally and show success
-      try {
-        // Store in localStorage for demo purposes
-        const existingReports = JSON.parse(localStorage.getItem('safetyReports') || '[]');
-        const newReport = {
-          ...issueData,
-          id: Date.now(),
-          timestamp: new Date().toISOString()
-        };
-        existingReports.push(newReport);
-        localStorage.setItem('safetyReports', JSON.stringify(existingReports));
-        
-        return newReport;
-      } catch (error) {
-        throw new Error('Failed to save safety report');
+      const response = await fetch('/api/safety-reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: issueData.type,
+          description: issueData.description,
+          location: {
+            latitude: issueData.latitude,
+            longitude: issueData.longitude
+          },
+          severity: issueData.severity
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit safety report');
       }
+
+      return response.json();
     },
     onSuccess: () => {
       toast({

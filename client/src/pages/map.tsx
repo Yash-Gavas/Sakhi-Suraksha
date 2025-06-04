@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,7 @@ import { MapPin, Navigation, Shield, AlertTriangle, Phone, Users, Clock, Activit
 import InteractiveMap from "@/components/interactive-map";
 import SafeRouteFinder from "@/components/safe-route-finder";
 import SafetyIssueReporter from "@/components/safety-issue-reporter";
+import { useLocation } from "@/hooks/use-location";
 
 interface CommunityAlert {
   id: number;
@@ -19,36 +21,37 @@ interface CommunityAlert {
 
 export default function Map() {
   const [selectedAlert, setSelectedAlert] = useState<CommunityAlert | null>(null);
+  const { location: userLocation } = useLocation();
 
-  const communityAlerts: CommunityAlert[] = [
-    {
-      id: 1,
-      type: "Safety Alert",
-      description: "Poor lighting reported in this area",
-      location: "MG Road Metro Station",
-      time: "2 hours ago",
-      severity: "medium",
-      verified: true
+  // Fetch real community alerts from the database
+  const { data: communityAlerts = [], isLoading: alertsLoading } = useQuery({
+    queryKey: ["/api/community-alerts", userLocation?.latitude, userLocation?.longitude],
+    queryFn: async () => {
+      if (!userLocation) return [];
+      
+      const response = await fetch(
+        `/api/community-alerts?lat=${userLocation.latitude}&lng=${userLocation.longitude}&radius=10000`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch community alerts');
+      }
+      
+      const alerts = await response.json();
+      
+      // Transform database alerts to match interface
+      return alerts.map((alert: any) => ({
+        id: alert.id,
+        type: alert.type || 'Safety Alert',
+        description: alert.description,
+        location: `${alert.latitude.toFixed(4)}, ${alert.longitude.toFixed(4)}`,
+        time: new Date(alert.createdAt).toLocaleString(),
+        severity: alert.severity,
+        verified: alert.verified
+      }));
     },
-    {
-      id: 2,
-      type: "Emergency",
-      description: "Suspicious activity reported",
-      location: "Brigade Road Junction",
-      time: "45 minutes ago",
-      severity: "high",
-      verified: false
-    },
-    {
-      id: 3,
-      type: "Safe Zone",
-      description: "Well-lit area with security cameras",
-      location: "Commercial Street",
-      time: "1 hour ago",
-      severity: "low",
-      verified: true
-    }
-  ];
+    enabled: !!userLocation,
+  });
 
 
 
