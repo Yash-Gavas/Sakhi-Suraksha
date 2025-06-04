@@ -38,8 +38,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile management routes
   app.post('/api/user/profile', async (req, res) => {
     try {
-      // Use the user ID from the request body (set by frontend session management)
-      const userId = req.body.id || 'demo-user';
+      // Get userId from query parameter to match GET endpoint
+      const userId = req.query.userId || 'demo-user';
       const profileData = { ...req.body, id: userId };
       const validatedData = upsertUserSchema.parse(profileData);
       
