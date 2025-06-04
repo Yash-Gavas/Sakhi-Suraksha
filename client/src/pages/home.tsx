@@ -6,6 +6,7 @@ import EmergencyButton from "@/components/emergency-button";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@/hooks/use-location";
 import { useMemo } from "react";
+import { Link } from "wouter";
 import type { EmergencyContact, CommunityAlert } from "@shared/schema";
 
 export default function Home() {
