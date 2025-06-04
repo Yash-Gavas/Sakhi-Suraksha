@@ -59,46 +59,47 @@ export default function ProfileSetup() {
     }
   });
 
-  // Save profile data with dual persistence
+  // Save profile data to database
   const saveProfileMutation = useMutation({
     mutationFn: async (data: UpsertUser) => {
-      console.log('Saving profile with data:', data);
+      console.log('Saving profile to database with data:', data);
       
-      // Save to localStorage immediately for instant persistence
-      LocalProfile.save(data);
+      // Add user ID from session for multi-user support
+      const userId = userSession.getUserId();
+      const profileData = { ...data, id: userId };
       
-      // Also attempt to save to server
-      try {
-        const response = await fetch("/api/user/profile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          console.log('Profile saved to server:', result);
-          return result;
-        }
-      } catch (error) {
-        console.log('Server save failed, using localStorage only:', error);
+      const response = await fetch("/api/user/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profileData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Database save error:', errorData);
+        throw new Error(errorData.message || 'Failed to save profile to database');
       }
       
-      // Return success even if server save fails, since we have localStorage
-      return { message: "Profile saved locally", user: data };
+      const result = await response.json();
+      console.log('Profile saved to database:', result);
+      
+      // Also save to localStorage as backup
+      LocalProfile.save(profileData);
+      
+      return result;
     },
     onSuccess: (data) => {
-      console.log('Profile saved successfully:', data);
+      console.log('Profile saved to database successfully:', data);
       toast({
         title: "Profile Saved",
-        description: "Your profile has been saved successfully.",
+        description: "Your profile has been saved to the database.",
       });
     },
     onError: (error: any) => {
-      console.error('Profile save mutation error:', error);
+      console.error('Database save error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to save profile.",
+        description: error.message || "Failed to save profile to database.",
         variant: "destructive",
       });
     },
@@ -232,31 +233,29 @@ export default function ProfileSetup() {
     },
   });
 
-  // Load existing profile with localStorage priority
+  // Load existing profile from database
   const { data: existingProfile } = useQuery<User>({
     queryKey: ["/api/user/profile"],
     queryFn: async () => {
-      // First try localStorage for immediate access
-      const localProfile = LocalProfile.load();
-      if (localProfile) {
-        console.log('Loaded profile from localStorage:', localProfile);
-        return localProfile;
-      }
+      console.log('Loading profile from database...');
+      const userId = userSession.getUserId();
       
-      // Fallback to server if no local profile
       try {
-        const userId = userSession.getUserId();
         const response = await fetch(`/api/user/profile?userId=${userId}`);
         if (response.ok) {
-          const serverProfile = await response.json();
-          console.log('Loaded profile from server:', serverProfile);
-          return serverProfile;
+          const profile = await response.json();
+          console.log('Profile loaded from database:', profile);
+          return profile;
+        } else if (response.status === 404) {
+          console.log('No profile found in database');
+          return null;
+        } else {
+          throw new Error('Failed to load profile from database');
         }
       } catch (error) {
-        console.log('Server fetch failed, no profile available');
+        console.error('Database load error:', error);
+        return null;
       }
-      
-      return null;
     },
     staleTime: 0,
     refetchOnMount: true
