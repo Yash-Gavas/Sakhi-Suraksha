@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import EmergencyButton from "@/components/emergency-button";
+import EnhancedEmergencyButton from "@/components/enhanced-emergency-button";
 import LiveStreaming from "@/components/live-streaming";
 import { Shield, Phone, MapPin, Users, Camera, Mic, AlertTriangle, Clock, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -105,7 +105,7 @@ export default function DemoHome() {
           <CardTitle className="text-red-700">Emergency SOS</CardTitle>
         </CardHeader>
         <CardContent className="flex justify-center">
-          <EmergencyButton />
+          <EnhancedEmergencyButton />
         </CardContent>
       </Card>
 
