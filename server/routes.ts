@@ -35,6 +35,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Profile management routes
+  app.post('/api/user/profile', async (req, res) => {
+    try {
+      let userId = 'demo-user';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      const profileData = { ...req.body, id: userId };
+      const validatedData = upsertUserSchema.parse(profileData);
+      
+      const user = await storage.upsertUser(validatedData);
+      res.json({ message: "Profile saved successfully", user });
+    } catch (error) {
+      console.error('Profile save error:', error);
+      res.status(400).json({ message: "Failed to save profile" });
+    }
+  });
+
+  app.get('/api/user/profile', async (req, res) => {
+    try {
+      let userId = 'demo-user';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      const user = await storage.getUser(userId);
+      if (user) {
+        res.json(user);
+      } else {
+        res.status(404).json({ message: "Profile not found" });
+      }
+    } catch (error) {
+      console.error('Profile fetch error:', error);
+      res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
   // Google Places API endpoint for nearby safety points
   app.get("/api/places/nearby", async (req, res) => {
     try {
