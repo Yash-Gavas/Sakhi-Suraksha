@@ -120,13 +120,6 @@ export default function Home() {
             </Button>
           </Link>
           
-          <Link href="/destinations">
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center space-y-2 border-purple-200 hover:bg-purple-50">
-              <MapPin className="w-6 h-6 text-purple-600" />
-              <span className="text-sm text-purple-600">Destinations</span>
-            </Button>
-          </Link>
-          
           <Button 
             variant="outline" 
             className="h-20 flex flex-col items-center justify-center space-y-2 border-purple-200 hover:bg-purple-50"
