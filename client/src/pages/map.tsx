@@ -180,12 +180,18 @@ export default function Map() {
       </Card>
 
       {/* Report Safety Issue */}
-      <Card>
-        <CardContent className="p-4">
-          <Button className="w-full bg-gradient-to-r from-orange-500 to-red-500">
-            <AlertTriangle className="w-4 h-4 mr-2" />
+      <Card className="border-2 border-red-200 bg-red-50">
+        <CardHeader>
+          <CardTitle className="flex items-center text-red-700">
+            <AlertTriangle className="w-5 h-5 mr-2" />
             Report Safety Issue
-          </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-red-600 mb-4">
+            Help keep your community safe by reporting safety concerns
+          </p>
+          <SafetyIssueReporter />
         </CardContent>
       </Card>
     </div>

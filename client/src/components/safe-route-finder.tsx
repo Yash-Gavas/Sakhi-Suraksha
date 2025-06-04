@@ -97,9 +97,7 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
         emergencyServices: 88,
         routePoints: [
           { lat: currentLocation.latitude, lng: currentLocation.longitude, type: "start" },
-          { lat: currentLocation.latitude + 0.001, lng: currentLocation.longitude + 0.002, type: "waypoint" },
-          { lat: currentLocation.latitude + 0.002, lng: currentLocation.longitude + 0.004, type: "waypoint" },
-          { lat: predefinedDest?.coords.lat || currentLocation.latitude + 0.003, lng: predefinedDest?.coords.lng || currentLocation.longitude + 0.006, type: "destination" }
+          { lat: destCoords.lat, lng: destCoords.lng, type: "destination" }
         ],
         safetyFeatures: [
           "Well-lit main roads",

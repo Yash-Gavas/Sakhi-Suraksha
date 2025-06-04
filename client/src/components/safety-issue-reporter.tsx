@@ -23,10 +23,19 @@ export default function SafetyIssueReporter() {
 
   const reportIssueMutation = useMutation({
     mutationFn: async (issueData: any) => {
-      return await apiRequest("/api/community-alerts", {
+      const response = await fetch("/api/community-alerts", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(issueData)
       });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to submit report: ${response.statusText}`);
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
