@@ -55,13 +55,21 @@ export default function Contacts() {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (newContact) => {
+      console.log('Contact created successfully:', newContact);
       toast({
         title: "Contact Added",
         description: "Emergency contact has been added successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts"] });
-      form.reset();
+      form.reset({
+        name: "",
+        phoneNumber: "",
+        relationship: "",
+        isActive: true,
+        isPrimary: false
+      });
+      setSelectedCountryCode("+91");
       setIsDialogOpen(false);
     },
     onError: (error: any) => {
