@@ -124,8 +124,11 @@ export class DatabaseStorage implements IStorage {
     const existingUserById = await this.getUser(userData.id);
     
     if (existingUserById) {
-      // User exists by ID, update them
-      const updated = await this.updateUser(userData.id, userData);
+      // User exists by ID, update their data without changing ID
+      const updateData = { ...userData };
+      delete updateData.id; // Don't update the ID to avoid foreign key issues
+      
+      const updated = await this.updateUser(userData.id, updateData);
       if (!updated) {
         throw new Error('Failed to update user');
       }
@@ -140,8 +143,11 @@ export class DatabaseStorage implements IStorage {
         .where(eq(users.email, userData.email));
       
       if (existingUserByEmail) {
-        // User exists with this email, update them and return their data
-        const updated = await this.updateUser(existingUserByEmail.id, userData);
+        // User exists with this email, update them without changing ID
+        const updateData = { ...userData };
+        delete updateData.id; // Don't update the ID to avoid foreign key issues
+        
+        const updated = await this.updateUser(existingUserByEmail.id, updateData);
         if (!updated) {
           throw new Error('Failed to update user');
         }
