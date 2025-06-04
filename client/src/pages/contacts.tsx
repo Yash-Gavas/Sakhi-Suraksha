@@ -21,6 +21,7 @@ export default function Contacts() {
   const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);
+  const [selectedCountryCode, setSelectedCountryCode] = useState("+91");
   
   const { data: contacts = [], isLoading } = useQuery<EmergencyContact[]>({
     queryKey: ["/api/emergency-contacts"],
@@ -54,8 +55,7 @@ export default function Contacts() {
         title: "Contact Added",
         description: "Emergency contact has been added successfully.",
       });
-      setIsDialogOpen(false);
-      form.reset();
+      handleDialogClose();
     },
     onError: () => {
       toast({
@@ -82,9 +82,7 @@ export default function Contacts() {
         title: "Contact Updated",
         description: "Emergency contact has been updated successfully.",
       });
-      setIsDialogOpen(false);
-      setEditingContact(null);
-      form.reset();
+      handleDialogClose();
     },
     onError: () => {
       toast({
@@ -146,15 +144,22 @@ export default function Contacts() {
   const handleDialogClose = () => {
     setIsDialogOpen(false);
     setEditingContact(null);
-    form.reset();
+    setSelectedCountryCode("+91");
+    form.reset({
+      name: "",
+      phoneNumber: "",
+      relationship: "",
+      isActive: true,
+      isPrimary: false
+    });
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-          <p className="text-gray-500">Loading contacts...</p>
+          <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-muted-foreground">Loading contacts...</p>
         </div>
       </div>
     );
@@ -205,7 +210,10 @@ export default function Contacts() {
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <div className="flex gap-2">
-                          <Select defaultValue="+91">
+                          <Select 
+                            value={selectedCountryCode} 
+                            onValueChange={setSelectedCountryCode}
+                          >
                             <SelectTrigger className="w-24">
                               <SelectValue />
                             </SelectTrigger>
@@ -228,10 +236,12 @@ export default function Contacts() {
                               {...field} 
                               className="flex-1"
                               onChange={(e) => {
-                                // Remove any non-numeric characters
-                                const value = e.target.value.replace(/\D/g, '');
-                                field.onChange(value);
+                                // Remove any non-numeric characters and combine with country code
+                                const cleanNumber = e.target.value.replace(/\D/g, '');
+                                const fullNumber = selectedCountryCode + cleanNumber;
+                                field.onChange(fullNumber);
                               }}
+                              value={field.value?.replace(selectedCountryCode, '') || ''}
                             />
                           </FormControl>
                         </div>
