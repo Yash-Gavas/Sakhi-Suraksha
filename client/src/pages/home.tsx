@@ -172,6 +172,44 @@ export default function Home() {
             </CardContent>
           </Card>
         )}
+
+        {/* App Information */}
+        <Card className="mb-8 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">About Sakhi Suraksha</h3>
+            <div className="space-y-3 text-sm text-gray-600">
+              <p className="flex items-start space-x-2">
+                <span className="text-purple-600 font-medium">•</span>
+                <span>AI-powered women's safety app with real-time protection</span>
+              </p>
+              <p className="flex items-start space-x-2">
+                <span className="text-purple-600 font-medium">•</span>
+                <span>Voice activation for hands-free emergency alerts</span>
+              </p>
+              <p className="flex items-start space-x-2">
+                <span className="text-purple-600 font-medium">•</span>
+                <span>Smart route planning with safety zone detection</span>
+              </p>
+              <p className="flex items-start space-x-2">
+                <span className="text-purple-600 font-medium">•</span>
+                <span>IoT device integration for health monitoring</span>
+              </p>
+              <p className="flex items-start space-x-2">
+                <span className="text-purple-600 font-medium">•</span>
+                <span>Community safety alerts and real-time notifications</span>
+              </p>
+            </div>
+            
+            <div className="mt-4 p-3 bg-green-100 rounded-lg">
+              <p className="text-sm text-green-800 font-medium">
+                Your safety is our priority. Stay connected, stay safe.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer spacing */}
+        <div className="h-20"></div>
       </div>
     </div>
   );
