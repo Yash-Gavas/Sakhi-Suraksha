@@ -10,6 +10,7 @@ import Map from "@/pages/map";
 import Contacts from "@/pages/contacts";
 import Settings from "@/pages/settings";
 import Landing from "@/pages/landing";
+import Destinations from "@/pages/destinations";
 import BottomNavigation from "@/components/bottom-navigation";
 import VoiceIndicator from "@/components/voice-indicator";
 import FakeCallOverlay from "@/components/fake-call-overlay";
@@ -28,6 +29,7 @@ function Router() {
             <Route path="/map" component={Map} />
             <Route path="/contacts" component={Contacts} />
             <Route path="/settings" component={Settings} />
+            <Route path="/destinations" component={Destinations} />
           </>
         )}
         <Route component={NotFound} />
