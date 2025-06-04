@@ -41,15 +41,24 @@ export default function Contacts() {
 
   const createContactMutation = useMutation({
     mutationFn: async (data: InsertEmergencyContact) => {
+      console.log('Making API request with data:', data);
       const response = await fetch("/api/emergency-contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       });
-      if (!response.ok) throw new Error('Failed to create contact');
-      return response.json();
+      console.log('API response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API error response:', errorText);
+        throw new Error(`Failed to create contact: ${errorText}`);
+      }
+      const result = await response.json();
+      console.log('API success response:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Contact created successfully:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts"] });
       toast({
         title: "Contact Added",
@@ -57,10 +66,11 @@ export default function Contacts() {
       });
       handleDialogClose();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Create contact error:', error);
       toast({
         title: "Error",
-        description: "Failed to add contact. Please try again.",
+        description: `Failed to add contact: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -134,6 +144,8 @@ export default function Contacts() {
   };
 
   const handleSubmit = (data: InsertEmergencyContact) => {
+    console.log('Form submitted with data:', data);
+    
     if (editingContact) {
       updateContactMutation.mutate({ id: editingContact.id, data });
     } else {
