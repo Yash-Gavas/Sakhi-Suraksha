@@ -12,7 +12,7 @@ export default function Home() {
   const { location, isLocationSharingActive } = useLocation();
   
   const { data: emergencyContacts = [] } = useQuery<EmergencyContact[]>({
-    queryKey: ["/api/emergency-contacts/1"] // Demo user ID
+    queryKey: ["/api/emergency-contacts"]
   });
 
   const { data: communityAlerts = [] } = useQuery<CommunityAlert[]>({

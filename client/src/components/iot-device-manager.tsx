@@ -187,10 +187,10 @@ export default function IoTDeviceManager() {
 
   // Bluetooth Low Energy scanning
   const scanForBluetoothDevices = async () => {
-    if (!navigator.bluetooth) {
+    if (!('bluetooth' in navigator)) {
       toast({
-        title: "Bluetooth Not Supported",
-        description: "Web Bluetooth API is not supported in this browser.",
+        title: "Bluetooth Not Available",
+        description: "Please use Chrome, Edge, or Opera browser for Bluetooth device scanning. You can add devices manually instead.",
         variant: "destructive",
       });
       return;

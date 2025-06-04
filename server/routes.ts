@@ -131,10 +131,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Emergency contacts routes (for permanent data storage)
   app.get("/api/emergency-contacts", async (req, res) => {
     try {
-      // Allow access for both authenticated and anonymous users
-      let userId = 'anonymous';
-      if (req.isAuthenticated() && req.user?.claims?.sub) {
-        userId = req.user.claims.sub;
+      // Use demo-user for anonymous access to ensure data persistence
+      let userId = 'demo-user';
+      if (req.isAuthenticated() && req.user && 'id' in req.user) {
+        userId = req.user.id as string;
       }
       
       const contacts = await storage.getEmergencyContacts(userId);
@@ -148,8 +148,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/emergency-contacts", async (req, res) => {
     try {
       let userId = 'demo-user';
-      if (req.isAuthenticated() && req.user?.claims?.sub) {
-        userId = req.user.claims.sub;
+      if (req.isAuthenticated() && req.user && 'id' in req.user) {
+        userId = req.user.id as string;
       }
 
       // Ensure demo user exists
