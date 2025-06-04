@@ -14,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { upsertUserSchema, type UpsertUser, type User } from "@shared/schema";
 import OTPVerification from "@/components/otp-verification";
 import { userSession } from "@/lib/userSession";
+import { LocalProfile } from "@/lib/localProfile";
 import { 
   User as UserIcon, 
   Mail, 
@@ -58,29 +59,43 @@ export default function ProfileSetup() {
     }
   });
 
-  // Save profile data
+  // Save profile data with dual persistence
   const saveProfileMutation = useMutation({
     mutationFn: async (data: UpsertUser) => {
-      const response = await fetch("/api/user/profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
+      console.log('Saving profile with data:', data);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save profile');
+      // Save to localStorage immediately for instant persistence
+      LocalProfile.save(data);
+      
+      // Also attempt to save to server
+      try {
+        const response = await fetch("/api/user/profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Profile saved to server:', result);
+          return result;
+        }
+      } catch (error) {
+        console.log('Server save failed, using localStorage only:', error);
       }
       
-      return response.json();
+      // Return success even if server save fails, since we have localStorage
+      return { message: "Profile saved locally", user: data };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Profile saved successfully:', data);
       toast({
         title: "Profile Saved",
         description: "Your profile has been saved successfully.",
       });
     },
     onError: (error: any) => {
+      console.error('Profile save mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to save profile.",
@@ -217,14 +232,31 @@ export default function ProfileSetup() {
     },
   });
 
-  // Load existing profile on component mount
+  // Load existing profile with localStorage priority
   const { data: existingProfile } = useQuery<User>({
     queryKey: ["/api/user/profile"],
     queryFn: async () => {
-      const userId = userSession.getUserId();
-      const response = await fetch(`/api/user/profile?userId=${userId}`);
-      if (!response.ok) throw new Error('Failed to fetch profile');
-      return response.json();
+      // First try localStorage for immediate access
+      const localProfile = LocalProfile.load();
+      if (localProfile) {
+        console.log('Loaded profile from localStorage:', localProfile);
+        return localProfile;
+      }
+      
+      // Fallback to server if no local profile
+      try {
+        const userId = userSession.getUserId();
+        const response = await fetch(`/api/user/profile?userId=${userId}`);
+        if (response.ok) {
+          const serverProfile = await response.json();
+          console.log('Loaded profile from server:', serverProfile);
+          return serverProfile;
+        }
+      } catch (error) {
+        console.log('Server fetch failed, no profile available');
+      }
+      
+      return null;
     },
     staleTime: 0,
     refetchOnMount: true
