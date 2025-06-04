@@ -58,20 +58,27 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
         const places = [];
         for (const placeType of placesTypes) {
           const response = await fetch(
-            `/api/places/nearby?latitude=${location.latitude}&longitude=${location.longitude}&type=${placeType.type}&radius=5000`
+            `/api/places/nearby?lat=${location.latitude}&lng=${location.longitude}&type=${placeType.type}&radius=5000`
           );
           if (response.ok) {
             const data = await response.json();
             if (data.results && data.results.length > 0) {
               const nearest = data.results[0];
+              const distance = calculateDistance(
+                location.latitude,
+                location.longitude,
+                nearest.geometry.location.lat,
+                nearest.geometry.location.lng
+              );
+              
               places.push({
-                name: placeType.type === 'police' ? 'Police Station' : 
-                      placeType.type === 'hospital' ? 'Hospital' : 'Metro Station',
-                address: nearest.name,
+                name: nearest.name,
+                address: nearest.vicinity || nearest.formatted_address || nearest.name,
                 coords: {
                   lat: nearest.geometry.location.lat,
                   lng: nearest.geometry.location.lng
-                }
+                },
+                distance: distance.toFixed(2)
               });
             }
           }
@@ -134,7 +141,7 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
       } else {
         // Try to search for the destination using Google Places API
         try {
-          const response = await fetch(`/api/places/search?query=${encodeURIComponent(selectedDest)}`);
+          const response = await fetch(`/api/places/search?query=${encodeURIComponent(selectedDest)}&lat=${currentLocation.latitude}&lng=${currentLocation.longitude}`);
           if (response.ok) {
             const data = await response.json();
             if (data.results && data.results.length > 0) {
@@ -151,11 +158,13 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
           }
         } catch (error) {
           console.error('Places search failed:', error);
-          // Use a default location if search fails
-          destCoords = { 
-            lat: currentLocation.latitude + 0.01, 
-            lng: currentLocation.longitude + 0.01 
-          };
+          toast({
+            title: "Location Not Found",
+            description: "Could not find the specified destination. Please try a different search.",
+            variant: "destructive",
+          });
+          setIsSearching(false);
+          return;
         }
       }
       
@@ -258,24 +267,28 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
         <div>
           <Label className="text-sm font-medium mb-2 block">Quick Safe Destinations</Label>
           <div className="grid grid-cols-2 gap-2">
-            {[
-              { name: "Nearest Hospital", icon: "🏥" },
-              { name: "Police Station", icon: "🚔" },
-              { name: "Fire Station", icon: "🚒" },
-              { name: "Safe Zone", icon: "🛡️" }
-            ].map((dest, index) => (
+            {getSafeDestinations().slice(0, 4).map((dest, index) => (
               <Button
                 key={index}
                 variant="outline"
                 size="sm"
                 onClick={() => findSafeRoute(dest.name)}
                 disabled={isSearching}
-                className="h-auto p-3 flex flex-col items-center text-center"
+                className="h-auto p-2 flex flex-col items-center text-center"
               >
                 <MapPin className="w-4 h-4 mb-1" />
-                <span className="text-xs">{dest.name}</span>
+                <span className="text-xs font-medium">{dest.name}</span>
+                {dest.distance && (
+                  <span className="text-xs text-green-600">{dest.distance} km</span>
+                )}
               </Button>
             ))}
+            {getSafeDestinations().length === 0 && (
+              <div className="col-span-2 text-center text-gray-500 py-4">
+                <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Loading nearby safe locations...</p>
+              </div>
+            )}
           </div>
         </div>
 
