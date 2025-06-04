@@ -399,57 +399,19 @@ export default function ProfileSetup() {
 
   const renderStep3 = () => (
     <div className="space-y-6">
-      <div className="text-center">
-        <Phone className="w-12 h-12 mx-auto text-orange-500 mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Verify Your Phone</h3>
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-semibold mb-2">Phone Verification</h3>
         <p className="text-gray-600">
-          We'll send a verification code to {selectedCountryCode} {form.getValues('phoneNumber')}
+          Verify your phone number to secure your account
         </p>
       </div>
-
-      {!sendPhoneOtpMutation.data ? (
-        <Button
-          onClick={handlePhoneVerification}
-          disabled={sendPhoneOtpMutation.isPending}
-          className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-        >
-          <Send className="w-4 h-4 mr-2" />
-          {sendPhoneOtpMutation.isPending ? "Sending..." : "Send Verification Code"}
-        </Button>
-      ) : (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Enter Verification Code</label>
-            <InputOTP value={phoneOtp} onChange={setPhoneOtp} maxLength={6}>
-              <InputOTPGroup className="mx-auto">
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-
-          <Button
-            onClick={handlePhoneOtpVerify}
-            disabled={verifyPhoneOtpMutation.isPending || phoneOtp.length !== 6}
-            className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-          >
-            {verifyPhoneOtpMutation.isPending ? "Verifying..." : "Verify Phone"}
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={handlePhoneVerification}
-            disabled={sendPhoneOtpMutation.isPending}
-            className="w-full"
-          >
-            Resend Code
-          </Button>
-        </div>
-      )}
+      
+      <OTPVerification
+        identifier={currentPhone}
+        type="phone"
+        onVerified={handlePhoneVerified}
+        onCancel={() => setStep(2)}
+      />
     </div>
   );
 
