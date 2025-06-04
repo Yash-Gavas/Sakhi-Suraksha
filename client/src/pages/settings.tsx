@@ -398,34 +398,13 @@ export default function Settings() {
           
           <div>
             <Label htmlFor="email">Email Address</Label>
-            <div className="flex gap-2">
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter email address"
-                className="flex-1"
-              />
-              <div className="flex items-center gap-2">
-                {emailVerified ? (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    <Check className="w-3 h-3 mr-1" />
-                    Verified
-                  </Badge>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => sendEmailOtpMutation.mutate()}
-                    disabled={sendEmailOtpMutation.isPending}
-                  >
-                    <Mail className="w-3 h-3 mr-1" />
-                    {sendEmailOtpMutation.isPending ? "Sending..." : "Verify"}
-                  </Button>
-                )}
-              </div>
-            </div>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter email address"
+            />
           </div>
           
           <div>
@@ -856,41 +835,7 @@ export default function Settings() {
         </DialogContent>
       </Dialog>
 
-      {/* Email OTP Verification Dialog */}
-      <Dialog open={isEmailOtpDialogOpen} onOpenChange={setIsEmailOtpDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Verify Email Address</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              Enter the 6-digit verification code sent to {email}
-            </p>
-            <Input
-              placeholder="Enter 6-digit OTP"
-              value={emailOtp}
-              onChange={(e) => setEmailOtp(e.target.value)}
-              maxLength={6}
-            />
-            <div className="flex gap-2">
-              <Button
-                onClick={() => verifyEmailOtpMutation.mutate()}
-                disabled={emailOtp.length !== 6 || verifyEmailOtpMutation.isPending}
-                className="flex-1"
-              >
-                {verifyEmailOtpMutation.isPending ? "Verifying..." : "Verify"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => sendEmailOtpMutation.mutate()}
-                disabled={sendEmailOtpMutation.isPending}
-              >
-                {sendEmailOtpMutation.isPending ? "Sending..." : "Resend"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }

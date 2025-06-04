@@ -34,15 +34,9 @@ export default function FixedVoiceDetector({
 
   const checkPermissions = useCallback(async () => {
     try {
-      // First check for microphone permissions
-      const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      setError(null);
       
-      if (permission.state === 'denied') {
-        setError('Microphone access denied. Please enable microphone permissions and refresh the page.');
-        return false;
-      }
-
-      // Request microphone access
+      // Request microphone access directly
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
