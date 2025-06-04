@@ -886,6 +886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
   // WebSocket server for live streaming and real-time communication
+  const { WebSocketServer } = await import('ws');
   const wss = new WebSocketServer({ 
     server: httpServer, 
     path: '/ws'
