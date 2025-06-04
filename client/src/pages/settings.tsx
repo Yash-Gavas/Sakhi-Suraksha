@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -8,9 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, Bell, Shield, Phone, Save, Palette, Moon, Sun, LogOut, Mic, Camera, Volume2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { User, Bell, Shield, Phone, Save, Palette, Moon, Sun, LogOut, Mic, Camera, Volume2, MapPin, Check, X, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVoiceRecognition } from "@/hooks/use-voice-recognition";
+import { useLocation } from "@/hooks/use-location";
+import { queryClient } from "@/lib/queryClient";
 
 export default function Settings() {
   const [theme, setTheme] = useState("light");
@@ -26,9 +30,191 @@ export default function Settings() {
   const [lastName, setLastName] = useState("User");
   const [email, setEmail] = useState("demo@sakhisuraksha.com");
   const [phoneNumber, setPhoneNumber] = useState("+919876543210");
+  const [homeAddress, setHomeAddress] = useState("");
+  const [isSettingHomeLocation, setIsSettingHomeLocation] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [phoneOtp, setPhoneOtp] = useState("");
+  const [emailOtp, setEmailOtp] = useState("");
+  const [isPhoneOtpDialogOpen, setIsPhoneOtpDialogOpen] = useState(false);
+  const [isEmailOtpDialogOpen, setIsEmailOtpDialogOpen] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   
   const { toast } = useToast();
   const { isListening, startListening, stopListening, isSupported } = useVoiceRecognition();
+  const { location } = useLocation();
+
+  // Fetch user's home location
+  const { data: homeLocation } = useQuery({
+    queryKey: ["/api/user/home-location"],
+    queryFn: async () => {
+      const response = await fetch("/api/user/home-location");
+      if (!response.ok && response.status !== 404) {
+        throw new Error("Failed to fetch home location");
+      }
+      return response.status === 404 ? null : response.json();
+    },
+  });
+
+  useEffect(() => {
+    if (homeLocation) {
+      setHomeAddress(homeLocation.address || `${homeLocation.latitude}, ${homeLocation.longitude}`);
+    }
+  }, [homeLocation]);
+
+  // Set home location using current location
+  const setHomeLocationMutation = useMutation({
+    mutationFn: async () => {
+      if (!location) {
+        throw new Error("Current location not available");
+      }
+      
+      const response = await fetch("/api/user/home-location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          address: homeAddress || `${location.latitude}, ${location.longitude}`
+        }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to set home location");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/home-location"] });
+      toast({
+        title: "Home Location Set",
+        description: "Your home location has been saved successfully",
+      });
+      setIsSettingHomeLocation(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to set home location. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send OTP for phone verification
+  const sendPhoneOtpMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/auth/send-phone-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to send OTP");
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsPhoneOtpDialogOpen(true);
+      toast({
+        title: "OTP Sent",
+        description: "Verification code sent to your phone number",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send OTP. Please check your phone number.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send OTP for email verification
+  const sendEmailOtpMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/auth/send-email-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to send OTP");
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsEmailOtpDialogOpen(true);
+      toast({
+        title: "OTP Sent",
+        description: "Verification code sent to your email address",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send OTP. Please check your email address.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Verify phone OTP
+  const verifyPhoneOtpMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/auth/verify-phone-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber, otp: phoneOtp }),
+      });
+      
+      if (!response.ok) throw new Error("Invalid OTP");
+      return response.json();
+    },
+    onSuccess: () => {
+      setPhoneVerified(true);
+      setIsPhoneOtpDialogOpen(false);
+      setPhoneOtp("");
+      toast({
+        title: "Phone Verified",
+        description: "Your phone number has been verified successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Verification Failed",
+        description: "Invalid OTP. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Verify email OTP
+  const verifyEmailOtpMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/auth/verify-email-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp: emailOtp }),
+      });
+      
+      if (!response.ok) throw new Error("Invalid OTP");
+      return response.json();
+    },
+    onSuccess: () => {
+      setEmailVerified(true);
+      setIsEmailOtpDialogOpen(false);
+      setEmailOtp("");
+      toast({
+        title: "Email Verified",
+        description: "Your email address has been verified successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Verification Failed",
+        description: "Invalid OTP. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSave = () => {
     toast({
@@ -148,24 +334,66 @@ export default function Settings() {
           
           <div>
             <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter email address"
-            />
+            <div className="flex gap-2">
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter email address"
+                className="flex-1"
+              />
+              <div className="flex items-center gap-2">
+                {emailVerified ? (
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    <Check className="w-3 h-3 mr-1" />
+                    Verified
+                  </Badge>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => sendEmailOtpMutation.mutate()}
+                    disabled={sendEmailOtpMutation.isPending}
+                  >
+                    <Mail className="w-3 h-3 mr-1" />
+                    {sendEmailOtpMutation.isPending ? "Sending..." : "Verify"}
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
           
           <div>
             <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="Enter your phone number"
-            />
+            <div className="flex gap-2">
+              <Input
+                id="phone"
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="Enter your phone number"
+                className="flex-1"
+              />
+              <div className="flex items-center gap-2">
+                {phoneVerified ? (
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    <Check className="w-3 h-3 mr-1" />
+                    Verified
+                  </Badge>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => sendPhoneOtpMutation.mutate()}
+                    disabled={sendPhoneOtpMutation.isPending}
+                  >
+                    <Phone className="w-3 h-3 mr-1" />
+                    {sendPhoneOtpMutation.isPending ? "Sending..." : "Verify"}
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
           
           <div>
@@ -180,6 +408,53 @@ export default function Settings() {
             <p className="text-xs text-gray-500 mt-1">
               Use [LIVE_LOCATION], [TIMESTAMP], and [STREAM_LINK] for dynamic content
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Home Location Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <MapPin className="w-5 h-5 mr-2" />
+            Home Location
+          </CardTitle>
+          <CardDescription>
+            Set your home location for quick emergency navigation
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="homeAddress">Home Address</Label>
+            <div className="flex gap-2">
+              <Input
+                id="homeAddress"
+                value={homeAddress}
+                onChange={(e) => setHomeAddress(e.target.value)}
+                placeholder={homeLocation ? "Home location set" : "Enter home address or use current location"}
+                className="flex-1"
+              />
+              <Button
+                variant="outline"
+                onClick={() => setHomeLocationMutation.mutate()}
+                disabled={!location || setHomeLocationMutation.isPending}
+              >
+                {setHomeLocationMutation.isPending ? "Setting..." : "Use Current"}
+              </Button>
+            </div>
+            {homeLocation && (
+              <div className="mt-2 p-2 bg-green-50 rounded-md border border-green-200">
+                <div className="flex items-center text-sm text-green-800">
+                  <Check className="w-4 h-4 mr-2" />
+                  Home location set: {homeLocation.address || `${homeLocation.latitude}, ${homeLocation.longitude}`}
+                </div>
+              </div>
+            )}
+            {!location && (
+              <p className="text-xs text-gray-500 mt-1">
+                Allow location access to set current location as home
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -426,6 +701,78 @@ export default function Settings() {
           Authentication Settings
         </Button>
       </div>
+
+      {/* Phone OTP Verification Dialog */}
+      <Dialog open={isPhoneOtpDialogOpen} onOpenChange={setIsPhoneOtpDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verify Phone Number</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Enter the 6-digit verification code sent to {phoneNumber}
+            </p>
+            <Input
+              placeholder="Enter 6-digit OTP"
+              value={phoneOtp}
+              onChange={(e) => setPhoneOtp(e.target.value)}
+              maxLength={6}
+            />
+            <div className="flex gap-2">
+              <Button
+                onClick={() => verifyPhoneOtpMutation.mutate()}
+                disabled={phoneOtp.length !== 6 || verifyPhoneOtpMutation.isPending}
+                className="flex-1"
+              >
+                {verifyPhoneOtpMutation.isPending ? "Verifying..." : "Verify"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => sendPhoneOtpMutation.mutate()}
+                disabled={sendPhoneOtpMutation.isPending}
+              >
+                {sendPhoneOtpMutation.isPending ? "Sending..." : "Resend"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email OTP Verification Dialog */}
+      <Dialog open={isEmailOtpDialogOpen} onOpenChange={setIsEmailOtpDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verify Email Address</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Enter the 6-digit verification code sent to {email}
+            </p>
+            <Input
+              placeholder="Enter 6-digit OTP"
+              value={emailOtp}
+              onChange={(e) => setEmailOtp(e.target.value)}
+              maxLength={6}
+            />
+            <div className="flex gap-2">
+              <Button
+                onClick={() => verifyEmailOtpMutation.mutate()}
+                disabled={emailOtp.length !== 6 || verifyEmailOtpMutation.isPending}
+                className="flex-1"
+              >
+                {verifyEmailOtpMutation.isPending ? "Verifying..." : "Verify"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => sendEmailOtpMutation.mutate()}
+                disabled={sendEmailOtpMutation.isPending}
+              >
+                {sendEmailOtpMutation.isPending ? "Sending..." : "Resend"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
