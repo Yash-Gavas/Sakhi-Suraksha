@@ -13,7 +13,7 @@
   --card-foreground: 220 9% 9%; /* #1A1B1E */
   --border: 220 13% 91%; /* #E9ECEF */
   --input: 220 13% 91%; /* #E9ECEF */
-  --primary: 291 64% 42%; /* #8B5CF6 */
+  --primary: 300 76% 72%; /* #E879F9 */
   --primary-foreground: 0 0% 98%; /* #FFFFFF */
   --secondary: 220 13% 91%; /* #E9ECEF */
   --secondary-foreground: 220 9% 9%; /* #1A1B1E */
@@ -21,7 +21,7 @@
   --accent-foreground: 220 9% 9%; /* #1A1B1E */
   --destructive: 0 84% 60%; /* #EF4444 */
   --destructive-foreground: 0 0% 98%; /* #FFFFFF */
-  --ring: 291 64% 42%; /* #8B5CF6 */
+  --ring: 300 76% 72%; /* #E879F9 */
   --radius: 0.75rem;
 
   /* Custom emergency colors */
@@ -44,7 +44,7 @@
   --card-foreground: 0 0% 98%; /* #FAFAFA */
   --border: 220 13% 15%; /* #262B32 */
   --input: 220 13% 15%; /* #262B32 */
-  --primary: 291 64% 42%; /* #8B5CF6 */
+  --primary: 300 76% 72%; /* #E879F9 */
   --primary-foreground: 0 0% 98%; /* #FFFFFF */
   --secondary: 220 13% 15%; /* #262B32 */
   --secondary-foreground: 0 0% 98%; /* #FAFAFA */
