@@ -147,14 +147,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/emergency-contacts", async (req, res) => {
     try {
+      console.log('POST /api/emergency-contacts - Request body:', JSON.stringify(req.body, null, 2));
+      
       let userId = 'demo-user';
       if (req.isAuthenticated() && req.user && 'id' in req.user) {
         userId = req.user.id as string;
       }
 
+      console.log('Using userId:', userId);
+
       // Ensure demo user exists
       const existingUser = await storage.getUser(userId);
       if (!existingUser) {
+        console.log('Creating demo user...');
         await storage.upsertUser({
           id: userId,
           email: 'demo@example.com',
@@ -168,12 +173,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: userId
       };
 
+      console.log('Contact data before validation:', JSON.stringify(contactData, null, 2));
+
       const validatedData = insertEmergencyContactSchema.parse(contactData);
+      console.log('Validated data:', JSON.stringify(validatedData, null, 2));
+      
       const contact = await storage.createEmergencyContact(validatedData);
+      console.log('Created contact:', JSON.stringify(contact, null, 2));
+      
       res.status(201).json(contact);
     } catch (error) {
       console.error('Error creating emergency contact:', error);
-      res.status(400).json({ message: "Failed to create emergency contact" });
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      res.status(400).json({ 
+        message: "Failed to create emergency contact",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
