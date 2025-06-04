@@ -1,12 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
+import { WebSocketServer } from 'ws';
 import { 
-  insertUserSchema, 
   insertEmergencyContactSchema, 
   insertEmergencyAlertSchema,
   insertCommunityAlertSchema,
-  insertSafeZoneSchema
+  insertSafeZoneSchema,
+  insertLiveStreamSchema,
+  insertDestinationSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {

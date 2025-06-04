@@ -1,20 +1,40 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, varchar, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session storage table for authentication
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// Enhanced user schema with authentication
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
   phoneNumber: text("phone_number"),
   emergencyMessage: text("emergency_message").default("Emergency! I need help. This is an automated message from Sakhi Suraksha."),
   isLocationSharingActive: boolean("is_location_sharing_active").default(false),
-  createdAt: timestamp("created_at").defaultNow()
+  theme: text("theme").default("light"),
+  voiceActivationEnabled: boolean("voice_activation_enabled").default(true),
+  shakeDetectionEnabled: boolean("shake_detection_enabled").default(true),
+  communityAlertsEnabled: boolean("community_alerts_enabled").default(true),
+  soundAlertsEnabled: boolean("sound_alerts_enabled").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const emergencyContacts = pgTable("emergency_contacts", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   phoneNumber: text("phone_number").notNull(),
   relationship: text("relationship"),
@@ -25,19 +45,20 @@ export const emergencyContacts = pgTable("emergency_contacts", {
 
 export const emergencyAlerts = pgTable("emergency_alerts", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
   triggerType: text("trigger_type").notNull(), // 'button', 'voice', 'shake'
   latitude: real("latitude"),
   longitude: real("longitude"),
   address: text("address"),
   audioRecordingUrl: text("audio_recording_url"),
+  videoRecordingUrl: text("video_recording_url"),
   isResolved: boolean("is_resolved").default(false),
   createdAt: timestamp("created_at").defaultNow()
 });
 
 export const communityAlerts = pgTable("community_alerts", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
   alertType: text("alert_type").notNull(), // 'suspicious_activity', 'harassment', 'danger_zone'
   description: text("description").notNull(),
   latitude: real("latitude").notNull(),
@@ -49,7 +70,7 @@ export const communityAlerts = pgTable("community_alerts", {
 
 export const safeZones = pgTable("safe_zones", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
+  userId: varchar("user_id").references(() => users.id),
   name: text("name").notNull(),
   latitude: real("latitude").notNull(),
   longitude: real("longitude").notNull(),
@@ -58,9 +79,38 @@ export const safeZones = pgTable("safe_zones", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
+// Live streaming sessions for emergency video sharing
+export const liveStreams = pgTable("live_streams", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  emergencyAlertId: integer("emergency_alert_id").references(() => emergencyAlerts.id),
+  streamUrl: text("stream_url").notNull(),
+  shareLink: text("share_link").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  endedAt: timestamp("ended_at")
+});
+
+// Routes and destinations for safe route planning
+export const destinations = pgTable("destinations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  isFavorite: boolean("is_favorite").default(false),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true
+  createdAt: true,
+  updatedAt: true
+});
+
+export const upsertUserSchema = createInsertSchema(users).omit({
+  createdAt: true,
+  updatedAt: true
 });
 
 export const insertEmergencyContactSchema = createInsertSchema(emergencyContacts).omit({
@@ -83,8 +133,19 @@ export const insertSafeZoneSchema = createInsertSchema(safeZones).omit({
   createdAt: true
 });
 
+export const insertLiveStreamSchema = createInsertSchema(liveStreams).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertDestinationSchema = createInsertSchema(destinations).omit({
+  id: true,
+  createdAt: true
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type EmergencyContact = typeof emergencyContacts.$inferSelect;
 export type InsertEmergencyContact = z.infer<typeof insertEmergencyContactSchema>;
 export type EmergencyAlert = typeof emergencyAlerts.$inferSelect;
@@ -93,3 +154,7 @@ export type CommunityAlert = typeof communityAlerts.$inferSelect;
 export type InsertCommunityAlert = z.infer<typeof insertCommunityAlertSchema>;
 export type SafeZone = typeof safeZones.$inferSelect;
 export type InsertSafeZone = z.infer<typeof insertSafeZoneSchema>;
+export type LiveStream = typeof liveStreams.$inferSelect;
+export type InsertLiveStream = z.infer<typeof insertLiveStreamSchema>;
+export type Destination = typeof destinations.$inferSelect;
+export type InsertDestination = z.infer<typeof insertDestinationSchema>;
