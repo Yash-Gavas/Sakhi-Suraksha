@@ -27,7 +27,13 @@ export default function Home() {
   });
 
   const { data: emergencyContacts = [] } = useQuery<EmergencyContact[]>({
-    queryKey: ["/api/emergency-contacts"]
+    queryKey: ["/api/emergency-contacts"],
+    queryFn: async () => {
+      const userId = userSession.getUserId();
+      const response = await fetch(`/api/emergency-contacts?userId=${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch emergency contacts');
+      return response.json();
+    }
   });
 
   const { data: homeLocation } = useQuery<HomeLocation>({
