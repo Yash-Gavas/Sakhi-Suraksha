@@ -8,9 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertEmergencyContactSchema, type EmergencyContact, type InsertEmergencyContact } from "@shared/schema";
@@ -18,14 +17,14 @@ import { useState } from "react";
 
 export default function Contacts() {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);
   const [selectedCountryCode, setSelectedCountryCode] = useState("+91");
   
+  // Fetch emergency contacts
   const { data: contacts = [], isLoading } = useQuery<EmergencyContact[]>({
     queryKey: ["/api/emergency-contacts"],
-    enabled: !!user
+    retry: false
   });
 
   const form = useForm<InsertEmergencyContact>({
@@ -39,43 +38,43 @@ export default function Contacts() {
     }
   });
 
+  // Create contact mutation
   const createContactMutation = useMutation({
     mutationFn: async (data: InsertEmergencyContact) => {
-      console.log('Making API request with data:', data);
+      console.log('Creating contact with data:', data);
       const response = await fetch("/api/emergency-contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       });
-      console.log('API response status:', response.status);
+      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API error response:', errorText);
-        throw new Error(`Failed to create contact: ${errorText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create contact');
       }
-      const result = await response.json();
-      console.log('API success response:', result);
-      return result;
+      
+      return response.json();
     },
-    onSuccess: (data) => {
-      console.log('Contact created successfully:', data);
-      queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts"] });
+    onSuccess: () => {
       toast({
         title: "Contact Added",
         description: "Emergency contact has been added successfully.",
       });
-      handleDialogClose();
+      queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts"] });
+      form.reset();
+      setIsDialogOpen(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Create contact error:', error);
       toast({
         title: "Error",
-        description: `Failed to add contact: ${error.message}`,
+        description: error.message || "Failed to add emergency contact. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
+  // Update contact mutation
   const updateContactMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<InsertEmergencyContact> }) => {
       const response = await fetch(`/api/emergency-contacts/${id}`, {
@@ -83,376 +82,380 @@ export default function Contacts() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       });
-      if (!response.ok) throw new Error('Failed to update contact');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update contact');
+      }
+      
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts"] });
       toast({
         title: "Contact Updated",
         description: "Emergency contact has been updated successfully.",
       });
-      handleDialogClose();
+      queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts"] });
+      form.reset();
+      setEditingContact(null);
+      setIsDialogOpen(false);
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to update contact. Please try again.",
+        description: error.message || "Failed to update emergency contact.",
         variant: "destructive",
       });
-    }
+    },
   });
 
+  // Delete contact mutation
   const deleteContactMutation = useMutation({
-    mutationFn: async (contactId: number) => {
-      const response = await fetch(`/api/emergency-contacts/${contactId}`, {
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/emergency-contacts/${id}`, {
         method: "DELETE"
       });
-      if (!response.ok) throw new Error('Failed to delete contact');
-      return response.ok;
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete contact');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts"] });
       toast({
         title: "Contact Deleted",
-        description: "Emergency contact has been removed successfully.",
+        description: "Emergency contact has been deleted successfully.",
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts"] });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to delete contact. Please try again.",
+        description: error.message || "Failed to delete emergency contact.",
         variant: "destructive",
       });
-    }
+    },
   });
-
-  const callContact = (phoneNumber: string) => {
-    window.location.href = `tel:${phoneNumber}`;
-  };
 
   const openEditDialog = (contact: EmergencyContact) => {
     setEditingContact(contact);
+    
+    // Extract country code from phone number
+    const phoneWithoutCode = contact.phoneNumber?.replace(/^\+\d{1,3}/, '') || '';
+    const countryCode = contact.phoneNumber?.match(/^\+\d{1,3}/)?.[0] || '+91';
+    
+    setSelectedCountryCode(countryCode);
+    
     form.reset({
-      name: contact.name,
-      phoneNumber: contact.phoneNumber,
-      relationship: contact.relationship || "",
-      isActive: contact.isActive || false,
-      isPrimary: contact.isPrimary || false
+      name: contact.name || '',
+      phoneNumber: phoneWithoutCode,
+      relationship: contact.relationship || '',
+      isActive: contact.isActive ?? true,
+      isPrimary: contact.isPrimary ?? false
     });
     setIsDialogOpen(true);
   };
 
   const handleSubmit = (data: InsertEmergencyContact) => {
-    console.log('Form submitted with data:', data);
-    
+    const fullPhoneNumber = selectedCountryCode + data.phoneNumber.replace(/\D/g, '');
+    const contactData = {
+      ...data,
+      phoneNumber: fullPhoneNumber
+    };
+
     if (editingContact) {
-      updateContactMutation.mutate({ id: editingContact.id, data });
+      updateContactMutation.mutate({ 
+        id: editingContact.id, 
+        data: contactData 
+      });
     } else {
-      createContactMutation.mutate(data);
+      createContactMutation.mutate(contactData);
     }
   };
 
-  const handleDialogClose = () => {
+  const handleDelete = (id: number) => {
+    if (confirm("Are you sure you want to delete this contact?")) {
+      deleteContactMutation.mutate(id);
+    }
+  };
+
+  const closeDialog = () => {
     setIsDialogOpen(false);
     setEditingContact(null);
+    form.reset();
     setSelectedCountryCode("+91");
-    form.reset({
-      name: "",
-      phoneNumber: "",
-      relationship: "",
-      isActive: true,
-      isPrimary: false
-    });
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-muted-foreground">Loading contacts...</p>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center py-8">Loading contacts...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground p-4 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Users className="h-6 w-6" />
-            <h1 className="text-xl font-semibold">Emergency Contacts</h1>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="secondary">
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingContact ? "Edit Contact" : "Add Emergency Contact"}
-                </DialogTitle>
-              </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="John Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="phoneNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <div className="flex gap-2">
-                          <Select 
-                            value={selectedCountryCode} 
-                            onValueChange={setSelectedCountryCode}
-                          >
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="+1">🇺🇸 +1</SelectItem>
-                              <SelectItem value="+91">🇮🇳 +91</SelectItem>
-                              <SelectItem value="+44">🇬🇧 +44</SelectItem>
-                              <SelectItem value="+86">🇨🇳 +86</SelectItem>
-                              <SelectItem value="+81">🇯🇵 +81</SelectItem>
-                              <SelectItem value="+49">🇩🇪 +49</SelectItem>
-                              <SelectItem value="+33">🇫🇷 +33</SelectItem>
-                              <SelectItem value="+61">🇦🇺 +61</SelectItem>
-                              <SelectItem value="+55">🇧🇷 +55</SelectItem>
-                              <SelectItem value="+7">🇷🇺 +7</SelectItem>
-                            </SelectContent>
-                          </Select>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold text-gray-900">Emergency Contacts</h1>
+          <p className="text-gray-600">Manage your trusted contacts for emergency situations</p>
+        </div>
+
+        {/* Add Contact Button */}
+        <Card>
+          <CardContent className="p-6">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+                  onClick={() => {
+                    setEditingContact(null);
+                    form.reset();
+                    setSelectedCountryCode("+91");
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Emergency Contact
+                </Button>
+              </DialogTrigger>
+              
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingContact ? "Edit Contact" : "Add Emergency Contact"}
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="1234567890" 
-                              className="flex-1"
-                              onChange={(e) => {
-                                // Remove any non-numeric characters and combine with country code
-                                const cleanNumber = e.target.value.replace(/\D/g, '');
-                                const fullNumber = cleanNumber ? selectedCountryCode + cleanNumber : '';
-                                field.onChange(fullNumber);
-                              }}
-                              value={field.value ? field.value.replace(selectedCountryCode, '') : ''}
+                              placeholder="Enter contact's full name" 
+                              {...field} 
                             />
                           </FormControl>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="relationship"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Relationship</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select relationship" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="family">Family</SelectItem>
-                            <SelectItem value="friend">Friend</SelectItem>
-                            <SelectItem value="colleague">Colleague</SelectItem>
-                            <SelectItem value="neighbor">Neighbor</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="flex items-center justify-between">
-                    <FormField
-                      control={form.control}
-                      name="isActive"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2">
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormLabel className="text-sm">Active</FormLabel>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
-                      name="isPrimary"
+                      name="phoneNumber"
                       render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2">
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormLabel className="text-sm">Primary</FormLabel>
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <div className="flex gap-2">
+                            <Select 
+                              value={selectedCountryCode} 
+                              onValueChange={setSelectedCountryCode}
+                            >
+                              <SelectTrigger className="w-24">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                                <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                                <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                                <SelectItem value="+86">🇨🇳 +86</SelectItem>
+                                <SelectItem value="+81">🇯🇵 +81</SelectItem>
+                                <SelectItem value="+49">🇩🇪 +49</SelectItem>
+                                <SelectItem value="+33">🇫🇷 +33</SelectItem>
+                                <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                                <SelectItem value="+55">🇧🇷 +55</SelectItem>
+                                <SelectItem value="+7">🇷🇺 +7</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormControl>
+                              <Input 
+                                placeholder="9876543210" 
+                                {...field}
+                                onChange={(e) => {
+                                  const cleanNumber = e.target.value.replace(/\D/g, '');
+                                  field.onChange(cleanNumber);
+                                }}
+                                className="flex-1"
+                              />
+                            </FormControl>
+                          </div>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </div>
-                  
-                  <div className="flex gap-2 pt-4">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={handleDialogClose}
-                      className="flex-1"
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      disabled={createContactMutation.isPending || updateContactMutation.isPending}
-                      className="flex-1"
-                    >
-                      {editingContact ? "Update" : "Add"} Contact
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </header>
 
-      {/* Stats */}
-      <div className="bg-card border-b p-4">
-        <div className="flex justify-between text-center">
-          <div>
-            <p className="text-2xl font-bold text-primary">{contacts.length}</p>
-            <p className="text-xs text-muted-foreground">Total Contacts</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-green-600">{contacts.filter(c => c.isActive).length}</p>
-            <p className="text-xs text-muted-foreground">Active</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-orange-600">{contacts.filter(c => c.isPrimary).length}</p>
-            <p className="text-xs text-muted-foreground">Primary</p>
-          </div>
-        </div>
-      </div>
+                    <FormField
+                      control={form.control}
+                      name="relationship"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Relationship</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select relationship" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Parent">Parent</SelectItem>
+                              <SelectItem value="Spouse">Spouse</SelectItem>
+                              <SelectItem value="Sibling">Sibling</SelectItem>
+                              <SelectItem value="Friend">Friend</SelectItem>
+                              <SelectItem value="Colleague">Colleague</SelectItem>
+                              <SelectItem value="Neighbor">Neighbor</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-      {/* Contacts List */}
-      <main className="p-4 pb-24">
-        {contacts.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-800 mb-2">No Emergency Contacts</h3>
-              <p className="text-gray-500 mb-4">Add trusted contacts to receive emergency alerts</p>
-              <Button onClick={() => setIsDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add First Contact
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {contacts.map((contact) => (
-              <Card key={contact.id} className="border-gray-100">
-                <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <FormField
+                        control={form.control}
+                        name="isPrimary"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel>Primary Contact</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="isActive"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel>Active</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={closeDialog}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={createContactMutation.isPending || updateContactMutation.isPending}
+                        className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+                      >
+                        {(createContactMutation.isPending || updateContactMutation.isPending) 
+                          ? "Saving..." 
+                          : editingContact 
+                            ? "Update Contact" 
+                            : "Add Contact"
+                        }
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
+
+        {/* Emergency Contacts List */}
+        <div className="space-y-4">
+          {contacts.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Emergency Contacts</h3>
+                <p className="text-gray-600 mb-4">
+                  Add trusted contacts who will be notified during emergencies
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            contacts.map((contact) => (
+              <Card key={contact.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Users className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-medium text-gray-800">{contact.name}</h3>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {contact.name}
+                        </h3>
+                        <div className="flex gap-2">
                           {contact.isPrimary && (
-                            <Badge variant="default" className="bg-orange-100 text-orange-800 text-xs">
+                            <Badge variant="default" className="bg-orange-100 text-orange-800">
                               Primary
                             </Badge>
                           )}
+                          <Badge 
+                            variant={contact.isActive ? "secondary" : "outline"}
+                            className={contact.isActive ? "bg-green-100 text-green-800" : ""}
+                          >
+                            {contact.isActive ? "Active" : "Inactive"}
+                          </Badge>
                         </div>
-                        <p className="text-sm text-gray-500">{contact.phoneNumber}</p>
-                        {contact.relationship && (
-                          <p className="text-xs text-gray-400">{contact.relationship}</p>
-                        )}
+                      </div>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4" />
+                          <span>{contact.phoneNumber}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium">Relationship:</span> {contact.relationship}
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        className="text-green-600 hover:bg-green-50"
-                        onClick={() => callContact(contact.phoneNumber)}
-                      >
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="text-gray-600"
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() => openEditDialog(contact)}
                       >
-                        <Edit3 className="h-4 w-4" />
+                        <Edit3 className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="text-red-600 hover:bg-red-50"
-                        onClick={() => deleteContactMutation.mutate(contact.id)}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(contact.id)}
                         disabled={deleteContactMutation.isPending}
+                        className="text-red-600 hover:text-red-700"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Emergency Protocol Info */}
-        <Card className="mt-6 border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="text-base text-blue-800">Emergency Protocol</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-blue-700 mb-3">
-              When you trigger an SOS alert, all active contacts will receive:
-            </p>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Emergency SMS with your location</li>
-              <li>• Live location sharing link</li>
-              <li>• Push notification (if app installed)</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </main>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
