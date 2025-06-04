@@ -8,6 +8,8 @@ import {
   safeZones,
   liveStreams,
   destinations,
+  homeLocations,
+  otpVerifications,
   type User,
   type UpsertUser,
   type EmergencyContact,
@@ -21,7 +23,11 @@ import {
   type LiveStream,
   type InsertLiveStream,
   type Destination,
-  type InsertDestination
+  type InsertDestination,
+  type HomeLocation,
+  type InsertHomeLocation,
+  type OtpVerification,
+  type InsertOtpVerification
 } from "@shared/schema";
 
 export interface IStorage {
@@ -59,6 +65,16 @@ export interface IStorage {
   getDestinations(userId: string): Promise<Destination[]>;
   createDestination(destination: InsertDestination): Promise<Destination>;
   deleteDestination(id: number): Promise<boolean>;
+
+  // Home location operations
+  getHomeLocation(userId: string): Promise<HomeLocation | undefined>;
+  setHomeLocation(homeLocation: InsertHomeLocation): Promise<HomeLocation>;
+  updateHomeLocation(userId: string, updates: Partial<InsertHomeLocation>): Promise<HomeLocation | undefined>;
+
+  // OTP verification operations
+  createOtpVerification(otp: InsertOtpVerification): Promise<OtpVerification>;
+  verifyOtp(identifier: string, type: string, otp: string): Promise<boolean>;
+  cleanupExpiredOtps(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {

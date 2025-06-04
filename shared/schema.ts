@@ -104,6 +104,28 @@ export const destinations = pgTable("destinations", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
+// Home locations table
+export const homeLocations = pgTable("home_locations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().unique().references(() => users.id),
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  address: text("address"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// OTP verification table
+export const otpVerifications = pgTable("otp_verifications", {
+  id: serial("id").primaryKey(),
+  identifier: varchar("identifier").notNull(), // phone number or email
+  type: varchar("type").notNull(), // 'phone' or 'email'
+  otp: varchar("otp").notNull(),
+  isVerified: boolean("is_verified").default(false),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   updatedAt: true
@@ -144,6 +166,17 @@ export const insertDestinationSchema = createInsertSchema(destinations).omit({
   createdAt: true
 });
 
+export const insertHomeLocationSchema = createInsertSchema(homeLocations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({
+  id: true,
+  createdAt: true
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -159,3 +192,7 @@ export type LiveStream = typeof liveStreams.$inferSelect;
 export type InsertLiveStream = z.infer<typeof insertLiveStreamSchema>;
 export type Destination = typeof destinations.$inferSelect;
 export type InsertDestination = z.infer<typeof insertDestinationSchema>;
+export type HomeLocation = typeof homeLocations.$inferSelect;
+export type InsertHomeLocation = z.infer<typeof insertHomeLocationSchema>;
+export type OtpVerification = typeof otpVerifications.$inferSelect;
+export type InsertOtpVerification = z.infer<typeof insertOtpVerificationSchema>;
