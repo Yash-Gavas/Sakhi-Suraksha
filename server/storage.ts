@@ -71,6 +71,7 @@ export interface IStorage {
   // Live streaming operations
   createLiveStream(stream: InsertLiveStream): Promise<LiveStream>;
   getLiveStreams(userId: string): Promise<LiveStream[]>;
+  getLiveStreamById(id: number): Promise<LiveStream | undefined>;
   endLiveStream(id: number): Promise<boolean>;
 
   // Destinations operations
@@ -278,6 +279,14 @@ export class DatabaseStorage implements IStorage {
       .values(stream)
       .returning();
     return newStream;
+  }
+
+  async getLiveStreamById(id: number): Promise<LiveStream | undefined> {
+    const [stream] = await db
+      .select()
+      .from(liveStreams)
+      .where(eq(liveStreams.id, id));
+    return stream;
   }
 
   async getLiveStreams(userId: string): Promise<LiveStream[]> {

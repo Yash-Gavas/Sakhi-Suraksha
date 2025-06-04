@@ -85,8 +85,6 @@ export const safeZones = pgTable("safe_zones", {
 export const liveStreams = pgTable("live_streams", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id),
-  userName: varchar("user_name").notNull(),
-  userEmail: varchar("user_email").notNull(),
   emergencyAlertId: integer("emergency_alert_id").references(() => emergencyAlerts.id),
   streamUrl: text("stream_url").notNull(),
   shareLink: text("share_link").notNull(),

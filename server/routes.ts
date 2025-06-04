@@ -1227,11 +1227,36 @@ Please contact immediately or call emergency services: 100, 101, 102, 108`;
     }
   });
 
+  // Get live stream by ID for viewing with user details
+  app.get('/api/live-stream/:id', async (req, res) => {
+    try {
+      const streamId = parseInt(req.params.id);
+      const stream = await storage.getLiveStreamById(streamId);
+      
+      if (!stream) {
+        return res.status(404).json({ message: 'Stream not found' });
+      }
+
+      // Get user details for the stream
+      const user = await storage.getUser(stream.userId);
+      const streamWithUserDetails = {
+        ...stream,
+        userName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User' : 'User',
+        userEmail: user?.email || 'user@example.com'
+      };
+
+      res.json(streamWithUserDetails);
+    } catch (error) {
+      console.error('Error fetching stream:', error);
+      res.status(500).json({ message: 'Failed to fetch stream' });
+    }
+  });
+
   // Live streaming endpoints
   app.post('/api/live-stream/start', async (req, res) => {
     try {
       const { streamUrl, shareableLink, isEmergency } = req.body;
-      
+
       // Create live stream record
       const stream = await storage.createLiveStream({
         userId: 'demo-user',
