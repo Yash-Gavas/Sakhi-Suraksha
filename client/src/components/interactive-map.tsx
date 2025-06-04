@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Shield, AlertTriangle, Target, Route } from "lucide-react";
+import { MapPin, Navigation, Shield, AlertTriangle, Target, Route, Phone, Activity } from "lucide-react";
 import { useLocation } from "@/hooks/use-location";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,31 +37,50 @@ export default function InteractiveMap() {
   const [safetyPoints, setSafetyPoints] = useState<SafetyPoint[]>([]);
 
   const generateNearbyPoints = (userLat: number, userLng: number): SafetyPoint[] => {
-    // Generate safety points within 2km radius of user location
+    // Generate realistic safety points within walking/driving distance
     const points: SafetyPoint[] = [];
     const pointTypes = [
-      { type: 'police' as const, names: ['Police Station', 'Police Outpost', 'Security Checkpoint'] },
-      { type: 'hospital' as const, names: ['General Hospital', 'Medical Center', 'Emergency Clinic'] },
-      { type: 'transport' as const, names: ['Metro Station', 'Bus Terminal', 'Railway Station'] },
-      { type: 'safe_zone' as const, names: ['Shopping Mall', '24/7 Store', 'Hotel', 'Government Office'] }
+      { 
+        type: 'police' as const, 
+        names: ['Police Station', 'Police Outpost', 'Security Checkpoint'],
+        distances: [0.3, 0.8, 1.2] // km
+      },
+      { 
+        type: 'hospital' as const, 
+        names: ['General Hospital', 'Medical Center', 'Emergency Clinic'],
+        distances: [0.5, 1.1, 1.8]
+      },
+      { 
+        type: 'transport' as const, 
+        names: ['Metro Station', 'Bus Terminal', 'Railway Station'],
+        distances: [0.2, 0.6, 0.9]
+      },
+      { 
+        type: 'safe_zone' as const, 
+        names: ['Shopping Mall', '24/7 Store', 'Hotel', 'Government Office'],
+        distances: [0.1, 0.4, 0.7]
+      }
     ];
 
     pointTypes.forEach((category, categoryIndex) => {
-      for (let i = 0; i < 2; i++) {
-        // Generate random coordinates within 2km radius
-        const angle = Math.random() * 2 * Math.PI;
-        const radius = Math.random() * 0.02; // ~2km in degrees
-        const offsetLat = radius * Math.cos(angle);
-        const offsetLng = radius * Math.sin(angle);
+      category.names.forEach((name, nameIndex) => {
+        // Use realistic distances in km
+        const distanceKm = category.distances[nameIndex % category.distances.length];
+        const angle = (categoryIndex * Math.PI / 2) + (nameIndex * Math.PI / 4); // Spread points around user
+        
+        // Convert km to approximate degrees (rough approximation: 1 degree ≈ 111km)
+        const distanceDeg = distanceKm / 111;
+        const offsetLat = distanceDeg * Math.cos(angle);
+        const offsetLng = distanceDeg * Math.sin(angle);
         
         points.push({
-          id: `${categoryIndex}-${i}`,
-          name: category.names[i % category.names.length],
+          id: `${categoryIndex}-${nameIndex}`,
+          name: name,
           type: category.type,
           lat: userLat + offsetLat,
           lng: userLng + offsetLng,
         });
-      }
+      });
     });
 
     return points;
