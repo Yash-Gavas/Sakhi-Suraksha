@@ -898,5 +898,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // OTP Verification Routes
+  app.post('/api/otp/send', async (req, res) => {
+    try {
+      const { identifier, type } = req.body; // identifier = phone or email, type = 'phone' or 'email'
+      
+      if (!identifier || !type) {
+        return res.status(400).json({ message: "Identifier and type are required" });
+      }
+
+      const otp = generateOTP();
+      
+      // Store OTP in database
+      await storage.createOtpVerification({
+        identifier,
+        type,
+        otp,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+      });
+
+      let success = false;
+      
+      if (type === 'phone') {
+        success = await sendSMSOTP(identifier, otp);
+      } else if (type === 'email') {
+        success = await sendEmailOTP(identifier, otp);
+      }
+
+      if (success) {
+        res.json({ message: "OTP sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send OTP" });
+      }
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      res.status(500).json({ message: "Failed to send OTP" });
+    }
+  });
+
+  app.post('/api/otp/verify', async (req, res) => {
+    try {
+      const { identifier, type, otp } = req.body;
+      
+      if (!identifier || !type || !otp) {
+        return res.status(400).json({ message: "Identifier, type, and OTP are required" });
+      }
+
+      const isValid = await storage.verifyOtp(identifier, type, otp);
+      
+      if (isValid) {
+        res.json({ message: "OTP verified successfully", verified: true });
+      } else {
+        res.status(400).json({ message: "Invalid or expired OTP", verified: false });
+      }
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      res.status(500).json({ message: "Failed to verify OTP" });
+    }
+  });
+
+  // Clean up expired OTPs periodically
+  setInterval(async () => {
+    try {
+      await storage.cleanupExpiredOtps();
+    } catch (error) {
+      console.error('OTP cleanup error:', error);
+    }
+  }, 5 * 60 * 1000); // Every 5 minutes
+
   return httpServer;
 }

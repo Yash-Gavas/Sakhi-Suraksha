@@ -7,12 +7,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { upsertUserSchema, type UpsertUser } from "@shared/schema";
+import OTPVerification from "@/components/otp-verification";
 import { 
   User, 
   Mail, 
@@ -20,7 +20,6 @@ import {
   Shield, 
   Check, 
   X, 
-  Send,
   ArrowRight,
   UserCheck
 } from "lucide-react";
@@ -39,11 +38,11 @@ type ProfileSetupData = z.infer<typeof profileSetupSchema>;
 export default function ProfileSetup() {
   const { toast } = useToast();
   const [step, setStep] = useState(1); // 1: Basic Info, 2: Email Verification, 3: Phone Verification, 4: Complete
-  const [emailOtp, setEmailOtp] = useState("");
-  const [phoneOtp, setPhoneOtp] = useState("");
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [selectedCountryCode, setSelectedCountryCode] = useState("+91");
+  const [currentEmail, setCurrentEmail] = useState("");
+  const [currentPhone, setCurrentPhone] = useState("");
 
   const form = useForm<ProfileSetupData>({
     resolver: zodResolver(profileSetupSchema),
@@ -224,32 +223,25 @@ export default function ProfileSetup() {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
-      phoneNumber: selectedCountryCode + data.phoneNumber.replace(/\D/g, ''),
+      phoneNumber: selectedCountryCode + (data.phoneNumber || '').replace(/\D/g, ''),
       emergencyMessage: data.emergencyMessage
     };
 
+    setCurrentEmail(data.email || '');
+    setCurrentPhone(selectedCountryCode + (data.phoneNumber || '').replace(/\D/g, ''));
+    
     saveProfileMutation.mutate(profileData);
     setStep(2); // Move to email verification
   };
 
-  const handleEmailVerification = () => {
-    const email = form.getValues('email');
-    sendEmailOtpMutation.mutate(email);
+  const handleEmailVerified = () => {
+    setIsEmailVerified(true);
+    setStep(3); // Move to phone verification
   };
 
-  const handlePhoneVerification = () => {
-    const phoneNumber = selectedCountryCode + form.getValues('phoneNumber').replace(/\D/g, '');
-    sendPhoneOtpMutation.mutate(phoneNumber);
-  };
-
-  const handleEmailOtpVerify = () => {
-    const email = form.getValues('email');
-    verifyEmailOtpMutation.mutate({ email, otp: emailOtp });
-  };
-
-  const handlePhoneOtpVerify = () => {
-    const phoneNumber = selectedCountryCode + form.getValues('phoneNumber').replace(/\D/g, '');
-    verifyPhoneOtpMutation.mutate({ phoneNumber, otp: phoneOtp });
+  const handlePhoneVerified = () => {
+    setIsPhoneVerified(true);
+    setStep(4); // Move to completion
   };
 
   const renderStep1 = () => (
@@ -389,57 +381,19 @@ export default function ProfileSetup() {
 
   const renderStep2 = () => (
     <div className="space-y-6">
-      <div className="text-center">
-        <Mail className="w-12 h-12 mx-auto text-orange-500 mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Verify Your Email</h3>
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-semibold mb-2">Email Verification</h3>
         <p className="text-gray-600">
-          We'll send a verification code to {form.getValues('email')}
+          Verify your email address to secure your account
         </p>
       </div>
-
-      {!sendEmailOtpMutation.data ? (
-        <Button
-          onClick={handleEmailVerification}
-          disabled={sendEmailOtpMutation.isPending}
-          className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-        >
-          <Send className="w-4 h-4 mr-2" />
-          {sendEmailOtpMutation.isPending ? "Sending..." : "Send Verification Code"}
-        </Button>
-      ) : (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Enter Verification Code</label>
-            <InputOTP value={emailOtp} onChange={setEmailOtp} maxLength={6}>
-              <InputOTPGroup className="mx-auto">
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-
-          <Button
-            onClick={handleEmailOtpVerify}
-            disabled={verifyEmailOtpMutation.isPending || emailOtp.length !== 6}
-            className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-          >
-            {verifyEmailOtpMutation.isPending ? "Verifying..." : "Verify Email"}
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={handleEmailVerification}
-            disabled={sendEmailOtpMutation.isPending}
-            className="w-full"
-          >
-            Resend Code
-          </Button>
-        </div>
-      )}
+      
+      <OTPVerification
+        identifier={currentEmail}
+        type="email"
+        onVerified={handleEmailVerified}
+        onCancel={() => setStep(1)}
+      />
     </div>
   );
 
