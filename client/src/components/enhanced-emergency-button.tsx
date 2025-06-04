@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import type { EmergencyContact } from "@shared/schema";
 import LiveStreaming from "./live-streaming";
+import FixedVoiceDetector from "./fixed-voice-detector";
 
 interface EmergencyAlert {
   triggerType: string;

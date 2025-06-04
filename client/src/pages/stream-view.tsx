@@ -30,7 +30,7 @@ export default function StreamView() {
   const [viewerCount, setViewerCount] = useState(1);
   
   const { data: stream, isLoading, error } = useQuery<StreamData>({
-    queryKey: ['/api/live-stream/view', params?.streamId],
+    queryKey: ['/api/live-stream', params?.streamId],
     enabled: !!params?.streamId,
     refetchInterval: 5000 // Refresh every 5 seconds
   });

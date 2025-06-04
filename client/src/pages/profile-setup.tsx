@@ -488,7 +488,7 @@ export default function ProfileSetup() {
             
             {/* Progress Indicator */}
             <div className="flex justify-center space-x-2 mt-4">
-              {[1, 2, 3, 4].map((stepNumber) => (
+              {[1, 2, 3].map((stepNumber) => (
                 <div
                   key={stepNumber}
                   className={`w-3 h-3 rounded-full ${
