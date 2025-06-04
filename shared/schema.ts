@@ -214,6 +214,9 @@ export const insertEmergencyContactSchema = createInsertSchema(emergencyContacts
 export const insertEmergencyAlertSchema = createInsertSchema(emergencyAlerts).omit({
   id: true,
   createdAt: true
+}).extend({
+  latitude: z.number().optional(),
+  longitude: z.number().optional()
 });
 
 export const insertCommunityAlertSchema = createInsertSchema(communityAlerts).omit({

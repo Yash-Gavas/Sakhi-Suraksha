@@ -10,7 +10,7 @@ import { Loader2, Mail, Phone, CheckCircle } from "lucide-react";
 
 interface OTPVerificationProps {
   identifier: string;
-  type: 'phone' | 'email';
+  type: 'phone';
   onVerified: () => void;
   onCancel?: () => void;
 }
