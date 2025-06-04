@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useVoiceRecognition } from "@/hooks/use-voice-recognition";
 import { useLocation } from "@/hooks/use-location";
 import { queryClient } from "@/lib/queryClient";
+import { userSession } from "@/lib/userSession";
 
 export default function Settings() {
   const [theme, setTheme] = useState("light");
@@ -45,6 +46,28 @@ export default function Settings() {
   const { toast } = useToast();
   const { isListening, startListening, stopListening, isSupported } = useVoiceRecognition();
   const { location } = useLocation();
+
+  // Load user profile data
+  const { data: userProfile } = useQuery({
+    queryKey: ["/api/user/profile"],
+    queryFn: async () => {
+      const userId = userSession.getUserId();
+      const response = await fetch(`/api/user/profile?userId=${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch profile');
+      return response.json();
+    }
+  });
+
+  // Populate form fields with user data when loaded
+  useEffect(() => {
+    if (userProfile) {
+      setFirstName(userProfile.firstName || "");
+      setLastName(userProfile.lastName || "");
+      setEmail(userProfile.email || "");
+      setPhoneNumber(userProfile.phoneNumber || "");
+      setEmergencyMessage(userProfile.emergencyMessage || emergencyMessage);
+    }
+  }, [userProfile]);
 
   // Fetch user's home location
   const { data: homeLocation } = useQuery({
@@ -187,6 +210,44 @@ export default function Settings() {
     },
   });
 
+  // Save profile settings
+  const saveProfileMutation = useMutation({
+    mutationFn: async () => {
+      const userId = userSession.getUserId();
+      const profileData = {
+        firstName,
+        lastName,
+        email,
+        phoneNumber,
+        emergencyMessage,
+        profilePicture: null
+      };
+
+      const response = await fetch(`/api/user/profile?userId=${userId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profileData),
+      });
+      
+      if (!response.ok) throw new Error("Failed to save profile");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+      toast({
+        title: "Settings Saved",
+        description: "Your profile and safety settings have been saved successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save your settings. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Verify email OTP
   const verifyEmailOtpMutation = useMutation({
     mutationFn: async () => {
@@ -216,13 +277,6 @@ export default function Settings() {
       });
     },
   });
-
-  const handleSave = () => {
-    toast({
-      title: "Settings Saved",
-      description: "Your safety preferences have been updated successfully",
-    });
-  };
 
   const applyTheme = (selectedTheme: string) => {
     setTheme(selectedTheme);
@@ -272,6 +326,10 @@ export default function Settings() {
         description: "Say 'help me' or 'emergency' to test voice SOS",
       });
     }
+  };
+
+  const handleSave = () => {
+    saveProfileMutation.mutate();
   };
 
   return (
