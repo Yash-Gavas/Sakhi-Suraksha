@@ -42,46 +42,58 @@ export default function InteractiveMap() {
     const points: SafetyPoint[] = [];
     
     const placeTypes = [
-      { type: 'police' as const, query: 'police station' },
-      { type: 'hospital' as const, query: 'hospital' },
-      { type: 'transport' as const, query: 'metro station' },
-      { type: 'safe_zone' as const, query: 'shopping mall' }
+      { type: 'police' as const, query: 'police station', radius: 3000 },
+      { type: 'hospital' as const, query: 'hospital', radius: 5000 },
+      { type: 'transport' as const, query: 'metro station', radius: 2000 },
+      { type: 'safe_zone' as const, query: 'shopping mall', radius: 3000 }
     ];
 
     try {
       for (const placeType of placeTypes) {
-        const response = await fetch(`/api/places/nearby?lat=${userLat}&lng=${userLng}&type=${placeType.query}&radius=5000`);
+        const response = await fetch(`/api/places/nearby?lat=${userLat}&lng=${userLng}&type=${placeType.query}&radius=${placeType.radius}`);
         
         if (response.ok) {
           const data = await response.json();
           const places = data.results || [];
           
-          places.slice(0, 3).forEach((place: any, index: number) => {
+          // Get top 2 closest places of each type
+          places.slice(0, 2).forEach((place: any, index: number) => {
             const distance = calculateDistance(userLat, userLng, place.geometry.location.lat, place.geometry.location.lng);
             
-            points.push({
-              id: `${placeType.type}-${index}`,
-              name: place.name,
-              type: placeType.type,
-              lat: place.geometry.location.lat,
-              lng: place.geometry.location.lng,
-              distance: distance
-            });
+            // Only include places within reasonable distance
+            if (distance <= 10) { // Within 10km
+              points.push({
+                id: `${placeType.type}-${place.place_id || index}`,
+                name: place.name,
+                type: placeType.type,
+                lat: place.geometry.location.lat,
+                lng: place.geometry.location.lng,
+                distance: distance
+              });
+            }
           });
+        } else {
+          console.log(`Failed to fetch ${placeType.query}:`, response.status);
         }
       }
+      
+      if (points.length === 0) {
+        console.log('No nearby places found, using fallback');
+        return generateFallbackPoints(userLat, userLng);
+      }
+      
     } catch (error) {
       console.error('Error fetching places:', error);
       toast({
         title: "Places API Error",
-        description: "Unable to fetch real nearby places. Using fallback data.",
+        description: "Unable to fetch real nearby places. Check network connection.",
         variant: "destructive",
       });
       
-      // Fallback to basic nearby points if API fails
       return generateFallbackPoints(userLat, userLng);
     }
 
+    // Sort by distance and return closest places
     return points.sort((a, b) => (a.distance || 0) - (b.distance || 0));
   };
 

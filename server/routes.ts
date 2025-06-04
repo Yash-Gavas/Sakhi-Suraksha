@@ -43,8 +43,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Google Places API key not configured" });
       }
 
-      // Use Google Places Nearby Search API
-      const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${encodeURIComponent(type as string)}&key=${apiKey}`;
+      // Use Google Places Nearby Search API with type filter for better accuracy
+      let placesUrl;
+      
+      // Map keywords to Google Places types for better results
+      const typeMapping: { [key: string]: string } = {
+        'police station': 'police',
+        'hospital': 'hospital',
+        'metro station': 'subway_station',
+        'shopping mall': 'shopping_mall'
+      };
+      
+      const placeType = typeMapping[type as string];
+      
+      if (placeType) {
+        placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${placeType}&key=${apiKey}`;
+      } else {
+        placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${encodeURIComponent(type as string)}&key=${apiKey}`;
+      }
       
       const response = await fetch(placesUrl);
       const data = await response.json();
