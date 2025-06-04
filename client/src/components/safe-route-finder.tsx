@@ -55,30 +55,23 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
       const currentLocation = location || { latitude: 28.6139, longitude: 77.2090 };
       const selectedDest = dest || destination;
       
-      // Try to geocode the destination using Google Maps
-      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(selectedDest)}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
-      
+      // Find destination coordinates
       let destCoords;
-      try {
-        const response = await fetch(geocodeUrl);
-        const data = await response.json();
-        
-        if (data.status === 'OK' && data.results.length > 0) {
-          destCoords = {
-            lat: data.results[0].geometry.location.lat,
-            lng: data.results[0].geometry.location.lng
-          };
-        }
-      } catch (error) {
-        console.log('Geocoding not available, using predefined locations');
-      }
       
-      // Fall back to predefined destinations if geocoding fails
-      if (!destCoords) {
-        const predefinedDest = predefinedSafeDestinations.find(d => 
-          d.name.toLowerCase().includes(selectedDest.toLowerCase())
-        );
-        destCoords = predefinedDest?.coords || { lat: 28.6139, lng: 77.2090 };
+      // First check predefined destinations
+      const predefinedDest = predefinedSafeDestinations.find(d => 
+        d.name.toLowerCase().includes(selectedDest.toLowerCase()) ||
+        selectedDest.toLowerCase().includes(d.name.toLowerCase())
+      );
+      
+      if (predefinedDest) {
+        destCoords = predefinedDest.coords;
+      } else {
+        // Use a default location for any entered destination
+        destCoords = { 
+          lat: currentLocation.latitude + 0.01, 
+          lng: currentLocation.longitude + 0.01 
+        };
       }
       
       // Start navigation to the destination
