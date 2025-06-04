@@ -14,23 +14,25 @@ import {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // User routes
-  app.get("/api/user/:id", async (req, res) => {
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const user = await storage.getUser(id);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get user" });
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
-  app.patch("/api/user/:id", async (req, res) => {
+  // User routes
+  app.patch("/api/user/:id", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const updates = req.body;
       const user = await storage.updateUser(id, updates);
       if (!user) {
@@ -43,9 +45,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Emergency contacts routes
-  app.get("/api/emergency-contacts/:userId", async (req, res) => {
+  app.get("/api/emergency-contacts/:userId", isAuthenticated, async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const contacts = await storage.getEmergencyContacts(userId);
       res.json(contacts);
     } catch (error) {
@@ -53,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/emergency-contacts", async (req, res) => {
+  app.post("/api/emergency-contacts", isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertEmergencyContactSchema.parse(req.body);
       const contact = await storage.createEmergencyContact(validatedData);
@@ -63,7 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/emergency-contacts/:id", async (req, res) => {
+  app.patch("/api/emergency-contacts/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
@@ -77,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/emergency-contacts/:id", async (req, res) => {
+  app.delete("/api/emergency-contacts/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteEmergencyContact(id);
@@ -91,12 +93,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Emergency alerts routes
-  app.post("/api/emergency-alerts", async (req, res) => {
+  app.post("/api/emergency-alerts", isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertEmergencyAlertSchema.parse(req.body);
       const alert = await storage.createEmergencyAlert(validatedData);
       
-      // Trigger emergency protocol
+      // Trigger emergency protocol with live streaming
       await triggerEmergencyProtocol(alert);
       
       res.status(201).json(alert);
@@ -105,9 +107,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/emergency-alerts/:userId", async (req, res) => {
+  app.get("/api/emergency-alerts/:userId", isAuthenticated, async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const alerts = await storage.getEmergencyAlerts(userId);
       res.json(alerts);
     } catch (error) {
@@ -115,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/emergency-alerts/:id", async (req, res) => {
+  app.patch("/api/emergency-alerts/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
@@ -144,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/community-alerts", async (req, res) => {
+  app.post("/api/community-alerts", isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertCommunityAlertSchema.parse(req.body);
       const alert = await storage.createCommunityAlert(validatedData);
@@ -155,9 +157,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Safe zones routes
-  app.get("/api/safe-zones/:userId", async (req, res) => {
+  app.get("/api/safe-zones/:userId", isAuthenticated, async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const zones = await storage.getSafeZones(userId);
       res.json(zones);
     } catch (error) {
@@ -165,13 +167,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/safe-zones", async (req, res) => {
+  app.post("/api/safe-zones", isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertSafeZoneSchema.parse(req.body);
       const zone = await storage.createSafeZone(validatedData);
       res.status(201).json(zone);
     } catch (error) {
       res.status(400).json({ message: "Failed to create safe zone" });
+    }
+  });
+
+  // Destinations routes for safe routing
+  app.get("/api/destinations/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const destinations = await storage.getDestinations(userId);
+      res.json(destinations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get destinations" });
+    }
+  });
+
+  app.post("/api/destinations", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertDestinationSchema.parse(req.body);
+      const destination = await storage.createDestination(validatedData);
+      res.status(201).json(destination);
+    } catch (error) {
+      res.status(400).json({ message: "Failed to create destination" });
+    }
+  });
+
+  // Live streaming routes
+  app.post("/api/live-streams", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertLiveStreamSchema.parse(req.body);
+      const stream = await storage.createLiveStream(validatedData);
+      res.status(201).json(stream);
+    } catch (error) {
+      res.status(400).json({ message: "Failed to create live stream" });
+    }
+  });
+
+  app.get("/api/live-streams/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const streams = await storage.getLiveStreams(userId);
+      res.json(streams);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get live streams" });
+    }
+  });
+
+  app.patch("/api/live-streams/:id/end", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const ended = await storage.endLiveStream(id);
+      if (!ended) {
+        return res.status(404).json({ message: "Stream not found" });
+      }
+      res.json({ message: "Stream ended successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to end stream" });
     }
   });
 
@@ -195,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Emergency protocol trigger
+  // Emergency protocol trigger with live streaming
   async function triggerEmergencyProtocol(alert: any) {
     try {
       // Get user and emergency contacts
@@ -204,8 +261,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const contacts = await storage.getEmergencyContacts(alert.userId);
       
-      // Prepare emergency message
-      const emergencyMessage = `🚨 EMERGENCY ALERT 🚨\n\n${user.emergencyMessage}\n\nLocation: ${alert.address || 'Location unavailable'}\nTime: ${new Date().toLocaleString()}\n\nThis message was sent automatically by Sakhi Suraksha app.`;
+      // Create live stream session
+      const streamUrl = `wss://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}/ws/stream/${alert.id}`;
+      const shareLink = `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}/emergency/${alert.id}`;
+      
+      const liveStream = await storage.createLiveStream({
+        userId: alert.userId,
+        emergencyAlertId: alert.id,
+        streamUrl,
+        shareLink,
+        isActive: true
+      });
+
+      // Prepare emergency message with live stream link
+      const emergencyMessage = `🚨 EMERGENCY ALERT 🚨\n\n${user.emergencyMessage}\n\nLocation: ${alert.address || 'Location unavailable'}\nTime: ${new Date().toLocaleString()}\n\nLive Stream: ${shareLink}\n\nThis message was sent automatically by Sakhi Suraksha app.`;
       
       // Send SMS to all emergency contacts
       for (const contact of contacts) {
@@ -218,11 +287,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update user location sharing status
       await storage.updateUser(alert.userId, { isLocationSharingActive: true });
       
+      // Broadcast to WebSocket clients
+      wss.clients.forEach(client => {
+        if (client.readyState === 1) { // WebSocket.OPEN
+          client.send(JSON.stringify({
+            type: 'emergency_alert',
+            data: { alert, liveStream, user: { id: user.id, firstName: user.firstName } }
+          }));
+        }
+      });
+      
     } catch (error) {
       console.error("Failed to trigger emergency protocol:", error);
     }
   }
 
   const httpServer = createServer(app);
+  
+  // WebSocket server for live streaming and real-time communication
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws'
+  });
+
+  wss.on('connection', (ws, req) => {
+    console.log('New WebSocket connection');
+    
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        // Handle different message types
+        switch (data.type) {
+          case 'emergency_stream':
+            // Broadcast emergency stream to all connected clients
+            wss.clients.forEach(client => {
+              if (client !== ws && client.readyState === 1) {
+                client.send(JSON.stringify(data));
+              }
+            });
+            break;
+          
+          case 'location_update':
+            // Broadcast location updates during emergency
+            wss.clients.forEach(client => {
+              if (client !== ws && client.readyState === 1) {
+                client.send(JSON.stringify(data));
+              }
+            });
+            break;
+            
+          case 'join_stream':
+            // Handle joining emergency stream
+            ws.send(JSON.stringify({
+              type: 'stream_joined',
+              message: 'Connected to emergency stream'
+            }));
+            break;
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      console.log('WebSocket connection closed');
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+  });
+
   return httpServer;
 }

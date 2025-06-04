@@ -121,7 +121,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(emergencyContacts)
       .where(eq(emergencyContacts.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Emergency alerts operations
@@ -188,7 +188,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(safeZones)
       .where(eq(safeZones.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Live streaming operations
@@ -212,7 +212,7 @@ export class DatabaseStorage implements IStorage {
       .update(liveStreams)
       .set({ isActive: false, endedAt: new Date() })
       .where(eq(liveStreams.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Destinations operations
@@ -235,7 +235,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(destinations)
       .where(eq(destinations.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
