@@ -957,6 +957,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test OTP delivery route for debugging
+  app.post('/api/otp/test', async (req, res) => {
+    try {
+      const { type, identifier } = req.body;
+      const testOtp = "123456";
+      
+      console.log(`Testing ${type} OTP delivery to ${identifier}`);
+      
+      let result = false;
+      if (type === 'phone') {
+        result = await sendSMSOTP(identifier, testOtp);
+      } else if (type === 'email') {
+        result = await sendEmailOTP(identifier, testOtp);
+      }
+      
+      res.json({ 
+        success: result, 
+        message: result ? `Test OTP sent successfully` : `Failed to send test OTP`,
+        testOtp 
+      });
+    } catch (error) {
+      console.error('Test OTP error:', error);
+      res.status(500).json({ message: "Test failed", error: error.message });
+    }
+  });
+
   // Clean up expired OTPs periodically
   setInterval(async () => {
     try {
