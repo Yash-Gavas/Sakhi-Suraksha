@@ -350,42 +350,14 @@ export default function InteractiveMap() {
             ref={mapRef}
             className="h-80 rounded-lg relative overflow-hidden"
           >
-
-            {/* User Location */}
-            {userLocation && (
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
-                <div className="w-6 h-6 bg-blue-500 rounded-full border-4 border-white shadow-lg animate-pulse">
-                  <div className="w-full h-full bg-blue-600 rounded-full animate-ping"></div>
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-2 py-1 rounded text-xs whitespace-nowrap">
-                  You are here
+            {!userLocation && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-500">
+                <div className="text-center">
+                  <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-sm">Loading your location...</p>
                 </div>
               </div>
             )}
-
-            {/* Safety Points */}
-            {safetyPoints.map((point, index) => (
-              <div
-                key={point.id}
-                className="absolute z-10 cursor-pointer transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-transform"
-                style={{
-                  top: `${30 + (index * 15)}%`,
-                  left: `${25 + (index * 20)}%`
-                }}
-                onClick={() => setSelectedPoint(point)}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg shadow-lg border-2 border-white ${
-                  point.type === 'police' ? 'bg-red-500' :
-                  point.type === 'hospital' ? 'bg-blue-500' :
-                  point.type === 'transport' ? 'bg-green-500' : 'bg-yellow-500'
-                }`}>
-                  {getPointIcon(point.type)}
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-2 py-1 rounded text-xs whitespace-nowrap">
-                  {point.name}
-                </div>
-              </div>
-            ))}
 
             {/* Community Alerts */}
             {communityAlerts.map((alert, index) => (
