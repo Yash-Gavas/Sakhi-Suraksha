@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Shield, AlertTriangle, Target, Route, Phone, Activity } from "lucide-react";
 import { useLocation } from "@/hooks/use-location";
 import { useToast } from "@/hooks/use-toast";
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 interface SafetyPoint {
   id: string;
@@ -284,11 +286,60 @@ export default function InteractiveMap() {
     });
   };
 
-  const mapStyle = {
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    position: 'relative' as const,
-    overflow: 'hidden'
-  };
+  useEffect(() => {
+    if (userLocation && mapRef.current) {
+      // Initialize OpenStreetMap
+      const map = L.map(mapRef.current).setView([userLocation.lat, userLocation.lng], 15);
+      
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Add user location marker
+      const userIcon = L.divIcon({
+        html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>',
+        className: 'custom-div-icon',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      });
+      
+      L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
+        .addTo(map)
+        .bindPopup('You are here');
+
+      // Add safety points markers
+      safetyPoints.forEach((point) => {
+        const pointIcon = L.divIcon({
+          html: `<div class="w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-lg border-2 border-white ${
+            point.type === 'police' ? 'bg-red-500 text-white' :
+            point.type === 'hospital' ? 'bg-blue-500 text-white' :
+            point.type === 'transport' ? 'bg-green-500 text-white' : 'bg-yellow-500 text-black'
+          }">${getPointIcon(point.type)}</div>`,
+          className: 'custom-div-icon',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+
+        L.marker([point.lat, point.lng], { icon: pointIcon })
+          .addTo(map)
+          .bindPopup(`
+            <div class="p-2">
+              <h3 class="font-medium">${point.name}</h3>
+              <p class="text-sm text-gray-600">${point.distance ? `${point.distance.toFixed(1)} km away` : ''}</p>
+              <button onclick="window.open('https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${point.lat},${point.lng}', '_blank')" 
+                      class="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
+                Navigate
+              </button>
+            </div>
+          `);
+      });
+
+      return () => {
+        map.remove();
+      };
+    }
+  }, [userLocation, safetyPoints]);
 
   return (
     <div className="space-y-4">
@@ -297,20 +348,8 @@ export default function InteractiveMap() {
         <CardContent className="p-0">
           <div 
             ref={mapRef}
-            className="h-80 rounded-lg relative"
-            style={mapStyle}
+            className="h-80 rounded-lg relative overflow-hidden"
           >
-            {/* Map Grid Overlay */}
-            <div className="absolute inset-0 opacity-20">
-              <svg width="100%" height="100%" className="text-white">
-                <defs>
-                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1"/>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#grid)" />
-              </svg>
-            </div>
 
             {/* User Location */}
             {userLocation && (

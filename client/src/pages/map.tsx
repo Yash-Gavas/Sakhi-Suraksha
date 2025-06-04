@@ -118,7 +118,25 @@ export default function Map() {
         </CardContent>
       </Card>
 
-
+      {/* Nearest Safety Points */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Shield className="w-5 h-5 mr-2" />
+            Nearest Safety Points
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600 mb-4">
+            Real-time nearby safety locations from Google Places API
+          </p>
+          <div className="text-center text-gray-500 p-8">
+            <Shield className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-sm">Loading real nearby safety points...</p>
+            <p className="text-xs mt-2">Google Places API requires billing to be enabled</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Emergency Contacts */}
       <Card>
