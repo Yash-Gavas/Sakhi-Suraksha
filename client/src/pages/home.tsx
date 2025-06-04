@@ -104,30 +104,63 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Quick Actions Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <Link href="/profile-setup">
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center space-y-2 border-purple-200 hover:bg-purple-50">
-              <User className="w-6 h-6 text-purple-600" />
-              <span className="text-sm text-purple-600">Profile</span>
-            </Button>
-          </Link>
-          
-          <Link href="/iot-devices">
-            <Button variant="outline" className="h-20 flex flex-col items-center justify-center space-y-2 border-purple-200 hover:bg-purple-50">
-              <Signal className="w-6 h-6 text-purple-600" />
-              <span className="text-sm text-purple-600">IoT Devices</span>
-            </Button>
-          </Link>
-          
-          <Button 
-            variant="outline" 
-            className="h-20 flex flex-col items-center justify-center space-y-2 border-purple-200 hover:bg-purple-50"
-            onClick={() => window.open('/fake-call', '_blank')}
-          >
-            <PhoneCall className="w-6 h-6 text-purple-600" />
-            <span className="text-sm text-purple-600">Fake Call</span>
-          </Button>
+        {/* Feature Info Cards */}
+        <div className="space-y-4 mb-8">
+          <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-800">Voice SOS Activation</h4>
+                  <p className="text-sm text-gray-600">Say "Help me" or "Emergency" to trigger instant alerts</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-purple-200 bg-gradient-to-r from-blue-50 to-purple-50">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-800">Smart Safe Routes</h4>
+                  <p className="text-sm text-gray-600">AI-powered navigation avoiding unsafe areas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-purple-200 bg-gradient-to-r from-green-50 to-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <Signal className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-800">Live Location Sharing</h4>
+                  <p className="text-sm text-gray-600">Real-time tracking with emergency contacts</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-purple-200 bg-gradient-to-r from-orange-50 to-red-50">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                  <PhoneCall className="w-5 h-5 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-800">Fake Call Feature</h4>
+                  <p className="text-sm text-gray-600">Simulate incoming calls to escape situations</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Emergency Contacts Quick View */}
