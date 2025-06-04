@@ -7,9 +7,9 @@ export class UserSession {
     // Load existing session from localStorage
     this.userId = localStorage.getItem('sakhi_user_id');
     
-    // If no session exists, create a new unique user ID
+    // If no session exists, use demo-user for consistency
     if (!this.userId) {
-      this.userId = this.generateUserId();
+      this.userId = 'demo-user';
       localStorage.setItem('sakhi_user_id', this.userId);
     }
   }

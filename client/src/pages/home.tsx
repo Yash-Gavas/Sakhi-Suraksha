@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import EmergencyButton from "@/components/emergency-button";
-import VoiceDistressDetector from "@/components/voice-distress-detector";
+import SimpleVoiceDetector from "@/components/simple-voice-detector";
+import LiveStreaming from "@/components/live-streaming";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@/hooks/use-location";
 import { useVoiceRecognition } from "@/hooks/use-voice-recognition";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import type { EmergencyContact, HomeLocation, User as UserType } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
@@ -16,6 +17,7 @@ import { userSession } from "@/lib/userSession";
 export default function Home() {
   const { location, isLocationSharingActive } = useLocation();
   const { isListening, isSupported } = useVoiceRecognition();
+  const [autoStartStream, setAutoStartStream] = useState(false);
   
   const { data: user } = useQuery<UserType>({
     queryKey: ["/api/user/profile"],
@@ -122,11 +124,30 @@ export default function Home() {
           
           {/* Voice Distress Detection */}
           <div className="mb-6">
-            <VoiceDistressDetector 
+            <SimpleVoiceDetector 
+              onDistressDetected={(keyword) => {
+                console.log(`Distress keyword detected: ${keyword}`);
+                setAutoStartStream(true);
+              }}
               onEmergencyTriggered={() => {
-                // Optional: Add any additional actions when voice emergency is triggered
                 console.log('Voice emergency triggered from home page');
               }}
+            />
+          </div>
+
+          {/* Live Streaming Component */}
+          <div className="mb-6">
+            <LiveStreaming 
+              autoStart={autoStartStream}
+              onStreamStarted={(streamUrl) => {
+                console.log('Live stream started:', streamUrl);
+                setAutoStartStream(false);
+              }}
+              onStreamEnded={() => {
+                console.log('Live stream ended');
+                setAutoStartStream(false);
+              }}
+              emergencyMode={autoStartStream}
             />
           </div>
         </div>
