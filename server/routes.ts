@@ -1227,6 +1227,142 @@ Please contact immediately or call emergency services: 100, 101, 102, 108`;
     }
   });
 
+  // Live streaming endpoints
+  app.post('/api/live-stream/start', async (req, res) => {
+    try {
+      const { streamUrl, shareableLink, isEmergency } = req.body;
+      
+      // Create live stream record
+      const stream = await storage.createLiveStream({
+        userId: 'demo-user',
+        streamUrl,
+        shareLink: shareableLink,
+        isActive: true
+      });
+      
+      // If emergency mode, automatically share with contacts
+      if (isEmergency) {
+        const contacts = await storage.getEmergencyContacts('demo-user');
+        
+        const emergencyMessage = `🔴 EMERGENCY LIVE STREAM
+Watch live: ${shareableLink}
+This is an active emergency situation. Please monitor or contact immediately.
+Time: ${new Date().toLocaleString()}
+
+This message was sent automatically by Sakhi Suraksha app.`;
+
+        // Send stream link to all emergency contacts
+        contacts.forEach(async (contact) => {
+          if (contact.phoneNumber) {
+            try {
+              await sendSMSOTP(contact.phoneNumber, emergencyMessage);
+              console.log(`Emergency stream SMS sent to ${contact.name}: SUCCESS`);
+            } catch (error) {
+              console.error(`Emergency stream SMS error for ${contact.name}:`, error);
+            }
+          }
+          
+          if (contact.email) {
+            try {
+              await sendEmailOTP(contact.email, emergencyMessage);
+              console.log(`Emergency stream Email sent to ${contact.name}: SUCCESS`);
+            } catch (error) {
+              console.error(`Emergency stream Email error for ${contact.name}:`, error);
+            }
+          }
+        });
+      }
+      
+      res.json({
+        success: true,
+        streamId: stream.id,
+        shareableLink: stream.shareLink,
+        viewerCount: 0,
+        message: isEmergency ? 'Emergency stream started and shared with contacts' : 'Live stream started successfully'
+      });
+      
+    } catch (error) {
+      console.error('Live stream start error:', error);
+      res.status(500).json({ message: 'Failed to start live stream' });
+    }
+  });
+
+  app.post('/api/live-stream/end', async (req, res) => {
+    try {
+      const { streamUrl } = req.body;
+      
+      // Find and end the stream
+      const streams = await storage.getLiveStreams('demo-user');
+      const activeStream = streams.find(s => s.streamUrl === streamUrl && s.isActive);
+      
+      if (activeStream) {
+        await storage.endLiveStream(activeStream.id);
+      }
+      
+      res.json({
+        success: true,
+        message: 'Live stream ended successfully'
+      });
+      
+    } catch (error) {
+      console.error('Live stream end error:', error);
+      res.status(500).json({ message: 'Failed to end live stream' });
+    }
+  });
+
+  app.post('/api/emergency/share-stream', async (req, res) => {
+    try {
+      const { shareableLink, message } = req.body;
+      
+      // Get emergency contacts
+      const contacts = await storage.getEmergencyContacts('demo-user');
+      
+      if (contacts.length === 0) {
+        return res.status(400).json({ message: 'No emergency contacts configured' });
+      }
+      
+      // Send stream link to all contacts
+      const alertPromises = contacts.map(async (contact) => {
+        let smsSuccess = false;
+        let emailSuccess = false;
+        
+        if (contact.phoneNumber) {
+          try {
+            smsSuccess = await sendSMSOTP(contact.phoneNumber, message);
+            console.log(`Stream share SMS to ${contact.name}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
+          } catch (error) {
+            console.error(`Stream share SMS error for ${contact.name}:`, error);
+          }
+        }
+        
+        if (contact.email) {
+          try {
+            emailSuccess = await sendEmailOTP(contact.email, message);
+            console.log(`Stream share Email to ${contact.name}: ${emailSuccess ? 'SUCCESS' : 'FAILED'}`);
+          } catch (error) {
+            console.error(`Stream share Email error for ${contact.name}:`, error);
+          }
+        }
+        
+        return { contact: contact.name, smsSuccess, emailSuccess };
+      });
+      
+      const results = await Promise.allSettled(alertPromises);
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      
+      res.json({
+        success: successCount > 0,
+        alertsSent: successCount,
+        totalContacts: contacts.length,
+        message: `Stream link shared with ${successCount}/${contacts.length} contacts`
+      });
+      
+    } catch (error) {
+      console.error('Stream share error:', error);
+      res.status(500).json({ message: 'Failed to share stream link' });
+    }
+  });
+
   // Clean up expired OTPs periodically
   setInterval(async () => {
     try {
