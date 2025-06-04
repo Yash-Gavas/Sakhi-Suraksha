@@ -361,24 +361,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Destinations routes for safe routing
-  app.get("/api/destinations/:userId", isAuthenticated, async (req, res) => {
+  // Destinations routes for safe routing (permanent storage)
+  app.get("/api/destinations", async (req, res) => {
     try {
-      const userId = req.params.userId;
+      let userId = 'anonymous';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
       const destinations = await storage.getDestinations(userId);
       res.json(destinations);
     } catch (error) {
+      console.error('Error fetching destinations:', error);
       res.status(500).json({ message: "Failed to get destinations" });
     }
   });
 
-  app.post("/api/destinations", isAuthenticated, async (req, res) => {
+  app.post("/api/destinations", async (req, res) => {
     try {
-      const validatedData = insertDestinationSchema.parse(req.body);
+      let userId = 'anonymous';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      const destinationData = {
+        ...req.body,
+        userId: userId
+      };
+
+      const validatedData = insertDestinationSchema.parse(destinationData);
       const destination = await storage.createDestination(validatedData);
       res.status(201).json(destination);
     } catch (error) {
+      console.error('Error creating destination:', error);
       res.status(400).json({ message: "Failed to create destination" });
+    }
+  });
+
+  app.delete("/api/destinations/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteDestination(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Destination not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete destination" });
+    }
+  });
+
+  // Home location storage endpoints
+  app.post("/api/user/home-location", async (req, res) => {
+    try {
+      let userId = 'anonymous';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      const { latitude, longitude, address } = req.body;
+      
+      // Store as a special destination with type 'home'
+      const homeDestination = {
+        userId: userId,
+        name: 'Home',
+        latitude: latitude,
+        longitude: longitude,
+        address: address || `${latitude}, ${longitude}`,
+        type: 'home',
+        isActive: true
+      };
+
+      const validatedData = insertDestinationSchema.parse(homeDestination);
+      const destination = await storage.createDestination(validatedData);
+      res.status(201).json(destination);
+    } catch (error) {
+      console.error('Error saving home location:', error);
+      res.status(400).json({ message: "Failed to save home location" });
+    }
+  });
+
+  app.get("/api/user/home-location", async (req, res) => {
+    try {
+      let userId = 'anonymous';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
+      const destinations = await storage.getDestinations(userId);
+      const homeLocation = destinations.find(dest => dest.type === 'home');
+      
+      if (homeLocation) {
+        res.json(homeLocation);
+      } else {
+        res.status(404).json({ message: "Home location not set" });
+      }
+    } catch (error) {
+      console.error('Error fetching home location:', error);
+      res.status(500).json({ message: "Failed to get home location" });
     }
   });
 

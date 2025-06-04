@@ -20,8 +20,12 @@ export default function Destinations() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const { data: destinations = [], isLoading } = useQuery({
-    queryKey: ["/api/destinations", user?.id],
-    enabled: !!user?.id,
+    queryKey: ["/api/destinations"],
+    queryFn: async () => {
+      const response = await fetch("/api/destinations");
+      if (!response.ok) throw new Error("Failed to fetch destinations");
+      return response.json();
+    },
   });
 
   const createDestinationMutation = useMutation({
