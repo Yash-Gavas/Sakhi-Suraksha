@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,14 +7,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { upsertUserSchema, type UpsertUser } from "@shared/schema";
+import { upsertUserSchema, type UpsertUser, type User } from "@shared/schema";
 import OTPVerification from "@/components/otp-verification";
+import { userSession } from "@/lib/userSession";
 import { 
-  User, 
+  User as UserIcon, 
   Mail, 
   Phone, 
   Shield, 
@@ -216,10 +217,47 @@ export default function ProfileSetup() {
     },
   });
 
+  // Load existing profile on component mount
+  const { data: existingProfile } = useQuery<User>({
+    queryKey: ["/api/user/profile"],
+    queryFn: async () => {
+      const userId = userSession.getUserId();
+      const response = await fetch(`/api/user/profile?userId=${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch profile');
+      return response.json();
+    },
+    staleTime: 0,
+    refetchOnMount: true
+  });
+
+  // Update form with existing data if available
+  useEffect(() => {
+    if (existingProfile) {
+      form.reset({
+        firstName: existingProfile.firstName || "",
+        lastName: existingProfile.lastName || "",
+        email: existingProfile.email || "",
+        confirmEmail: existingProfile.email || "",
+        phoneNumber: existingProfile.phoneNumber?.replace(/^\+\d{1,3}/, '') || "",
+        emergencyMessage: existingProfile.emergencyMessage || "🚨 EMERGENCY ALERT 🚨\nI need immediate help! This is an automated SOS from Sakhi Suraksha app.\n\nLocation: [LIVE_LOCATION]\nTime: [TIMESTAMP]\nLive Stream: [STREAM_LINK]\n\nPlease contact me immediately or call emergency services.",
+        countryCode: "+91"
+      });
+      
+      // If profile exists, mark as verified
+      if (existingProfile.email) setIsEmailVerified(true);
+      if (existingProfile.phoneNumber) setIsPhoneVerified(true);
+      if (existingProfile.firstName && existingProfile.lastName) {
+        setStep(4); // Go directly to completion if profile exists
+      }
+    }
+  }, [existingProfile, form]);
+
   const handleBasicInfoSubmit = (data: ProfileSetupData) => {
-    // Save basic profile data
+    const userId = userSession.getUserId();
+    
+    // Save basic profile data with unique user ID
     const profileData: UpsertUser = {
-      id: 'demo-user', // Will be replaced with actual user ID in production
+      id: userId,
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,

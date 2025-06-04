@@ -38,11 +38,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile management routes
   app.post('/api/user/profile', async (req, res) => {
     try {
-      let userId = 'demo-user';
-      if (req.isAuthenticated() && req.user?.claims?.sub) {
-        userId = req.user.claims.sub;
-      }
-
+      // Use the user ID from the request body (set by frontend session management)
+      const userId = req.body.id || 'demo-user';
       const profileData = { ...req.body, id: userId };
       const validatedData = upsertUserSchema.parse(profileData);
       
@@ -56,12 +53,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/user/profile', async (req, res) => {
     try {
-      let userId = 'demo-user';
-      if (req.isAuthenticated() && req.user?.claims?.sub) {
-        userId = req.user.claims.sub;
-      }
-
-      const user = await storage.getUser(userId);
+      // Extract userId from query parameter (set by frontend)
+      const userId = req.query.userId || 'demo-user';
+      
+      const user = await storage.getUser(userId as string);
       if (user) {
         res.json(user);
       } else {

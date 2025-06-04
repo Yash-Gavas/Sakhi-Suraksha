@@ -10,13 +10,20 @@ import { useMemo } from "react";
 import { Link } from "wouter";
 import type { EmergencyContact, HomeLocation, User as UserType } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
+import { userSession } from "@/lib/userSession";
 
 export default function Home() {
   const { location, isLocationSharingActive } = useLocation();
   const { isListening, isSupported } = useVoiceRecognition();
   
   const { data: user } = useQuery<UserType>({
-    queryKey: ["/api/user/profile"]
+    queryKey: ["/api/user/profile"],
+    queryFn: async () => {
+      const userId = userSession.getUserId();
+      const response = await fetch(`/api/user/profile?userId=${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch profile');
+      return response.json();
+    }
   });
 
   const { data: emergencyContacts = [] } = useQuery<EmergencyContact[]>({
