@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User, Bell, Shield, Phone, Save, Palette, Moon, Sun, LogOut, Mic, Camera, Volume2, MapPin, Check, X, Mail } from "lucide-react";
+import { User, Bell, Shield, Phone, Save, Palette, Moon, Sun, LogOut, Mic, Camera, Volume2, MapPin, Check, X, Mail, Watch, Bluetooth } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVoiceRecognition } from "@/hooks/use-voice-recognition";
 import { useLocation } from "@/hooks/use-location";
@@ -479,6 +479,37 @@ export default function Settings() {
                 Allow location access to set current location as home
               </p>
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* IoT Device Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Watch className="w-5 h-5 mr-2" />
+            Smart Device Connection
+          </CardTitle>
+          <CardDescription>
+            Connect your smartwatch and IoT devices for enhanced safety monitoring
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Smartwatch Integration</Label>
+              <p className="text-sm text-gray-500">
+                Connect your smartwatch for health monitoring and emergency triggers
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = '/iot-devices'}
+              className="flex items-center gap-2"
+            >
+              <Bluetooth className="w-4 h-4" />
+              Manage Devices
+            </Button>
           </div>
         </CardContent>
       </Card>

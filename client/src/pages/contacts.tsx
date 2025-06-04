@@ -152,26 +152,40 @@ export default function Contacts() {
       name: contact.name || '',
       phoneNumber: phoneWithoutCode,
       relationship: contact.relationship || '',
-      isActive: contact.isActive ?? true,
-      isPrimary: contact.isPrimary ?? false
+      isActive: contact.isActive !== null ? contact.isActive : true,
+      isPrimary: contact.isPrimary !== null ? contact.isPrimary : false
     });
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = (data: InsertEmergencyContact) => {
-    const fullPhoneNumber = selectedCountryCode + data.phoneNumber.replace(/\D/g, '');
-    const contactData = {
-      ...data,
-      phoneNumber: fullPhoneNumber
-    };
+  const handleSubmit = async (data: InsertEmergencyContact) => {
+    try {
+      console.log('Form submitted with data:', data);
+      console.log('Form errors:', form.formState.errors);
+      
+      const fullPhoneNumber = selectedCountryCode + data.phoneNumber.replace(/\D/g, '');
+      const contactData = {
+        ...data,
+        phoneNumber: fullPhoneNumber
+      };
 
-    if (editingContact) {
-      updateContactMutation.mutate({ 
-        id: editingContact.id, 
-        data: contactData 
+      console.log('Submitting contact data:', contactData);
+
+      if (editingContact) {
+        updateContactMutation.mutate({ 
+          id: editingContact.id, 
+          data: contactData 
+        });
+      } else {
+        createContactMutation.mutate(contactData);
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit form. Please try again.",
+        variant: "destructive",
       });
-    } else {
-      createContactMutation.mutate(contactData);
     }
   };
 
