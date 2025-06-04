@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import EmergencyButton from "@/components/emergency-button";
+import VoiceDistressDetector from "@/components/voice-distress-detector";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@/hooks/use-location";
 import { useVoiceRecognition } from "@/hooks/use-voice-recognition";
@@ -115,8 +116,18 @@ export default function Home() {
         {/* Emergency SOS Section */}
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-red-600 mb-6">Emergency SOS</h2>
-          <div className="flex justify-center">
+          <div className="flex justify-center mb-6">
             <EmergencyButton />
+          </div>
+          
+          {/* Voice Distress Detection */}
+          <div className="mb-6">
+            <VoiceDistressDetector 
+              onEmergencyTriggered={() => {
+                // Optional: Add any additional actions when voice emergency is triggered
+                console.log('Voice emergency triggered from home page');
+              }}
+            />
           </div>
         </div>
 

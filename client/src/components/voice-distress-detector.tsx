@@ -49,7 +49,7 @@ export default function VoiceDistressDetector({
   const [isProcessing, setIsProcessing] = useState(false);
   const [recentTranscripts, setRecentTranscripts] = useState<string[]>([]);
   
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<CustomSpeechRecognition | null>(null);
   const detectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
@@ -102,8 +102,8 @@ export default function VoiceDistressDetector({
       return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
+    const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionClass() as CustomSpeechRecognition;
     
     recognition.continuous = true;
     recognition.interimResults = true;
