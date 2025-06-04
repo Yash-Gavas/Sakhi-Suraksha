@@ -61,17 +61,53 @@ export function useVoiceRecognition() {
     try {
       toast({
         title: "Emergency Command Detected",
-        description: `Heard: "${detectedPhrase}" - Triggering emergency protocol`,
+        description: `Voice command: "${detectedPhrase}" - Activating emergency protocol`,
         variant: "default",
       });
 
-      if (location) {
-        await triggerEmergencyProtocol({
-          userId: 1, // Demo user ID
-          triggerType: 'voice',
-          latitude: location.latitude,
-          longitude: location.longitude,
-          address: `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+      // Get current location for emergency alert
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          try {
+            const response = await fetch('/api/emergency-alerts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                triggerType: 'voice_activation',
+                latitude,
+                longitude,
+                address: `Emergency location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+                audioRecordingUrl: null,
+                videoRecordingUrl: null
+              })
+            });
+
+            if (response.ok) {
+              toast({
+                title: "Emergency Alert Sent",
+                description: "Your emergency contacts have been notified with your location",
+                variant: "default",
+              });
+            } else {
+              throw new Error('Failed to send emergency alert');
+            }
+          } catch (error) {
+            console.error('Failed to send emergency alert:', error);
+            toast({
+              title: "Alert Failed",
+              description: "Emergency alert could not be sent. Please try manual SOS.",
+              variant: "destructive",
+            });
+          }
+        }, (error) => {
+          console.error('Geolocation error:', error);
+          toast({
+            title: "Location Error",
+            description: "Could not get location for emergency alert",
+            variant: "destructive",
+          });
         });
       }
 
