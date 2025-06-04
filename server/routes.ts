@@ -143,9 +143,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/emergency-contacts", async (req, res) => {
     try {
-      let userId = 'anonymous';
+      let userId = 'demo-user';
       if (req.isAuthenticated() && req.user?.claims?.sub) {
         userId = req.user.claims.sub;
+      }
+
+      // Ensure demo user exists
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        await storage.upsertUser({
+          id: userId,
+          email: 'demo@example.com',
+          firstName: 'Demo',
+          lastName: 'User'
+        });
       }
 
       const contactData = {
