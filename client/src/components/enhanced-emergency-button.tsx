@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Phone, Camera, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import type { EmergencyContact } from "@shared/schema";
 import LiveStreaming from "./live-streaming";
 
 interface EmergencyAlert {
@@ -22,11 +24,10 @@ export default function EnhancedEmergencyButton() {
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const demoEmergencyContacts = [
-    { name: "Mom", phone: "+919876543211", relationship: "Mother", isPrimary: true },
-    { name: "Best Friend", phone: "+919876543212", relationship: "Friend", isPrimary: false },
-    { name: "Brother", phone: "+919876543213", relationship: "Sibling", isPrimary: false }
-  ];
+  // Fetch real emergency contacts from database
+  const { data: emergencyContacts = [] } = useQuery<EmergencyContact[]>({
+    queryKey: ["/api/emergency-contacts"]
+  });
 
   const triggerEmergencyProtocol = async (triggerType: string) => {
     setIsTriggering(true);
@@ -145,11 +146,22 @@ Emergency Contacts:
 
 This is an automated safety alert. Please respond urgently.`;
 
-    // Simulate sending SMS to all emergency contacts
-    for (const contact of demoEmergencyContacts) {
+    // Send SMS to all emergency contacts from database
+    const activeContacts = emergencyContacts.filter(contact => contact.isActive);
+    
+    if (activeContacts.length === 0) {
+      toast({
+        title: "No Emergency Contacts",
+        description: "Please add emergency contacts in your profile to receive alerts",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    for (const contact of activeContacts) {
       try {
         // In production, this would use actual SMS API (Twilio, etc.)
-        console.log(`📱 SMS sent to ${contact.name} (${contact.phone}):`);
+        console.log(`📱 SMS sent to ${contact.name} (${contact.phoneNumber}):`);
         console.log(messageTemplate);
         
         // Show individual contact notifications
@@ -159,7 +171,7 @@ This is an automated safety alert. Please respond urgently.`;
             description: `${contact.relationship} notified with emergency details and live location`,
             variant: "default",
           });
-        }, 1000 * (demoEmergencyContacts.indexOf(contact) + 1));
+        }, 1000 * (activeContacts.indexOf(contact) + 1));
         
       } catch (error) {
         console.error(`Failed to send message to ${contact.name}:`, error);
@@ -341,28 +353,35 @@ This is an automated safety alert. Please respond urgently.`;
 
       {/* Emergency Contacts Preview */}
       <div className="w-full max-w-md">
-        <p className="text-sm font-medium text-gray-700 mb-2">Emergency Contacts ({demoEmergencyContacts.length})</p>
+        <p className="text-sm font-medium text-gray-700 mb-2">Emergency Contacts ({emergencyContacts.filter(c => c.isActive).length})</p>
         <div className="space-y-2">
-          {demoEmergencyContacts.map((contact, index) => (
-            <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
-              <div>
-                <p className="text-sm font-medium">{contact.name}</p>
-                <p className="text-xs text-gray-500">{contact.relationship}</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                {contact.isPrimary && (
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Primary</span>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => quickEmergencyCall(contact.phone.replace(/[^\d]/g, ''), contact.name)}
-                >
-                  <Phone className="w-3 h-3" />
-                </Button>
-              </div>
+          {emergencyContacts.filter(contact => contact.isActive).length === 0 ? (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+              <p className="text-sm text-yellow-700">No emergency contacts added</p>
+              <p className="text-xs text-yellow-600 mt-1">Add contacts in your profile to enable emergency messaging</p>
             </div>
-          ))}
+          ) : (
+            emergencyContacts.filter(contact => contact.isActive).slice(0, 3).map((contact) => (
+              <div key={contact.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">{contact.name}</p>
+                  <p className="text-xs text-gray-500">{contact.relationship}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {contact.isPrimary && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Primary</span>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => quickEmergencyCall(contact.phoneNumber.replace(/[^\d]/g, ''), contact.name)}
+                  >
+                    <Phone className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
