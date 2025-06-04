@@ -65,24 +65,7 @@ export default function Map() {
       {/* Interactive Map */}
       <InteractiveMap />
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-4">
-        <Button 
-          className="h-20 flex flex-col space-y-2 bg-gradient-to-r from-blue-500 to-blue-600"
-          onClick={() => {}}
-        >
-          <Navigation className="w-6 h-6" />
-          <span className="text-sm">Find Safe Route</span>
-        </Button>
-        
-        <Button 
-          className="h-20 flex flex-col space-y-2 bg-gradient-to-r from-green-500 to-green-600"
-          onClick={() => {}}
-        >
-          <Shield className="w-6 h-6" />
-          <span className="text-sm">Safe Zones</span>
-        </Button>
-      </div>
+
 
       {/* Community Alerts */}
       <Card>

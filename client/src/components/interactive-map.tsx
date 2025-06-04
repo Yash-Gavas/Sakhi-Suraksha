@@ -29,6 +29,7 @@ export default function InteractiveMap() {
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<SafetyPoint | null>(null);
   const [showRoute, setShowRoute] = useState(false);
+  const [nearestPoints, setNearestPoints] = useState<SafetyPoint[]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
@@ -112,6 +113,10 @@ export default function InteractiveMap() {
           
           setSafetyPoints(pointsWithDistances);
           
+          // Sort by distance and get 4 nearest points
+          const sortedPoints = pointsWithDistances.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+          setNearestPoints(sortedPoints.slice(0, 4));
+          
           toast({
             title: "Location Found",
             description: `Accuracy: ${Math.round(accuracy)}m. Found ${pointsWithDistances.length} nearby safety points`,
@@ -150,6 +155,10 @@ export default function InteractiveMap() {
             distance: calculateDistance(defaultLat, defaultLng, point.lat, point.lng)
           }));
           setSafetyPoints(pointsWithDistances);
+          
+          // Sort by distance and get 4 nearest points
+          const sortedPoints = pointsWithDistances.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+          setNearestPoints(sortedPoints.slice(0, 4));
         },
         {
           enableHighAccuracy: true,
@@ -398,30 +407,112 @@ export default function InteractiveMap() {
         </Card>
       )}
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-4">
-        <Button 
-          className="h-16 flex flex-col space-y-1 bg-gradient-to-r from-green-500 to-green-600"
-          onClick={() => {
-            const nearestPolice = safetyPoints.find(p => p.type === 'police');
-            if (nearestPolice) startNavigation(nearestPolice);
-          }}
-        >
-          <Shield className="w-5 h-5" />
-          <span className="text-sm">Nearest Police</span>
-        </Button>
-        
-        <Button 
-          className="h-16 flex flex-col space-y-1 bg-gradient-to-r from-blue-500 to-blue-600"
-          onClick={() => {
-            const nearestHospital = safetyPoints.find(p => p.type === 'hospital');
-            if (nearestHospital) startNavigation(nearestHospital);
-          }}
-        >
-          <AlertTriangle className="w-5 h-5" />
-          <span className="text-sm">Nearest Hospital</span>
-        </Button>
-      </div>
+      {/* Dynamic Nearest Safety Points */}
+      {nearestPoints.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Shield className="w-5 h-5 mr-2" />
+              Nearest Safety Points
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {nearestPoints.map((point) => (
+                <div key={point.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      point.type === 'police' ? 'bg-red-100' :
+                      point.type === 'hospital' ? 'bg-blue-100' :
+                      point.type === 'transport' ? 'bg-green-100' : 'bg-yellow-100'
+                    }`}>
+                      {point.type === 'police' && <Phone className="w-4 h-4 text-red-600" />}
+                      {point.type === 'hospital' && <Activity className="w-4 h-4 text-blue-600" />}
+                      {point.type === 'transport' && <Navigation className="w-4 h-4 text-green-600" />}
+                      {point.type === 'safe_zone' && <Shield className="w-4 h-4 text-yellow-600" />}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{point.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {point.distance ? `${point.distance.toFixed(1)} km away` : 'Calculating distance...'}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => startNavigation(point)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Navigation className="w-3 h-3 mr-1" />
+                    Navigate
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Safe Route Finder */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Route className="w-5 h-5 mr-2" />
+            Safe Route Finder
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <Button 
+              className="h-16 flex flex-col space-y-1 bg-gradient-to-r from-green-500 to-green-600"
+              onClick={() => {
+                const nearestPolice = safetyPoints.find(p => p.type === 'police');
+                if (nearestPolice && userLocation) {
+                  const mapsUrl = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${nearestPolice.lat},${nearestPolice.lng}`;
+                  window.open(mapsUrl, '_blank');
+                  toast({
+                    title: "Safe Route to Police",
+                    description: "Opening directions in Google Maps",
+                  });
+                } else {
+                  toast({
+                    title: "Location Required",
+                    description: "Please enable location access for navigation",
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              <Shield className="w-5 h-5" />
+              <span className="text-sm">Route to Police</span>
+            </Button>
+            
+            <Button 
+              className="h-16 flex flex-col space-y-1 bg-gradient-to-r from-blue-500 to-blue-600"
+              onClick={() => {
+                const nearestHospital = safetyPoints.find(p => p.type === 'hospital');
+                if (nearestHospital && userLocation) {
+                  const mapsUrl = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${nearestHospital.lat},${nearestHospital.lng}`;
+                  window.open(mapsUrl, '_blank');
+                  toast({
+                    title: "Safe Route to Hospital",
+                    description: "Opening directions in Google Maps",
+                  });
+                } else {
+                  toast({
+                    title: "Location Required",
+                    description: "Please enable location access for navigation",
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              <AlertTriangle className="w-5 h-5" />
+              <span className="text-sm">Route to Hospital</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
