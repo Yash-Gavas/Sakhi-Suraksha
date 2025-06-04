@@ -1025,6 +1025,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Voice distress emergency trigger
+  app.post('/api/emergency-alert/voice-trigger', async (req, res) => {
+    try {
+      const { triggerType, keyword, confidence, location } = req.body;
+      
+      console.log(`Voice distress detected: "${keyword}" with ${confidence} confidence`);
+      
+      // Get user's emergency contacts
+      const contacts = await storage.getEmergencyContacts('demo-user');
+      
+      if (contacts.length === 0) {
+        return res.status(400).json({ message: 'No emergency contacts configured' });
+      }
+      
+      // Create emergency alert record
+      const alert = await storage.createEmergencyAlert({
+        userId: 'demo-user',
+        triggerType: `voice_distress_${keyword}`,
+        latitude: location.lat,
+        longitude: location.lng,
+        address: location.address
+      });
+      
+      // Enhanced message for voice distress
+      const baseMessage = `🚨 VOICE DISTRESS EMERGENCY 🚨
+AUTOMATED ALERT - Voice keyword "${keyword}" detected
+Confidence: ${Math.round(confidence * 100)}%
+Time: ${new Date().toLocaleString()}
+Location: ${location.address}
+Live Location: https://maps.google.com/maps?q=${location.lat},${location.lng}
+
+This is an automated emergency alert from Sakhi Suraksha app.
+Please contact immediately or call emergency services: 100, 101, 102, 108`;
+
+      // Send alerts to all contacts
+      const alertPromises = contacts.map(async (contact) => {
+        const message = baseMessage.replace('[CONTACT_NAME]', contact.name);
+        
+        let smsSuccess = false;
+        let whatsappSuccess = false;
+        let emailSuccess = false;
+        
+        // Send SMS if phone number exists
+        if (contact.phoneNumber) {
+          try {
+            smsSuccess = await sendSMSOTP(contact.phoneNumber, message);
+            console.log(`Voice Alert SMS to ${contact.phoneNumber}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
+          } catch (error) {
+            console.error(`Voice Alert SMS error for ${contact.phoneNumber}:`, error);
+          }
+        }
+        
+        // Send WhatsApp if phone number exists
+        if (contact.phoneNumber) {
+          try {
+            whatsappSuccess = await sendWhatsAppMessage(contact.phoneNumber, message);
+            console.log(`Voice Alert WhatsApp to ${contact.phoneNumber}: ${whatsappSuccess ? 'SUCCESS' : 'FAILED'}`);
+          } catch (error) {
+            console.error(`Voice Alert WhatsApp error for ${contact.phoneNumber}:`, error);
+          }
+        }
+        
+        // Send email if email exists
+        if (contact.email) {
+          try {
+            emailSuccess = await sendEmailOTP(contact.email, message);
+            console.log(`Voice Alert Email to ${contact.email}: ${emailSuccess ? 'SUCCESS' : 'FAILED'}`);
+          } catch (error) {
+            console.error(`Voice Alert Email error for ${contact.email}:`, error);
+          }
+        }
+        
+        return { contact: contact.name, smsSuccess, whatsappSuccess, emailSuccess };
+      });
+      
+      const results = await Promise.allSettled(alertPromises);
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      
+      res.json({
+        success: successCount > 0,
+        alertsSent: successCount,
+        totalContacts: contacts.length,
+        keyword,
+        confidence,
+        message: `Voice distress alert sent to ${successCount}/${contacts.length} contacts`
+      });
+      
+    } catch (error) {
+      console.error('Voice distress alert error:', error);
+      res.status(500).json({ message: 'Failed to process voice distress alert' });
+    }
+  });
+
   // Emergency alert sending endpoint
   app.post('/api/emergency/send-alert', async (req, res) => {
     try {
