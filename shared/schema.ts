@@ -37,6 +37,7 @@ export const emergencyContacts = pgTable("emergency_contacts", {
   userId: varchar("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   phoneNumber: text("phone_number").notNull(),
+  email: text("email"),
   relationship: text("relationship"),
   isPrimary: boolean("is_primary").default(false),
   isActive: boolean("is_active").default(true),

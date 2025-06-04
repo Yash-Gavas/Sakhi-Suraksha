@@ -1017,6 +1017,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Emergency alert sending endpoint
+  app.post('/api/emergency/send-alert', async (req, res) => {
+    try {
+      const { contactId, contactName, phoneNumber, email, message, emergencyData } = req.body;
+      
+      console.log(`Sending emergency alert to ${contactName}...`);
+      
+      let smsSuccess = false;
+      let emailSuccess = false;
+      
+      // Send SMS if phone number exists
+      if (phoneNumber) {
+        try {
+          smsSuccess = await sendSMSOTP(phoneNumber, message);
+          console.log(`SMS to ${phoneNumber}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
+        } catch (error) {
+          console.error(`SMS error for ${phoneNumber}:`, error);
+        }
+      }
+      
+      // Send email if email exists
+      if (email) {
+        try {
+          emailSuccess = await sendEmailOTP(email, message);
+          console.log(`Email to ${email}: ${emailSuccess ? 'SUCCESS' : 'FAILED'}`);
+        } catch (error) {
+          console.error(`Email error for ${email}:`, error);
+        }
+      }
+      
+      // Save emergency alert record
+      try {
+        await storage.createEmergencyAlert({
+          userId: 'demo-user', // Use actual user ID in production
+          triggerType: emergencyData.triggerType,
+          latitude: emergencyData.location.lat,
+          longitude: emergencyData.location.lng,
+          address: emergencyData.location.address
+        });
+      } catch (error) {
+        console.error('Failed to save emergency alert:', error);
+      }
+      
+      const success = smsSuccess || emailSuccess;
+      res.json({
+        success,
+        smsSuccess,
+        emailSuccess,
+        message: success ? 'Emergency alert sent successfully' : 'Failed to send emergency alert'
+      });
+      
+    } catch (error) {
+      console.error('Emergency alert error:', error);
+      res.status(500).json({ message: 'Failed to send emergency alert' });
+    }
+  });
+
+  // Test SMS and Email services
+  app.post('/api/test-services', async (req, res) => {
+    try {
+      const { phoneNumber, email } = req.body;
+      
+      const testMessage = "Test message from Sakhi Suraksha emergency system. This is a connectivity test.";
+      
+      let smsResult = { success: false, error: null };
+      let emailResult = { success: false, error: null };
+      
+      // Test SMS if phone number provided
+      if (phoneNumber) {
+        try {
+          smsResult.success = await sendSMSOTP(phoneNumber, testMessage);
+        } catch (error) {
+          smsResult.error = error.message;
+        }
+      }
+      
+      // Test Email if email provided
+      if (email) {
+        try {
+          emailResult.success = await sendEmailOTP(email, testMessage);
+        } catch (error) {
+          emailResult.error = error.message;
+        }
+      }
+      
+      res.json({
+        sms: smsResult,
+        email: emailResult,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('Service test error:', error);
+      res.status(500).json({ message: 'Service test failed', error: error.message });
+    }
+  });
+
   // Clean up expired OTPs periodically
   setInterval(async () => {
     try {
