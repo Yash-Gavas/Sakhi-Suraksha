@@ -1079,10 +1079,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Failed to save emergency alert:', error);
       }
       
-      const success = smsSuccess || emailSuccess;
+      const success = smsSuccess || whatsappSuccess || emailSuccess;
       res.json({
         success,
         smsSuccess,
+        whatsappSuccess,
         emailSuccess,
         message: success ? 'Emergency alert sent successfully' : 'Failed to send emergency alert'
       });

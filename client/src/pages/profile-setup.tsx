@@ -300,7 +300,7 @@ export default function ProfileSetup() {
     setCurrentPhone(selectedCountryCode + (data.phoneNumber || '').replace(/\D/g, ''));
     
     saveProfileMutation.mutate(profileData);
-    setStep(2); // Move to email verification
+    setStep(2); // Move to phone verification
   };
 
   const handleEmailVerified = () => {
@@ -354,20 +354,6 @@ export default function ProfileSetup() {
               <FormLabel>Email Address</FormLabel>
               <FormControl>
                 <Input placeholder="Enter your email address" type="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="confirmEmail"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Confirm Email Address</FormLabel>
-              <FormControl>
-                <Input placeholder="Confirm your email address" type="email" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -441,7 +427,7 @@ export default function ProfileSetup() {
           disabled={saveProfileMutation.isPending}
           className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
         >
-          {saveProfileMutation.isPending ? "Saving..." : "Continue to Email Verification"}
+          {saveProfileMutation.isPending ? "Saving..." : "Continue to Phone Verification"}
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </form>
@@ -449,24 +435,6 @@ export default function ProfileSetup() {
   );
 
   const renderStep2 = () => (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold mb-2">Email Verification</h3>
-        <p className="text-gray-600">
-          Verify your email address to secure your account
-        </p>
-      </div>
-      
-      <OTPVerification
-        identifier={currentEmail}
-        type="email"
-        onVerified={handleEmailVerified}
-        onCancel={() => setStep(1)}
-      />
-    </div>
-  );
-
-  const renderStep3 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h3 className="text-lg font-semibold mb-2">Phone Verification</h3>
@@ -479,7 +447,7 @@ export default function ProfileSetup() {
         identifier={currentPhone}
         type="phone"
         onVerified={handlePhoneVerified}
-        onCancel={() => setStep(2)}
+        onCancel={() => setStep(1)}
       />
     </div>
   );
