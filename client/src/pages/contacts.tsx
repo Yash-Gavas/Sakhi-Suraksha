@@ -233,15 +233,14 @@ export default function Contacts() {
                           <FormControl>
                             <Input 
                               placeholder="1234567890" 
-                              {...field} 
                               className="flex-1"
                               onChange={(e) => {
                                 // Remove any non-numeric characters and combine with country code
                                 const cleanNumber = e.target.value.replace(/\D/g, '');
-                                const fullNumber = selectedCountryCode + cleanNumber;
+                                const fullNumber = cleanNumber ? selectedCountryCode + cleanNumber : '';
                                 field.onChange(fullNumber);
                               }}
-                              value={field.value?.replace(selectedCountryCode, '') || ''}
+                              value={field.value ? field.value.replace(selectedCountryCode, '') : ''}
                             />
                           </FormControl>
                         </div>
