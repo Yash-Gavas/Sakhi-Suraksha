@@ -24,7 +24,7 @@ function Router() {
   return (
     <div className="max-w-mobile mx-auto bg-gradient-to-br from-pink-50 to-purple-50 min-h-screen relative">
       <Switch>
-        <Route path="/" component={DemoHome} />
+        <Route path="/" component={Home} />
         <Route path="/map" component={Map} />
         <Route path="/contacts" component={Contacts} />
         <Route path="/settings" component={Settings} />
