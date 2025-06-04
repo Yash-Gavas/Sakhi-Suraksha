@@ -189,9 +189,9 @@ export default function IoTDeviceManager() {
   const scanForBluetoothDevices = async () => {
     if (!('bluetooth' in navigator)) {
       toast({
-        title: "Bluetooth Not Available",
-        description: "Please use Chrome, Edge, or Opera browser for Bluetooth device scanning. You can add devices manually instead.",
-        variant: "destructive",
+        title: "Manual Device Setup",
+        description: "Safari browser doesn't support Bluetooth scanning. Please add your smartwatch device manually using the form below.",
+        variant: "default",
       });
       return;
     }
@@ -344,21 +344,26 @@ export default function IoTDeviceManager() {
                 </DialogHeader>
                 
                 <div className="space-y-4">
-                  {/* Bluetooth Scan Button */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={scanForBluetoothDevices}
-                    disabled={isScanning}
-                    className="w-full"
-                  >
-                    {isScanning ? (
-                      <BluetoothSearching className="w-4 h-4 mr-2 animate-pulse" />
-                    ) : (
-                      <Bluetooth className="w-4 h-4 mr-2" />
-                    )}
-                    {isScanning ? "Scanning for devices..." : "Scan for Bluetooth Devices"}
-                  </Button>
+                  {/* Bluetooth Scan Button - Safari compatible */}
+                  <div className="space-y-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={scanForBluetoothDevices}
+                      disabled={isScanning}
+                      className="w-full"
+                    >
+                      {isScanning ? (
+                        <BluetoothSearching className="w-4 h-4 mr-2 animate-pulse" />
+                      ) : (
+                        <Bluetooth className="w-4 h-4 mr-2" />
+                      )}
+                      {isScanning ? "Scanning for devices..." : "Scan for Bluetooth Devices"}
+                    </Button>
+                    <p className="text-xs text-gray-500 text-center">
+                      Safari users: Use manual setup below if scanning doesn't work
+                    </p>
+                  </div>
 
                   {/* Selected Bluetooth Device */}
                   {selectedBluetoothDevice && (
