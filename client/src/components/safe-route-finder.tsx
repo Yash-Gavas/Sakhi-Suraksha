@@ -97,14 +97,22 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
     
     // Add home if available
     if (homeLocation) {
+      const homeDistance = location ? calculateDistance(
+        location.latitude,
+        location.longitude,
+        homeLocation.latitude,
+        homeLocation.longitude
+      ).toFixed(2) : "0.0";
+      
       destinations.push({
         name: "Home",
         address: homeLocation.address || "Your Home Location",
-        coords: { lat: homeLocation.latitude, lng: homeLocation.longitude }
+        coords: { lat: homeLocation.latitude, lng: homeLocation.longitude },
+        distance: homeDistance
       });
     }
     
-    // Add nearby places
+    // Add nearby places with their real names and distances
     destinations.push(...nearbyPlaces);
     
     return destinations;
@@ -274,12 +282,14 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
                 size="sm"
                 onClick={() => findSafeRoute(dest.name)}
                 disabled={isSearching}
-                className="h-auto p-2 flex flex-col items-center text-center"
+                className="h-16 p-2 flex flex-col items-center justify-center text-center overflow-hidden"
               >
-                <MapPin className="w-4 h-4 mb-1" />
-                <span className="text-xs font-medium">{dest.name}</span>
+                <MapPin className="w-3 h-3 mb-1 flex-shrink-0" />
+                <span className="text-xs font-medium truncate w-full leading-tight">
+                  {dest.name.length > 15 ? dest.name.substring(0, 15) + "..." : dest.name}
+                </span>
                 {dest.distance && (
-                  <span className="text-xs text-green-600">{dest.distance} km</span>
+                  <span className="text-xs text-green-600 flex-shrink-0">{dest.distance} km</span>
                 )}
               </Button>
             ))}
