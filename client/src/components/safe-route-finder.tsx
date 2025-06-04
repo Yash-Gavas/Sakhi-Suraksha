@@ -435,12 +435,12 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
-                <Button onClick={startNavigation} className="flex-1 bg-green-600 hover:bg-green-700">
+              <div className="flex gap-3 pt-2">
+                <Button onClick={startNavigation} className="flex-1 bg-green-600 hover:bg-green-700 h-11">
                   <Navigation className="w-4 h-4 mr-2" />
                   Start Navigation
                 </Button>
-                <Button onClick={shareRoute} variant="outline" className="flex-1">
+                <Button onClick={shareRoute} variant="outline" className="flex-1 h-11">
                   <Share2 className="w-4 h-4 mr-2" />
                   Share Route
                 </Button>
