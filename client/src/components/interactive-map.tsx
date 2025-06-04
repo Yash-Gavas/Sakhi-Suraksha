@@ -182,21 +182,22 @@ export default function InteractiveMap() {
             variant: "destructive",
           });
           
-          // Use default location and generate points for demo
+          // Use default location and fetch real places for demo
           const defaultLat = 12.9716;
           const defaultLng = 77.5946;
           setUserLocation({ lat: defaultLat, lng: defaultLng });
           
-          const demoPoints = generateNearbyPoints(defaultLat, defaultLng);
-          const pointsWithDistances = demoPoints.map(point => ({
-            ...point,
-            distance: calculateDistance(defaultLat, defaultLng, point.lat, point.lng)
-          }));
-          setSafetyPoints(pointsWithDistances);
-          
-          // Sort by distance and get 4 nearest points
-          const sortedPoints = pointsWithDistances.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-          setNearestPoints(sortedPoints.slice(0, 4));
+          // Fetch real nearby places for default location
+          fetchNearbyPlaces(defaultLat, defaultLng).then(realNearbyPlaces => {
+            setSafetyPoints(realNearbyPlaces);
+            setNearestPoints(realNearbyPlaces.slice(0, 4));
+          }).catch(error => {
+            console.error('Error fetching places for default location:', error);
+            // Only use fallback if API completely fails
+            const fallbackPoints = generateFallbackPoints(defaultLat, defaultLng);
+            setSafetyPoints(fallbackPoints);
+            setNearestPoints(fallbackPoints.slice(0, 4));
+          });
         },
         {
           enableHighAccuracy: true,
@@ -205,12 +206,28 @@ export default function InteractiveMap() {
         }
       );
     } else {
-      toast({
-        title: "Geolocation Not Supported",
-        description: "Your browser doesn't support location services",
-        variant: "destructive",
-      });
-      setUserLocation({ lat: 12.9716, lng: 77.5946 });
+      (async () => {
+        toast({
+          title: "Geolocation Not Supported",
+          description: "Your browser doesn't support location services. Using Bangalore as demo location.",
+          variant: "destructive",
+        });
+        
+        const demoLat = 12.9716;
+        const demoLng = 77.5946;
+        setUserLocation({ lat: demoLat, lng: demoLng });
+        
+        // Fetch real nearby places for demo location
+        fetchNearbyPlaces(demoLat, demoLng).then(realNearbyPlaces => {
+          setSafetyPoints(realNearbyPlaces);
+          setNearestPoints(realNearbyPlaces.slice(0, 4));
+        }).catch(error => {
+          console.error('Error fetching places for demo location:', error);
+          const fallbackPoints = generateFallbackPoints(demoLat, demoLng);
+          setSafetyPoints(fallbackPoints);
+          setNearestPoints(fallbackPoints.slice(0, 4));
+        });
+      })();
     }
   };
 

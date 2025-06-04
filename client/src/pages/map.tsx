@@ -48,12 +48,7 @@ export default function Map() {
     }
   ];
 
-  const safetyPoints = [
-    { name: "Police Station", distance: "0.3 km", type: "emergency" },
-    { name: "Hospital", distance: "0.8 km", type: "medical" },
-    { name: "Metro Station", distance: "0.5 km", type: "transport" },
-    { name: "24/7 Store", distance: "0.2 km", type: "safe_zone" }
-  ];
+
 
   return (
     <div className="p-4 pb-24 space-y-6">
@@ -123,42 +118,7 @@ export default function Map() {
         </CardContent>
       </Card>
 
-      {/* Nearby Safety Points */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Shield className="w-5 h-5 mr-2" />
-            Nearby Safety Points
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {safetyPoints.map((point, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    point.type === 'emergency' ? 'bg-red-100' :
-                    point.type === 'medical' ? 'bg-blue-100' :
-                    point.type === 'transport' ? 'bg-green-100' : 'bg-yellow-100'
-                  }`}>
-                    {point.type === 'emergency' && <Phone className="w-4 h-4 text-red-600" />}
-                    {point.type === 'medical' && <Activity className="w-4 h-4 text-blue-600" />}
-                    {point.type === 'transport' && <Navigation className="w-4 h-4 text-green-600" />}
-                    {point.type === 'safe_zone' && <Shield className="w-4 h-4 text-yellow-600" />}
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{point.name}</p>
-                    <p className="text-xs text-gray-500">{point.distance}</p>
-                  </div>
-                </div>
-                <Button size="sm" variant="outline">
-                  Navigate
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Emergency Contacts */}
       <Card>
