@@ -28,7 +28,7 @@ export default function Contacts() {
   });
 
   const form = useForm<InsertEmergencyContact>({
-    resolver: zodResolver(insertEmergencyContactSchema),
+    resolver: zodResolver(insertEmergencyContactSchema.omit({ userId: true })),
     defaultValues: {
       name: "",
       phoneNumber: "",
