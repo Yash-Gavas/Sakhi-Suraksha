@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,12 +32,76 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
     return R * c;
   };
 
-  const predefinedSafeDestinations = [
-    { name: "Home", address: "Safe Zone: Home Area", coords: { lat: 28.6129, lng: 77.2295 } },
-    { name: "Police Station", address: "Nearest Police Station", coords: { lat: 28.6139, lng: 77.2090 } },
-    { name: "Hospital", address: "All India Institute of Medical Sciences", coords: { lat: 28.5672, lng: 77.2100 } },
-    { name: "Metro Station", address: "Connaught Place Metro", coords: { lat: 28.6328, lng: 77.2197 } }
-  ];
+  const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([]);
+  const [homeLocation, setHomeLocation] = useState<any>(null);
+
+  // Fetch user's home location and nearby places
+  useEffect(() => {
+    const fetchLocationData = async () => {
+      if (!location) return;
+
+      try {
+        // Fetch home location from database
+        const homeResponse = await fetch('/api/user/home-location');
+        if (homeResponse.ok) {
+          const home = await homeResponse.json();
+          setHomeLocation(home);
+        }
+
+        // Fetch nearby safety points
+        const placesTypes = [
+          { type: 'police', query: 'police station' },
+          { type: 'hospital', query: 'hospital' },
+          { type: 'transport', query: 'metro station' }
+        ];
+
+        const places = [];
+        for (const placeType of placesTypes) {
+          const response = await fetch(
+            `/api/places/nearby?latitude=${location.latitude}&longitude=${location.longitude}&type=${placeType.type}&radius=5000`
+          );
+          if (response.ok) {
+            const data = await response.json();
+            if (data.results && data.results.length > 0) {
+              const nearest = data.results[0];
+              places.push({
+                name: placeType.type === 'police' ? 'Police Station' : 
+                      placeType.type === 'hospital' ? 'Hospital' : 'Metro Station',
+                address: nearest.name,
+                coords: {
+                  lat: nearest.geometry.location.lat,
+                  lng: nearest.geometry.location.lng
+                }
+              });
+            }
+          }
+        }
+        setNearbyPlaces(places);
+      } catch (error) {
+        console.error('Error fetching location data:', error);
+      }
+    };
+
+    fetchLocationData();
+  }, [location]);
+
+  const getSafeDestinations = () => {
+    const destinations = [];
+    
+    // Add home if available
+    if (homeLocation) {
+      destinations.push({
+        name: "Home",
+        address: homeLocation.address || "Your Home Location",
+        coords: { lat: homeLocation.latitude, lng: homeLocation.longitude }
+      });
+    }
+    
+    // Add nearby places
+    destinations.push(...nearbyPlaces);
+    
+    return destinations;
+  };
 
   const findSafeRoute = async (dest?: string) => {
     if (!dest && !destination.trim()) {
@@ -58,14 +122,15 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
       // Find destination coordinates
       let destCoords;
       
-      // First check predefined destinations
-      const predefinedDest = predefinedSafeDestinations.find(d => 
+      // First check real safe destinations from database and nearby places
+      const safeDestinations = getSafeDestinations();
+      const foundDest = safeDestinations.find(d => 
         d.name.toLowerCase().includes(selectedDest.toLowerCase()) ||
         selectedDest.toLowerCase().includes(d.name.toLowerCase())
       );
       
-      if (predefinedDest) {
-        destCoords = predefinedDest.coords;
+      if (foundDest) {
+        destCoords = foundDest.coords;
       } else {
         // Try to search for the destination using Google Places API
         try {
