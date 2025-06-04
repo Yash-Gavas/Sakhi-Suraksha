@@ -30,6 +30,7 @@ export default function Settings() {
   const [lastName, setLastName] = useState("User");
   const [email, setEmail] = useState("demo@sakhisuraksha.com");
   const [phoneNumber, setPhoneNumber] = useState("+919876543210");
+  const [selectedCountryCode, setSelectedCountryCode] = useState("+91");
   const [homeAddress, setHomeAddress] = useState("");
   const [isSettingHomeLocation, setIsSettingHomeLocation] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
@@ -367,12 +368,35 @@ export default function Settings() {
           <div>
             <Label htmlFor="phone">Phone Number</Label>
             <div className="flex gap-2">
+              <Select 
+                value={selectedCountryCode} 
+                onValueChange={setSelectedCountryCode}
+              >
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                  <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                  <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                  <SelectItem value="+86">🇨🇳 +86</SelectItem>
+                  <SelectItem value="+81">🇯🇵 +81</SelectItem>
+                  <SelectItem value="+49">🇩🇪 +49</SelectItem>
+                  <SelectItem value="+33">🇫🇷 +33</SelectItem>
+                  <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                  <SelectItem value="+55">🇧🇷 +55</SelectItem>
+                  <SelectItem value="+7">🇷🇺 +7</SelectItem>
+                </SelectContent>
+              </Select>
               <Input
                 id="phone"
                 type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Enter your phone number"
+                value={phoneNumber.replace(selectedCountryCode, '')}
+                onChange={(e) => {
+                  const cleanNumber = e.target.value.replace(/\D/g, '');
+                  setPhoneNumber(selectedCountryCode + cleanNumber);
+                }}
+                placeholder="9876543210"
                 className="flex-1"
               />
               <div className="flex items-center gap-2">

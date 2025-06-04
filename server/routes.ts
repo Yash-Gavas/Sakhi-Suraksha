@@ -425,22 +425,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Home location storage endpoints
   app.post("/api/user/home-location", async (req, res) => {
     try {
-      let userId = 'anonymous';
+      let userId = 'demo-user';
       if (req.isAuthenticated() && req.user?.claims?.sub) {
         userId = req.user.claims.sub;
       }
 
+      // Ensure demo user exists
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        await storage.upsertUser({
+          id: userId,
+          email: 'demo@example.com',
+          firstName: 'Demo',
+          lastName: 'User'
+        });
+      }
+
       const { latitude, longitude, address } = req.body;
       
-      // Store as a special destination with type 'home'
+      // Store as a destination marked as favorite (home)
       const homeDestination = {
         userId: userId,
         name: 'Home',
         latitude: latitude,
         longitude: longitude,
         address: address || `${latitude}, ${longitude}`,
-        type: 'home',
-        isActive: true
+        isFavorite: true
       };
 
       const validatedData = insertDestinationSchema.parse(homeDestination);
@@ -454,13 +464,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/user/home-location", async (req, res) => {
     try {
-      let userId = 'anonymous';
+      let userId = 'demo-user';
       if (req.isAuthenticated() && req.user?.claims?.sub) {
         userId = req.user.claims.sub;
       }
       
       const destinations = await storage.getDestinations(userId);
-      const homeLocation = destinations.find(dest => dest.type === 'home');
+      const homeLocation = destinations.find(dest => dest.isFavorite === true);
       
       if (homeLocation) {
         res.json(homeLocation);
