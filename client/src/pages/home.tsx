@@ -1,4 +1,4 @@
-import { Shield, CheckCircle, Clock } from "lucide-react";
+import { Shield, CheckCircle, Clock, User, Signal, MapPin, PhoneCall, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -103,6 +103,75 @@ export default function Home() {
             </Button>
           </Link>
         </div>
+
+        {/* Quick Actions Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <Link href="/profile-setup">
+            <Button variant="outline" className="h-20 flex flex-col items-center justify-center space-y-2 border-purple-200 hover:bg-purple-50">
+              <User className="w-6 h-6 text-purple-600" />
+              <span className="text-sm text-purple-600">Profile</span>
+            </Button>
+          </Link>
+          
+          <Link href="/iot-devices">
+            <Button variant="outline" className="h-20 flex flex-col items-center justify-center space-y-2 border-purple-200 hover:bg-purple-50">
+              <Signal className="w-6 h-6 text-purple-600" />
+              <span className="text-sm text-purple-600">IoT Devices</span>
+            </Button>
+          </Link>
+          
+          <Link href="/destinations">
+            <Button variant="outline" className="h-20 flex flex-col items-center justify-center space-y-2 border-purple-200 hover:bg-purple-50">
+              <MapPin className="w-6 h-6 text-purple-600" />
+              <span className="text-sm text-purple-600">Destinations</span>
+            </Button>
+          </Link>
+          
+          <Button 
+            variant="outline" 
+            className="h-20 flex flex-col items-center justify-center space-y-2 border-purple-200 hover:bg-purple-50"
+            onClick={() => window.open('/fake-call', '_blank')}
+          >
+            <PhoneCall className="w-6 h-6 text-purple-600" />
+            <span className="text-sm text-purple-600">Fake Call</span>
+          </Button>
+        </div>
+
+        {/* Emergency Contacts Quick View */}
+        {emergencyContacts.length > 0 && (
+          <Card className="mb-8 border-purple-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-800">Quick Contacts</h3>
+                <Link href="/contacts">
+                  <Button variant="ghost" size="sm" className="text-purple-600">
+                    View All
+                  </Button>
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {emergencyContacts.slice(0, 3).map((contact) => (
+                  <div key={contact.id} className="flex items-center justify-between p-2 bg-purple-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-purple-200 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <span className="font-medium text-gray-800">{contact.name}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-purple-600"
+                      onClick={() => window.open(`tel:${contact.phoneNumber}`, '_self')}
+                    >
+                      <Phone className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
