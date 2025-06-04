@@ -212,7 +212,7 @@ export default function Contacts() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center py-8">Loading contacts...</div>
         </div>
@@ -221,7 +221,7 @@ export default function Contacts() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
