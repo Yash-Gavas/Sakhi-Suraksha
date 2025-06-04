@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import DemoHome from "@/pages/demo-home";
 import Map from "@/pages/map";
 import Contacts from "@/pages/contacts";
 import Settings from "@/pages/settings";
@@ -21,27 +22,18 @@ function Router() {
   return (
     <div className="max-w-mobile mx-auto bg-gradient-to-br from-pink-50 to-purple-50 min-h-screen relative">
       <Switch>
-        {isLoading || !isAuthenticated ? (
-          <Route path="/" component={Landing} />
-        ) : (
-          <>
-            <Route path="/" component={Home} />
-            <Route path="/map" component={Map} />
-            <Route path="/contacts" component={Contacts} />
-            <Route path="/settings" component={Settings} />
-            <Route path="/destinations" component={Destinations} />
-          </>
-        )}
+        <Route path="/" component={DemoHome} />
+        <Route path="/map" component={Map} />
+        <Route path="/contacts" component={Contacts} />
+        <Route path="/settings" component={Settings} />
+        <Route path="/destinations" component={Destinations} />
+        <Route path="/auth" component={Landing} />
         <Route component={NotFound} />
       </Switch>
       
-      {isAuthenticated && (
-        <>
-          <BottomNavigation />
-          <VoiceIndicator />
-          <FakeCallOverlay />
-        </>
-      )}
+      <BottomNavigation />
+      <VoiceIndicator />
+      <FakeCallOverlay />
     </div>
   );
 }

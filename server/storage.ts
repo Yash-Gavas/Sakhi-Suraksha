@@ -1,3 +1,5 @@
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 import {
   users,
   emergencyContacts,
@@ -21,8 +23,6 @@ import {
   type Destination,
   type InsertDestination
 } from "@shared/schema";
-import { db } from "./db";
-import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
