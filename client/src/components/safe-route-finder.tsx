@@ -21,6 +21,17 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
   const { location } = useLocation();
   const { toast } = useToast();
 
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
   const predefinedSafeDestinations = [
     { name: "Home", address: "Safe Zone: Home Area", coords: { lat: 28.6129, lng: 77.2295 } },
     { name: "Police Station", address: "Nearest Police Station", coords: { lat: 28.6139, lng: 77.2090 } },
@@ -29,22 +40,56 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
   ];
 
   const findSafeRoute = async (dest?: string) => {
+    if (!dest && !destination.trim()) {
+      toast({
+        title: "Enter Destination",
+        description: "Please enter a destination to find a safe route",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSearching(true);
     
     try {
-      // Get current location
       const currentLocation = location || { latitude: 28.6139, longitude: 77.2090 };
-      
-      // Simulate route calculation with safety considerations
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
       const selectedDest = dest || destination;
-      const predefinedDest = predefinedSafeDestinations.find(d => d.name === selectedDest);
+      
+      // Try to geocode the destination using Google Maps
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(selectedDest)}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+      
+      let destCoords;
+      try {
+        const response = await fetch(geocodeUrl);
+        const data = await response.json();
+        
+        if (data.status === 'OK' && data.results.length > 0) {
+          destCoords = {
+            lat: data.results[0].geometry.location.lat,
+            lng: data.results[0].geometry.location.lng
+          };
+        }
+      } catch (error) {
+        console.log('Geocoding not available, using predefined locations');
+      }
+      
+      // Fall back to predefined destinations if geocoding fails
+      if (!destCoords) {
+        const predefinedDest = predefinedSafeDestinations.find(d => 
+          d.name.toLowerCase().includes(selectedDest.toLowerCase())
+        );
+        destCoords = predefinedDest?.coords || { lat: 28.6139, lng: 77.2090 };
+      }
+      
+      // Start navigation to the destination
+      const googleMapsUrl = `https://www.google.com/maps/dir/${currentLocation.latitude},${currentLocation.longitude}/${destCoords.lat},${destCoords.lng}`;
+      window.open(googleMapsUrl, '_blank');
       
       const safeRoute = {
-        destination: selectedDest || "Entered Destination",
-        distance: "2.3 km",
-        duration: "8 minutes",
+        destination: selectedDest,
+        coordinates: destCoords,
+        distance: `${calculateDistance(currentLocation.latitude, currentLocation.longitude, destCoords.lat, destCoords.lng).toFixed(1)} km`,
+        duration: "Calculating...",
         safetyScore: 85,
         wellLitStreets: 78,
         policePetrolling: 92,

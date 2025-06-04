@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Shield, AlertTriangle, Phone, Users, Clock, Activity, Route } from "lucide-react";
 import InteractiveMap from "@/components/interactive-map";
 import SafeRouteFinder from "@/components/safe-route-finder";
+import SafetyIssueReporter from "@/components/safety-issue-reporter";
 
 interface CommunityAlert {
   id: number;
@@ -77,9 +78,12 @@ export default function Map() {
       {/* Community Alerts */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <AlertTriangle className="w-5 h-5 mr-2" />
-            Community Alerts
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              Community Alerts
+            </div>
+            <SafetyIssueReporter />
           </CardTitle>
         </CardHeader>
         <CardContent>
