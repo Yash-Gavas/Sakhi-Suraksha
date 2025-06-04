@@ -1,133 +1,97 @@
 import { useState, useEffect, useCallback } from "react";
-import { triggerEmergencyProtocol } from "@/lib/emergency";
-import { useLocation } from "./use-location";
-import { useToast } from "./use-toast";
+
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 
 export function useVoiceRecognition() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-  const { location } = useLocation();
-  const { toast } = useToast();
+  const [isSupported, setIsSupported] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
-      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      setIsSupported(true);
       const recognitionInstance = new SpeechRecognition();
       
       recognitionInstance.continuous = true;
       recognitionInstance.interimResults = true;
-      recognitionInstance.lang = "en-US";
+      recognitionInstance.lang = 'en-US';
 
       recognitionInstance.onstart = () => {
         setIsListening(true);
+        setPermissionError(null);
       };
 
       recognitionInstance.onend = () => {
         setIsListening(false);
       };
 
-      recognitionInstance.onresult = (event) => {
-        const current = event.resultIndex;
-        const transcript = event.results[current][0].transcript.toLowerCase();
-        setTranscript(transcript);
-
-        // Check for emergency keywords
-        const emergencyKeywords = ["help me", "help", "emergency", "sos"];
-        const isEmergency = emergencyKeywords.some(keyword => 
-          transcript.includes(keyword)
-        );
-
-        if (isEmergency && event.results[current].isFinal) {
-          handleEmergencyDetected(transcript);
+      recognitionInstance.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setPermissionError('Microphone access denied. Please enable microphone permissions in your browser settings.');
+        } else if (event.error === 'network') {
+          setPermissionError('Network error. Please check your internet connection.');
+        } else {
+          setPermissionError(`Voice recognition error: ${event.error}`);
         }
       };
 
-      recognitionInstance.onerror = (event) => {
-        console.error("Speech recognition error:", event.error);
-        setIsListening(false);
-        toast({
-          title: "Voice Recognition Error",
-          description: "Unable to access microphone. Please check permissions.",
-          variant: "destructive",
-        });
+      recognitionInstance.onresult = (event: any) => {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          }
+        }
+        
+        if (finalTranscript) {
+          setTranscript(finalTranscript);
+          checkForEmergencyKeywords(finalTranscript);
+        }
       };
 
       setRecognition(recognitionInstance);
+    } else {
+      setIsSupported(false);
+      setPermissionError('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
     }
-  }, [location, toast]);
+  }, []);
 
-  const handleEmergencyDetected = useCallback(async (detectedPhrase: string) => {
-    try {
-      toast({
-        title: "Emergency Command Detected",
-        description: `Voice command: "${detectedPhrase}" - Activating emergency protocol`,
-        variant: "default",
-      });
-
-      // Get current location for emergency alert
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(async (position) => {
-          const { latitude, longitude } = position.coords;
-          
-          try {
-            const response = await fetch('/api/emergency-alerts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                triggerType: 'voice_activation',
-                latitude,
-                longitude,
-                address: `Emergency location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-                audioRecordingUrl: null,
-                videoRecordingUrl: null
-              })
-            });
-
-            if (response.ok) {
-              toast({
-                title: "Emergency Alert Sent",
-                description: "Your emergency contacts have been notified with your location",
-                variant: "default",
-              });
-            } else {
-              throw new Error('Failed to send emergency alert');
-            }
-          } catch (error) {
-            console.error('Failed to send emergency alert:', error);
-            toast({
-              title: "Alert Failed",
-              description: "Emergency alert could not be sent. Please try manual SOS.",
-              variant: "destructive",
-            });
-          }
-        }, (error) => {
-          console.error('Geolocation error:', error);
-          toast({
-            title: "Location Error",
-            description: "Could not get location for emergency alert",
-            variant: "destructive",
-          });
-        });
+  const checkForEmergencyKeywords = (text: string) => {
+    const emergencyKeywords = ['help me', 'emergency', 'danger', 'help', 'police', 'call 911', 'sos', 'assistance'];
+    const lowerText = text.toLowerCase();
+    
+    for (const keyword of emergencyKeywords) {
+      if (lowerText.includes(keyword)) {
+        console.log('Emergency keyword detected:', keyword);
+        // Trigger emergency alert
+        window.dispatchEvent(new CustomEvent('voiceEmergency', { 
+          detail: { keyword, transcript: text } 
+        }));
+        break;
       }
-
-      stopListening();
-    } catch (error) {
-      toast({
-        title: "Emergency Alert Failed",
-        description: "Failed to send emergency alert. Please try manual SOS.",
-        variant: "destructive",
-      });
     }
-  }, [location, toast]);
+  };
 
   const startListening = useCallback(() => {
     if (recognition && !isListening) {
-      setTranscript("");
       try {
         recognition.start();
       } catch (error) {
-        console.error("Error starting recognition:", error);
+        console.error('Failed to start recognition:', error);
+        setPermissionError('Failed to start voice recognition. Please check browser permissions.');
       }
     }
   }, [recognition, isListening]);
@@ -138,19 +102,25 @@ export function useVoiceRecognition() {
     }
   }, [recognition, isListening]);
 
+  const requestMicrophonePermission = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+      setPermissionError(null);
+      return true;
+    } catch (error) {
+      setPermissionError('Microphone permission denied. Please enable microphone access in browser settings.');
+      return false;
+    }
+  }, []);
+
   return {
     isListening,
     transcript,
+    isSupported,
     startListening,
     stopListening,
-    isSupported: !!recognition,
+    permissionError,
+    requestMicrophonePermission
   };
-}
-
-// Extend the Window interface for TypeScript
-declare global {
-  interface Window {
-    webkitSpeechRecognition: any;
-    SpeechRecognition: any;
-  }
 }

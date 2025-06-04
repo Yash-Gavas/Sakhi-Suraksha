@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Shield, AlertTriangle, Phone, Users, Clock, Activity } from "lucide-react";
+import InteractiveMap from "@/components/interactive-map";
 
 interface CommunityAlert {
   id: number;
@@ -61,18 +62,8 @@ export default function Map() {
         <p className="text-gray-600">Real-time safety information and navigation</p>
       </div>
 
-      {/* Map Placeholder */}
-      <Card className="border-0 shadow-lg">
-        <CardContent className="p-6">
-          <div className="h-64 bg-gradient-to-br from-blue-100 to-green-100 rounded-lg flex items-center justify-center">
-            <div className="text-center">
-              <MapPin className="w-12 h-12 text-blue-600 mx-auto mb-2" />
-              <p className="text-lg font-semibold text-gray-700">Interactive Safety Map</p>
-              <p className="text-sm text-gray-500">Your location and nearby safety points</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Interactive Map */}
+      <InteractiveMap />
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4">
