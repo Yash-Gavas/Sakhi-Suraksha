@@ -33,37 +33,38 @@ export default function InteractiveMap() {
   
   const { toast } = useToast();
 
-  // Demo safety points around a central location
-  const safetyPoints: SafetyPoint[] = [
-    {
-      id: '1',
-      name: 'City Police Station',
-      type: 'police',
-      lat: 12.9716,
-      lng: 77.5946,
-    },
-    {
-      id: '2',
-      name: 'General Hospital',
-      type: 'hospital',
-      lat: 12.9721,
-      lng: 77.5933,
-    },
-    {
-      id: '3',
-      name: 'Metro Station',
-      type: 'transport',
-      lat: 12.9711,
-      lng: 77.5940,
-    },
-    {
-      id: '4',
-      name: 'Safe Zone - Mall',
-      type: 'safe_zone',
-      lat: 12.9725,
-      lng: 77.5952,
-    }
-  ];
+  const [safetyPoints, setSafetyPoints] = useState<SafetyPoint[]>([]);
+
+  const generateNearbyPoints = (userLat: number, userLng: number): SafetyPoint[] => {
+    // Generate safety points within 2km radius of user location
+    const points: SafetyPoint[] = [];
+    const pointTypes = [
+      { type: 'police' as const, names: ['Police Station', 'Police Outpost', 'Security Checkpoint'] },
+      { type: 'hospital' as const, names: ['General Hospital', 'Medical Center', 'Emergency Clinic'] },
+      { type: 'transport' as const, names: ['Metro Station', 'Bus Terminal', 'Railway Station'] },
+      { type: 'safe_zone' as const, names: ['Shopping Mall', '24/7 Store', 'Hotel', 'Government Office'] }
+    ];
+
+    pointTypes.forEach((category, categoryIndex) => {
+      for (let i = 0; i < 2; i++) {
+        // Generate random coordinates within 2km radius
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = Math.random() * 0.02; // ~2km in degrees
+        const offsetLat = radius * Math.cos(angle);
+        const offsetLng = radius * Math.sin(angle);
+        
+        points.push({
+          id: `${categoryIndex}-${i}`,
+          name: category.names[i % category.names.length],
+          type: category.type,
+          lat: userLat + offsetLat,
+          lng: userLng + offsetLng,
+        });
+      }
+    });
+
+    return points;
+  };
 
   const communityAlerts: CommunityAlert[] = [
     {
@@ -92,27 +93,76 @@ export default function InteractiveMap() {
 
   const getCurrentLocation = () => {
     if ('geolocation' in navigator) {
+      toast({
+        title: "Requesting Location",
+        description: "Please allow location access for accurate positioning",
+      });
+      
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude } = position.coords;
+          const { latitude, longitude, accuracy } = position.coords;
           setUserLocation({ lat: latitude, lng: longitude });
+          
+          // Generate safety points around user's actual location
+          const nearbyPoints = generateNearbyPoints(latitude, longitude);
+          const pointsWithDistances = nearbyPoints.map(point => ({
+            ...point,
+            distance: calculateDistance(latitude, longitude, point.lat, point.lng)
+          }));
+          
+          setSafetyPoints(pointsWithDistances);
+          
           toast({
             title: "Location Found",
-            description: "Your current location has been updated on the map",
+            description: `Accuracy: ${Math.round(accuracy)}m. Found ${pointsWithDistances.length} nearby safety points`,
           });
         },
         (error) => {
           console.error('Geolocation error:', error);
-          // Use Bangalore as default location
-          setUserLocation({ lat: 12.9716, lng: 77.5946 });
+          let errorMessage = "Location access denied";
+          
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = "Please enable location permissions in your browser settings";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "Location information is unavailable";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "Location request timed out";
+              break;
+          }
+          
           toast({
-            title: "Using Default Location",
-            description: "Enable location services for accurate positioning",
-            variant: "default",
+            title: "Location Error",
+            description: errorMessage,
+            variant: "destructive",
           });
+          
+          // Use default location and generate points for demo
+          const defaultLat = 12.9716;
+          const defaultLng = 77.5946;
+          setUserLocation({ lat: defaultLat, lng: defaultLng });
+          
+          const demoPoints = generateNearbyPoints(defaultLat, defaultLng);
+          const pointsWithDistances = demoPoints.map(point => ({
+            ...point,
+            distance: calculateDistance(defaultLat, defaultLng, point.lat, point.lng)
+          }));
+          setSafetyPoints(pointsWithDistances);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
         }
       );
     } else {
+      toast({
+        title: "Geolocation Not Supported",
+        description: "Your browser doesn't support location services",
+        variant: "destructive",
+      });
       setUserLocation({ lat: 12.9716, lng: 77.5946 });
     }
   };
