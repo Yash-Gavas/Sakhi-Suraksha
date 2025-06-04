@@ -9,7 +9,11 @@ import {
   insertCommunityAlertSchema,
   insertSafeZoneSchema,
   insertLiveStreamSchema,
-  insertDestinationSchema
+  insertDestinationSchema,
+  insertIotDeviceSchema,
+  insertHealthMetricSchema,
+  insertStressAnalysisSchema,
+  upsertUserSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -637,6 +641,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "SMS sent successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to send SMS" });
+    }
+  });
+
+  // IoT Device Management Routes
+  app.get("/api/iot-devices", async (req, res) => {
+    try {
+      let userId = 'demo-user';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      const devices = await storage.getIotDevices(userId);
+      res.json(devices);
+    } catch (error) {
+      console.error('Error fetching IoT devices:', error);
+      res.status(500).json({ message: "Failed to get IoT devices" });
+    }
+  });
+
+  app.post("/api/iot-devices", async (req, res) => {
+    try {
+      let userId = 'demo-user';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      // Ensure demo user exists
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        await storage.upsertUser({
+          id: userId,
+          email: 'demo@example.com',
+          firstName: 'Demo',
+          lastName: 'User'
+        });
+      }
+
+      const deviceData = {
+        ...req.body,
+        userId: userId
+      };
+
+      const validatedData = insertIotDeviceSchema.parse(deviceData);
+      const device = await storage.createIotDevice(validatedData);
+      res.status(201).json(device);
+    } catch (error) {
+      console.error('Error creating IoT device:', error);
+      res.status(400).json({ message: "Failed to create IoT device" });
+    }
+  });
+
+  app.post("/api/iot-devices/:id/connect", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.id);
+      const success = await storage.connectDevice(deviceId);
+      
+      if (success) {
+        res.json({ message: "Device connected successfully" });
+      } else {
+        res.status(404).json({ message: "Device not found" });
+      }
+    } catch (error) {
+      console.error('Error connecting device:', error);
+      res.status(500).json({ message: "Failed to connect device" });
+    }
+  });
+
+  app.post("/api/iot-devices/:id/disconnect", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.id);
+      const success = await storage.disconnectDevice(deviceId);
+      
+      if (success) {
+        res.json({ message: "Device disconnected successfully" });
+      } else {
+        res.status(404).json({ message: "Device not found" });
+      }
+    } catch (error) {
+      console.error('Error disconnecting device:', error);
+      res.status(500).json({ message: "Failed to disconnect device" });
+    }
+  });
+
+  app.delete("/api/iot-devices/:id", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.id);
+      const success = await storage.deleteIotDevice(deviceId);
+      
+      if (success) {
+        res.json({ message: "Device deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Device not found" });
+      }
+    } catch (error) {
+      console.error('Error deleting device:', error);
+      res.status(500).json({ message: "Failed to delete device" });
+    }
+  });
+
+  // Health Metrics Routes
+  app.get("/api/health-metrics", async (req, res) => {
+    try {
+      let userId = 'demo-user';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const metrics = await storage.getHealthMetrics(userId, limit);
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error fetching health metrics:', error);
+      res.status(500).json({ message: "Failed to get health metrics" });
+    }
+  });
+
+  app.post("/api/health-metrics", async (req, res) => {
+    try {
+      let userId = 'demo-user';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      const metricData = {
+        ...req.body,
+        userId: userId
+      };
+
+      const validatedData = insertHealthMetricSchema.parse(metricData);
+      const metric = await storage.createHealthMetric(validatedData);
+      res.status(201).json(metric);
+    } catch (error) {
+      console.error('Error creating health metric:', error);
+      res.status(400).json({ message: "Failed to create health metric" });
+    }
+  });
+
+  // Stress Analysis Routes
+  app.get("/api/stress-analysis", async (req, res) => {
+    try {
+      let userId = 'demo-user';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const analysis = await storage.getStressAnalysis(userId, limit);
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error fetching stress analysis:', error);
+      res.status(500).json({ message: "Failed to get stress analysis" });
+    }
+  });
+
+  app.post("/api/stress-analysis", async (req, res) => {
+    try {
+      let userId = 'demo-user';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      const analysisData = {
+        ...req.body,
+        userId: userId
+      };
+
+      const validatedData = insertStressAnalysisSchema.parse(analysisData);
+      const analysis = await storage.createStressAnalysis(validatedData);
+      res.status(201).json(analysis);
+    } catch (error) {
+      console.error('Error creating stress analysis:', error);
+      res.status(400).json({ message: "Failed to create stress analysis" });
     }
   });
 

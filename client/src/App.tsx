@@ -12,6 +12,8 @@ import Contacts from "@/pages/contacts";
 import Settings from "@/pages/settings";
 import Landing from "@/pages/landing";
 import Destinations from "@/pages/destinations";
+import ProfileSetup from "@/pages/profile-setup";
+import IoTDeviceManager from "@/components/iot-device-manager";
 import BottomNavigation from "@/components/bottom-navigation";
 import VoiceIndicator from "@/components/voice-indicator";
 import FakeCallOverlay from "@/components/fake-call-overlay";
@@ -27,6 +29,8 @@ function Router() {
         <Route path="/contacts" component={Contacts} />
         <Route path="/settings" component={Settings} />
         <Route path="/destinations" component={Destinations} />
+        <Route path="/iot-devices" component={IoTDeviceManager} />
+        <Route path="/profile-setup" component={ProfileSetup} />
         <Route path="/auth" component={Landing} />
         <Route component={NotFound} />
       </Switch>
