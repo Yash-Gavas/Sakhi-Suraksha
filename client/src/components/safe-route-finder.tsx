@@ -282,14 +282,20 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
                 size="sm"
                 onClick={() => findSafeRoute(dest.name)}
                 disabled={isSearching}
-                className="h-16 p-2 flex flex-col items-center justify-center text-center overflow-hidden"
+                className="h-20 p-2 flex flex-col items-center justify-center text-center overflow-hidden w-full"
               >
                 <MapPin className="w-3 h-3 mb-1 flex-shrink-0" />
-                <span className="text-xs font-medium truncate w-full leading-tight">
-                  {dest.name.length > 15 ? dest.name.substring(0, 15) + "..." : dest.name}
+                <span className="text-xs font-medium text-center leading-tight max-w-full break-words hyphens-auto px-1" style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  wordBreak: 'break-word'
+                }}>
+                  {dest.name}
                 </span>
                 {dest.distance && (
-                  <span className="text-xs text-green-600 flex-shrink-0">{dest.distance} km</span>
+                  <span className="text-xs text-green-600 flex-shrink-0 mt-1">{dest.distance} km</span>
                 )}
               </Button>
             ))}
