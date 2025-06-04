@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { generateOTP, sendSMSOTP, sendEmailOTP } from "./otpService";
 import { WebSocketServer } from 'ws';
 import { 
   insertEmergencyContactSchema, 
@@ -13,6 +14,7 @@ import {
   insertIotDeviceSchema,
   insertHealthMetricSchema,
   insertStressAnalysisSchema,
+  insertOtpVerificationSchema,
   upsertUserSchema
 } from "@shared/schema";
 
