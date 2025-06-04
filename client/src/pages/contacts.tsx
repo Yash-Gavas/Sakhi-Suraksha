@@ -161,7 +161,7 @@ export default function Contacts() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-primary text-primary-foreground p-4 shadow-lg">
         <div className="flex items-center justify-between">
@@ -204,9 +204,37 @@ export default function Contacts() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="+1234567890" {...field} />
-                        </FormControl>
+                        <div className="flex gap-2">
+                          <Select defaultValue="+91">
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                              <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                              <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                              <SelectItem value="+86">🇨🇳 +86</SelectItem>
+                              <SelectItem value="+81">🇯🇵 +81</SelectItem>
+                              <SelectItem value="+49">🇩🇪 +49</SelectItem>
+                              <SelectItem value="+33">🇫🇷 +33</SelectItem>
+                              <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                              <SelectItem value="+55">🇧🇷 +55</SelectItem>
+                              <SelectItem value="+7">🇷🇺 +7</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormControl>
+                            <Input 
+                              placeholder="1234567890" 
+                              {...field} 
+                              className="flex-1"
+                              onChange={(e) => {
+                                // Remove any non-numeric characters
+                                const value = e.target.value.replace(/\D/g, '');
+                                field.onChange(value);
+                              }}
+                            />
+                          </FormControl>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -296,19 +324,19 @@ export default function Contacts() {
       </header>
 
       {/* Stats */}
-      <div className="bg-white p-4 border-b">
+      <div className="bg-card border-b p-4">
         <div className="flex justify-between text-center">
           <div>
             <p className="text-2xl font-bold text-primary">{contacts.length}</p>
-            <p className="text-xs text-gray-500">Total Contacts</p>
+            <p className="text-xs text-muted-foreground">Total Contacts</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-green-600">{contacts.filter(c => c.isActive).length}</p>
-            <p className="text-xs text-gray-500">Active</p>
+            <p className="text-xs text-muted-foreground">Active</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-orange-600">{contacts.filter(c => c.isPrimary).length}</p>
-            <p className="text-xs text-gray-500">Primary</p>
+            <p className="text-xs text-muted-foreground">Primary</p>
           </div>
         </div>
       </div>
