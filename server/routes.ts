@@ -263,8 +263,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Emergency contacts routes
 
 
-  // Emergency alerts routes
-  app.post("/api/emergency-alerts", isAuthenticated, async (req, res) => {
+  // Emergency alerts routes (no authentication required for emergency situations)
+  app.post("/api/emergency-alerts", async (req, res) => {
     try {
       const validatedData = insertEmergencyAlertSchema.parse(req.body);
       const alert = await storage.createEmergencyAlert(validatedData);
@@ -274,6 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(alert);
     } catch (error) {
+      console.error('Emergency alert error:', error);
       res.status(400).json({ message: "Failed to create emergency alert" });
     }
   });
@@ -581,10 +582,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt
       });
 
-      // In a real implementation, you would send email via SendGrid or similar service
+      // Send OTP via SMTP2GO email service
+      const otpMessage = `Your Sakhi Suraksha verification code is: ${otp}. This code will expire in 10 minutes.`;
+      const emailSent = await sendEmailOTP(email, otpMessage);
+      
       console.log(`Email OTP for ${email}: ${otp}`);
       
-      res.json({ message: "OTP sent successfully" });
+      if (emailSent) {
+        res.json({ message: "OTP sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send OTP email" });
+      }
     } catch (error) {
       console.error("Error sending email OTP:", error);
       res.status(500).json({ message: "Failed to send OTP" });
