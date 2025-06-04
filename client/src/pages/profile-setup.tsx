@@ -275,10 +275,9 @@ export default function ProfileSetup() {
       });
       
       // If profile exists, mark as verified
-      if (existingProfile.email) setIsEmailVerified(true);
       if (existingProfile.phoneNumber) setIsPhoneVerified(true);
-      if (existingProfile.firstName && existingProfile.lastName) {
-        setStep(4); // Go directly to completion if profile exists
+      if (existingProfile.firstName && existingProfile.lastName && existingProfile.phoneNumber) {
+        setStep(3); // Go directly to completion if profile exists
       }
     }
   }, [existingProfile, form]);
@@ -310,7 +309,7 @@ export default function ProfileSetup() {
 
   const handlePhoneVerified = () => {
     setIsPhoneVerified(true);
-    setStep(4); // Move to completion
+    setStep(3); // Move to completion
   };
 
   const renderStep1 = () => (
@@ -452,7 +451,7 @@ export default function ProfileSetup() {
     </div>
   );
 
-  const renderStep4 = () => (
+  const renderStep3 = () => (
     <div className="text-center space-y-6">
       <UserCheck className="w-16 h-16 mx-auto text-green-500" />
       <div>
@@ -461,10 +460,6 @@ export default function ProfileSetup() {
           Your profile has been successfully verified and set up.
         </p>
         <div className="flex justify-center gap-4 mb-6">
-          <Badge className="bg-green-100 text-green-800">
-            <Check className="w-3 h-3 mr-1" />
-            Email Verified
-          </Badge>
           <Badge className="bg-green-100 text-green-800">
             <Check className="w-3 h-3 mr-1" />
             Phone Verified
@@ -510,7 +505,6 @@ export default function ProfileSetup() {
             {step === 1 && renderStep1()}
             {step === 2 && renderStep2()}
             {step === 3 && renderStep3()}
-            {step === 4 && renderStep4()}
           </CardContent>
         </Card>
       </div>
