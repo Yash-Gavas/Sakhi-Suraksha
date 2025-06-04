@@ -285,13 +285,7 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
                 className="h-20 p-2 flex flex-col items-center justify-center text-center overflow-hidden w-full"
               >
                 <MapPin className="w-3 h-3 mb-1 flex-shrink-0" />
-                <span className="text-xs font-medium text-center leading-tight max-w-full break-words hyphens-auto px-1" style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  wordBreak: 'break-word'
-                }}>
+                <span className="text-xs font-medium text-center leading-tight px-1 line-clamp-2">
                   {dest.name}
                 </span>
                 {dest.distance && (
