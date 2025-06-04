@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { generateOTP, sendSMSOTP, sendEmailOTP } from "./otpService";
+import { generateOTP, sendSMSOTP, sendEmailOTP, sendWhatsAppMessage } from "./otpService";
 import { WebSocketServer } from 'ws';
 import { 
   insertEmergencyContactSchema, 
@@ -1033,6 +1033,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Sending emergency alert to ${contactName}...`);
       
       let smsSuccess = false;
+      let whatsappSuccess = false;
       let emailSuccess = false;
       
       // Send SMS if phone number exists
@@ -1042,6 +1043,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`SMS to ${phoneNumber}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
         } catch (error) {
           console.error(`SMS error for ${phoneNumber}:`, error);
+        }
+      }
+      
+      // Send WhatsApp if phone number exists
+      if (phoneNumber) {
+        try {
+          whatsappSuccess = await sendWhatsAppMessage(phoneNumber, message);
+          console.log(`WhatsApp to ${phoneNumber}: ${whatsappSuccess ? 'SUCCESS' : 'FAILED'}`);
+        } catch (error) {
+          console.error(`WhatsApp error for ${phoneNumber}:`, error);
         }
       }
       
