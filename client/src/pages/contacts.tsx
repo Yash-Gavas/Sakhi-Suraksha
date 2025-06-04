@@ -1,28 +1,110 @@
-import { Users, Plus, Phone, Edit3, Trash2 } from "lucide-react";
+import { Users, Plus, Phone, Edit3, Trash2, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { EmergencyContact } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertEmergencyContactSchema, type EmergencyContact, type InsertEmergencyContact } from "@shared/schema";
+import { useState } from "react";
 
 export default function Contacts() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);
   
   const { data: contacts = [], isLoading } = useQuery<EmergencyContact[]>({
-    queryKey: ["/api/emergency-contacts/1"] // Demo user ID
+    queryKey: ["/api/emergency-contacts"],
+    enabled: !!user
+  });
+
+  const form = useForm<InsertEmergencyContact>({
+    resolver: zodResolver(insertEmergencyContactSchema),
+    defaultValues: {
+      name: "",
+      phoneNumber: "",
+      relationship: "",
+      isActive: true,
+      isPrimary: false
+    }
+  });
+
+  const createContactMutation = useMutation({
+    mutationFn: async (data: InsertEmergencyContact) => {
+      const response = await fetch("/api/emergency-contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to create contact');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts"] });
+      toast({
+        title: "Contact Added",
+        description: "Emergency contact has been added successfully.",
+      });
+      setIsDialogOpen(false);
+      form.reset();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add contact. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateContactMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertEmergencyContact> }) => {
+      const response = await fetch(`/api/emergency-contacts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to update contact');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts"] });
+      toast({
+        title: "Contact Updated",
+        description: "Emergency contact has been updated successfully.",
+      });
+      setIsDialogOpen(false);
+      setEditingContact(null);
+      form.reset();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update contact. Please try again.",
+        variant: "destructive",
+      });
+    }
   });
 
   const deleteContactMutation = useMutation({
     mutationFn: async (contactId: number) => {
       const response = await fetch(`/api/emergency-contacts/${contactId}`, {
-        method: 'DELETE'
+        method: "DELETE"
       });
       if (!response.ok) throw new Error('Failed to delete contact');
+      return response.ok;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts/1"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/emergency-contacts"] });
       toast({
         title: "Contact Deleted",
         description: "Emergency contact has been removed successfully.",
@@ -39,6 +121,32 @@ export default function Contacts() {
 
   const callContact = (phoneNumber: string) => {
     window.location.href = `tel:${phoneNumber}`;
+  };
+
+  const openEditDialog = (contact: EmergencyContact) => {
+    setEditingContact(contact);
+    form.reset({
+      name: contact.name,
+      phoneNumber: contact.phoneNumber,
+      relationship: contact.relationship || "",
+      isActive: contact.isActive || false,
+      isPrimary: contact.isPrimary || false
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = (data: InsertEmergencyContact) => {
+    if (editingContact) {
+      updateContactMutation.mutate({ id: editingContact.id, data });
+    } else {
+      createContactMutation.mutate(data);
+    }
+  };
+
+  const handleDialogClose = () => {
+    setIsDialogOpen(false);
+    setEditingContact(null);
+    form.reset();
   };
 
   if (isLoading) {
@@ -61,10 +169,129 @@ export default function Contacts() {
             <Users className="h-6 w-6" />
             <h1 className="text-xl font-semibold">Emergency Contacts</h1>
           </div>
-          <Button size="sm" variant="secondary">
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="secondary">
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingContact ? "Edit Contact" : "Add Emergency Contact"}
+                </DialogTitle>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="phoneNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="+1234567890" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="relationship"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Relationship</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select relationship" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="family">Family</SelectItem>
+                            <SelectItem value="friend">Friend</SelectItem>
+                            <SelectItem value="colleague">Colleague</SelectItem>
+                            <SelectItem value="neighbor">Neighbor</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="flex items-center justify-between">
+                    <FormField
+                      control={form.control}
+                      name="isActive"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center space-x-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormLabel className="text-sm">Active</FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="isPrimary"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center space-x-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormLabel className="text-sm">Primary</FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2 pt-4">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleDialogClose}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={createContactMutation.isPending || updateContactMutation.isPending}
+                      className="flex-1"
+                    >
+                      {editingContact ? "Update" : "Add"} Contact
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
       </header>
 
@@ -135,7 +362,12 @@ export default function Contacts() {
                       >
                         <Phone className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-gray-600">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="text-gray-600"
+                        onClick={() => openEditDialog(contact)}
+                      >
                         <Edit3 className="h-4 w-4" />
                       </Button>
                       <Button 
