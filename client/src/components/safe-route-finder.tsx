@@ -275,24 +275,27 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
         <div>
           <Label className="text-sm font-medium mb-2 block">Quick Safe Destinations</Label>
           <div className="grid grid-cols-2 gap-2">
-            {getSafeDestinations().slice(0, 4).map((dest, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                onClick={() => findSafeRoute(dest.name)}
-                disabled={isSearching}
-                className="h-20 p-2 flex flex-col items-center justify-center text-center overflow-hidden w-full"
-              >
-                <MapPin className="w-3 h-3 mb-1 flex-shrink-0" />
-                <div className="text-xs font-medium text-center leading-tight px-1 max-h-8 overflow-hidden">
-                  {dest.name.length > 25 ? dest.name.substring(0, 25) + "..." : dest.name}
-                </div>
-                {dest.distance && (
-                  <span className="text-xs text-green-600 flex-shrink-0 mt-1">{dest.distance} km</span>
-                )}
-              </Button>
-            ))}
+            {getSafeDestinations().slice(0, 4).map((dest, index) => {
+              console.log('Destination data:', dest);
+              return (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => findSafeRoute(dest.name)}
+                  disabled={isSearching}
+                  className="h-20 p-2 flex flex-col items-center justify-center text-center w-full border-2"
+                >
+                  <MapPin className="w-3 h-3 mb-1 flex-shrink-0" />
+                  <div className="text-xs font-medium text-black bg-white p-1 rounded">
+                    {dest.name || "Loading..."}
+                  </div>
+                  {dest.distance && (
+                    <span className="text-xs text-green-600 flex-shrink-0 mt-1">{dest.distance} km</span>
+                  )}
+                </Button>
+              );
+            })}
             {getSafeDestinations().length === 0 && (
               <div className="col-span-2 text-center text-gray-500 py-4">
                 <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
