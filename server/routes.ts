@@ -77,6 +77,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Google Places Text Search API endpoint for specific locations
+  app.get("/api/places/search", async (req, res) => {
+    try {
+      const { query } = req.query;
+      
+      if (!query) {
+        return res.status(400).json({ error: "Missing required parameter: query" });
+      }
+
+      const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Google Places API key not configured" });
+      }
+
+      // Use Google Places Text Search API for finding specific locations
+      const placesUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query as string)}&key=${apiKey}`;
+      
+      const response = await fetch(placesUrl);
+      const data = await response.json();
+
+      if (data.status === 'OK') {
+        res.json(data);
+      } else {
+        console.error('Places Text Search API error:', data.status, data.error_message);
+        res.status(500).json({ error: `Places API error: ${data.status}` });
+      }
+    } catch (error) {
+      console.error('Error searching places:', error);
+      res.status(500).json({ error: "Failed to search places" });
+    }
+  });
+
   // User routes
   app.patch("/api/user/:id", isAuthenticated, async (req, res) => {
     try {

@@ -67,11 +67,31 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
       if (predefinedDest) {
         destCoords = predefinedDest.coords;
       } else {
-        // Use a default location for any entered destination
-        destCoords = { 
-          lat: currentLocation.latitude + 0.01, 
-          lng: currentLocation.longitude + 0.01 
-        };
+        // Try to search for the destination using Google Places API
+        try {
+          const response = await fetch(`/api/places/search?query=${encodeURIComponent(selectedDest)}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.results && data.results.length > 0) {
+              const place = data.results[0];
+              destCoords = {
+                lat: place.geometry.location.lat,
+                lng: place.geometry.location.lng
+              };
+            } else {
+              throw new Error('No places found');
+            }
+          } else {
+            throw new Error('Search failed');
+          }
+        } catch (error) {
+          console.error('Places search failed:', error);
+          // Use a default location if search fails
+          destCoords = { 
+            lat: currentLocation.latitude + 0.01, 
+            lng: currentLocation.longitude + 0.01 
+          };
+        }
       }
       
       // Start navigation to the destination
