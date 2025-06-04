@@ -5,14 +5,20 @@ import { Badge } from "@/components/ui/badge";
 import EmergencyButton from "@/components/emergency-button";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@/hooks/use-location";
+import { useVoiceRecognition } from "@/hooks/use-voice-recognition";
 import { useMemo } from "react";
 import { Link } from "wouter";
-import type { EmergencyContact, HomeLocation } from "@shared/schema";
+import type { EmergencyContact, HomeLocation, User as UserType } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Home() {
   const { location, isLocationSharingActive } = useLocation();
+  const { isListening, isSupported } = useVoiceRecognition();
   
+  const { data: user } = useQuery<UserType>({
+    queryKey: ["/api/user/profile"]
+  });
+
   const { data: emergencyContacts = [] } = useQuery<EmergencyContact[]>({
     queryKey: ["/api/emergency-contacts"]
   });
@@ -36,7 +42,11 @@ export default function Home() {
           <Shield className="w-10 h-10 text-white" />
         </div>
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Sakhi Suraksha</h1>
-        <p className="text-gray-600 text-lg">Your safety companion</p>
+        {user ? (
+          <p className="text-gray-600 text-lg">Welcome back, {user.firstName || 'User'}</p>
+        ) : (
+          <p className="text-gray-600 text-lg">Your safety companion</p>
+        )}
         
         {/* All Systems Active Badge */}
         <div className="flex items-center mt-4 px-4 py-2 bg-green-100 rounded-full">
@@ -69,8 +79,10 @@ export default function Home() {
               </div>
               
               <div className="flex justify-between items-center">
-                <span className="text-gray-700 font-medium">Voice Activation</span>
-                <Badge className="bg-blue-100 text-blue-700 border-blue-300">Active</Badge>
+                <span className="text-gray-700 font-medium">Voice Recognition</span>
+                <Badge className={isListening ? "bg-green-100 text-green-700 border-green-300" : "bg-gray-100 text-gray-700 border-gray-300"}>
+                  {isListening ? "Active" : "Inactive"}
+                </Badge>
               </div>
               
               <div className="flex items-center text-sm text-gray-500 mt-4">
