@@ -285,9 +285,9 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
                 className="h-20 p-2 flex flex-col items-center justify-center text-center overflow-hidden w-full"
               >
                 <MapPin className="w-3 h-3 mb-1 flex-shrink-0" />
-                <span className="text-xs font-medium text-center leading-tight px-1 line-clamp-2">
-                  {dest.name}
-                </span>
+                <div className="text-xs font-medium text-center leading-tight px-1 max-h-8 overflow-hidden">
+                  {dest.name.length > 25 ? dest.name.substring(0, 25) + "..." : dest.name}
+                </div>
                 {dest.distance && (
                   <span className="text-xs text-green-600 flex-shrink-0 mt-1">{dest.distance} km</span>
                 )}
