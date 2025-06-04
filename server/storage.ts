@@ -120,24 +120,41 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    // First check if user exists
-    const existingUser = await this.getUser(userData.id);
+    // First check if user exists by ID
+    const existingUserById = await this.getUser(userData.id);
     
-    if (existingUser) {
-      // User exists, update using updateUser to avoid unique constraint issues
+    if (existingUserById) {
+      // User exists by ID, update them
       const updated = await this.updateUser(userData.id, userData);
       if (!updated) {
         throw new Error('Failed to update user');
       }
       return updated;
-    } else {
-      // User doesn't exist, insert new user
-      const [user] = await db
-        .insert(users)
-        .values(userData)
-        .returning();
-      return user;
     }
+    
+    // Check if user exists by email (for email-based lookup)
+    if (userData.email) {
+      const [existingUserByEmail] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, userData.email));
+      
+      if (existingUserByEmail) {
+        // User exists with this email, update them and return their data
+        const updated = await this.updateUser(existingUserByEmail.id, userData);
+        if (!updated) {
+          throw new Error('Failed to update user');
+        }
+        return updated;
+      }
+    }
+    
+    // User doesn't exist, insert new user
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .returning();
+    return user;
   }
 
   async updateUser(id: string, updates: Partial<UpsertUser>): Promise<User | undefined> {

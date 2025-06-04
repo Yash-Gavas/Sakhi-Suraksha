@@ -44,7 +44,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = upsertUserSchema.parse(profileData);
       
       const user = await storage.upsertUser(validatedData);
-      res.json({ message: "Profile saved successfully", user });
+      
+      // Return the user's actual ID in case it switched to an existing user
+      res.json({ 
+        message: "Profile saved successfully", 
+        user,
+        actualUserId: user.id // Include the actual user ID for frontend session management
+      });
     } catch (error) {
       console.error('Profile save error:', error);
       res.status(400).json({ message: "Failed to save profile" });

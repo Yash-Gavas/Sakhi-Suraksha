@@ -232,7 +232,12 @@ export default function Settings() {
       if (!response.ok) throw new Error("Failed to save profile");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // If the actualUserId is different, update the session to the correct user
+      if (data.actualUserId && data.actualUserId !== userSession.getUserId()) {
+        userSession.setUserId(data.actualUserId);
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
       toast({
         title: "Settings Saved",
