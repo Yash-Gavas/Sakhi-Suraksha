@@ -37,7 +37,13 @@ export default function Home() {
   });
 
   const { data: homeLocation } = useQuery<HomeLocation>({
-    queryKey: ["/api/user/home-location"]
+    queryKey: ["/api/user/home-location"],
+    queryFn: async () => {
+      const userId = userSession.getUserId();
+      const response = await fetch(`/api/user/home-location?userId=${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch home location');
+      return response.json();
+    }
   });
 
   const lastUpdated = useMemo(() => {

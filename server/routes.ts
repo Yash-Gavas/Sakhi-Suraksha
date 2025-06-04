@@ -166,13 +166,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Emergency contacts routes (for permanent data storage)
   app.get("/api/emergency-contacts", async (req, res) => {
     try {
-      // Use demo-user for anonymous access to ensure data persistence
-      let userId = 'demo-user';
-      if (req.isAuthenticated() && req.user && 'id' in req.user) {
-        userId = req.user.id as string;
-      }
+      // Get userId from query parameter (sent by frontend session management)
+      const userId = req.query.userId || 'demo-user';
       
-      const contacts = await storage.getEmergencyContacts(userId);
+      const contacts = await storage.getEmergencyContacts(userId as string);
       res.json(contacts);
     } catch (error) {
       console.error('Error fetching emergency contacts:', error);
@@ -476,10 +473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/user/home-location", async (req, res) => {
     try {
-      let userId = 'demo-user';
-      if (req.isAuthenticated() && req.user?.claims?.sub) {
-        userId = req.user.claims.sub;
-      }
+      // Get userId from query parameter (sent by frontend session management)
+      const userId = req.query.userId || 'demo-user';
       
       const destinations = await storage.getDestinations(userId);
       const homeLocation = destinations.find(dest => dest.isFavorite === true);
