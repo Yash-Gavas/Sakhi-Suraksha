@@ -58,13 +58,14 @@ export const emergencyAlerts = pgTable("emergency_alerts", {
 
 export const communityAlerts = pgTable("community_alerts", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  alertType: text("alert_type").notNull(), // 'suspicious_activity', 'harassment', 'danger_zone'
+  userId: varchar("user_id").references(() => users.id), // Optional for anonymous reports
+  type: text("type").notNull(), // 'safety_issue', 'harassment', 'poor_lighting', etc.
   description: text("description").notNull(),
   latitude: real("latitude").notNull(),
   longitude: real("longitude").notNull(),
-  address: text("address"),
-  isVerified: boolean("is_verified").default(false),
+  severity: text("severity").notNull().default("medium"), // 'low', 'medium', 'high'
+  verified: boolean("verified").default(false),
+  reportedBy: text("reported_by").default("anonymous"),
   createdAt: timestamp("created_at").defaultNow()
 });
 

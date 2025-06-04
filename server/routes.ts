@@ -124,6 +124,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Emergency contacts routes (for permanent data storage)
+  app.get("/api/emergency-contacts", async (req, res) => {
+    try {
+      // Allow access for both authenticated and anonymous users
+      let userId = 'anonymous';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
+      const contacts = await storage.getEmergencyContacts(userId);
+      res.json(contacts);
+    } catch (error) {
+      console.error('Error fetching emergency contacts:', error);
+      res.status(500).json({ message: "Failed to get emergency contacts" });
+    }
+  });
+
+  app.post("/api/emergency-contacts", async (req, res) => {
+    try {
+      let userId = 'anonymous';
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      const contactData = {
+        ...req.body,
+        userId: userId
+      };
+
+      const validatedData = insertEmergencyContactSchema.parse(contactData);
+      const contact = await storage.createEmergencyContact(validatedData);
+      res.status(201).json(contact);
+    } catch (error) {
+      console.error('Error creating emergency contact:', error);
+      res.status(400).json({ message: "Failed to create emergency contact" });
+    }
+  });
+
+  app.patch("/api/emergency-contacts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      const contact = await storage.updateEmergencyContact(id, updates);
+      if (!contact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      res.json(contact);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update contact" });
+    }
+  });
+
+  app.delete("/api/emergency-contacts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteEmergencyContact(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete contact" });
+    }
+  });
+
   // Emergency contacts routes
   app.get("/api/emergency-contacts/:userId", isAuthenticated, async (req, res) => {
     try {
@@ -237,20 +302,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Safety issue reporting endpoint (public, no auth required)
+  // Safety issue reporting endpoint (accepts both authenticated and anonymous reports)
   app.post("/api/safety-reports", async (req, res) => {
     try {
       const { type, description, location, severity = 'medium' } = req.body;
       
+      // Get user ID if authenticated, otherwise null for anonymous
+      const userId = req.isAuthenticated() ? req.user?.claims?.sub : null;
+      const reportedBy = userId ? 'user' : 'anonymous';
+      
       // Convert safety report to community alert format
       const communityAlert = {
+        userId: userId,
         type: type || 'safety_issue',
         description: description || 'Safety concern reported',
         latitude: location?.latitude || 0,
         longitude: location?.longitude || 0,
         severity: severity,
         verified: false,
-        reportedBy: 'anonymous'
+        reportedBy: reportedBy
       };
 
       const validatedData = insertCommunityAlertSchema.parse(communityAlert);
