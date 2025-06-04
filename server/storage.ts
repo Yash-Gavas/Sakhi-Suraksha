@@ -10,6 +10,10 @@ import {
   destinations,
   homeLocations,
   otpVerifications,
+  iotDevices,
+  healthMetrics,
+  stressAnalysis,
+  iotEmergencyTriggers,
   type User,
   type UpsertUser,
   type EmergencyContact,
@@ -27,7 +31,15 @@ import {
   type HomeLocation,
   type InsertHomeLocation,
   type OtpVerification,
-  type InsertOtpVerification
+  type InsertOtpVerification,
+  type IotDevice,
+  type InsertIotDevice,
+  type HealthMetric,
+  type InsertHealthMetric,
+  type StressAnalysis,
+  type InsertStressAnalysis,
+  type IotEmergencyTrigger,
+  type InsertIotEmergencyTrigger
 } from "@shared/schema";
 
 export interface IStorage {
@@ -75,6 +87,29 @@ export interface IStorage {
   createOtpVerification(otp: InsertOtpVerification): Promise<OtpVerification>;
   verifyOtp(identifier: string, type: string, otp: string): Promise<boolean>;
   cleanupExpiredOtps(): Promise<void>;
+
+  // IoT Device operations
+  getIotDevices(userId: string): Promise<IotDevice[]>;
+  createIotDevice(device: InsertIotDevice): Promise<IotDevice>;
+  updateIotDevice(id: number, updates: Partial<InsertIotDevice>): Promise<IotDevice | undefined>;
+  deleteIotDevice(id: number): Promise<boolean>;
+  connectDevice(id: number): Promise<boolean>;
+  disconnectDevice(id: number): Promise<boolean>;
+
+  // Health Metrics operations
+  getHealthMetrics(userId: string, limit?: number): Promise<HealthMetric[]>;
+  createHealthMetric(metric: InsertHealthMetric): Promise<HealthMetric>;
+  getLatestHealthMetrics(userId: string): Promise<HealthMetric | undefined>;
+
+  // Stress Analysis operations
+  getStressAnalysis(userId: string, limit?: number): Promise<StressAnalysis[]>;
+  createStressAnalysis(analysis: InsertStressAnalysis): Promise<StressAnalysis>;
+  getLatestStressAnalysis(userId: string): Promise<StressAnalysis | undefined>;
+
+  // IoT Emergency Triggers operations
+  getIotEmergencyTriggers(userId: string): Promise<IotEmergencyTrigger[]>;
+  createIotEmergencyTrigger(trigger: InsertIotEmergencyTrigger): Promise<IotEmergencyTrigger>;
+  resolveIotEmergencyTrigger(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -333,6 +368,130 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(otpVerifications)
       .where(eq(otpVerifications.expiresAt, new Date()));
+  }
+
+  // IoT Device operations
+  async getIotDevices(userId: string): Promise<IotDevice[]> {
+    return await db.select().from(iotDevices).where(eq(iotDevices.userId, userId));
+  }
+
+  async createIotDevice(device: InsertIotDevice): Promise<IotDevice> {
+    const [newDevice] = await db.insert(iotDevices).values(device).returning();
+    return newDevice;
+  }
+
+  async updateIotDevice(id: number, updates: Partial<InsertIotDevice>): Promise<IotDevice | undefined> {
+    const [device] = await db
+      .update(iotDevices)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(iotDevices.id, id))
+      .returning();
+    return device || undefined;
+  }
+
+  async deleteIotDevice(id: number): Promise<boolean> {
+    const result = await db.delete(iotDevices).where(eq(iotDevices.id, id));
+    return result.rowCount > 0;
+  }
+
+  async connectDevice(id: number): Promise<boolean> {
+    const [device] = await db
+      .update(iotDevices)
+      .set({ 
+        isConnected: true, 
+        connectionStatus: 'connected',
+        lastConnected: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(iotDevices.id, id))
+      .returning();
+    return !!device;
+  }
+
+  async disconnectDevice(id: number): Promise<boolean> {
+    const [device] = await db
+      .update(iotDevices)
+      .set({ 
+        isConnected: false, 
+        connectionStatus: 'disconnected',
+        updatedAt: new Date()
+      })
+      .where(eq(iotDevices.id, id))
+      .returning();
+    return !!device;
+  }
+
+  // Health Metrics operations
+  async getHealthMetrics(userId: string, limit = 100): Promise<HealthMetric[]> {
+    return await db
+      .select()
+      .from(healthMetrics)
+      .where(eq(healthMetrics.userId, userId))
+      .orderBy(healthMetrics.timestamp)
+      .limit(limit);
+  }
+
+  async createHealthMetric(metric: InsertHealthMetric): Promise<HealthMetric> {
+    const [newMetric] = await db.insert(healthMetrics).values(metric).returning();
+    return newMetric;
+  }
+
+  async getLatestHealthMetrics(userId: string): Promise<HealthMetric | undefined> {
+    const [metric] = await db
+      .select()
+      .from(healthMetrics)
+      .where(eq(healthMetrics.userId, userId))
+      .orderBy(healthMetrics.timestamp)
+      .limit(1);
+    return metric || undefined;
+  }
+
+  // Stress Analysis operations
+  async getStressAnalysis(userId: string, limit = 50): Promise<StressAnalysis[]> {
+    return await db
+      .select()
+      .from(stressAnalysis)
+      .where(eq(stressAnalysis.userId, userId))
+      .orderBy(stressAnalysis.analysisTimestamp)
+      .limit(limit);
+  }
+
+  async createStressAnalysis(analysis: InsertStressAnalysis): Promise<StressAnalysis> {
+    const [newAnalysis] = await db.insert(stressAnalysis).values(analysis).returning();
+    return newAnalysis;
+  }
+
+  async getLatestStressAnalysis(userId: string): Promise<StressAnalysis | undefined> {
+    const [analysis] = await db
+      .select()
+      .from(stressAnalysis)
+      .where(eq(stressAnalysis.userId, userId))
+      .orderBy(stressAnalysis.analysisTimestamp)
+      .limit(1);
+    return analysis || undefined;
+  }
+
+  // IoT Emergency Triggers operations
+  async getIotEmergencyTriggers(userId: string): Promise<IotEmergencyTrigger[]> {
+    return await db
+      .select()
+      .from(iotEmergencyTriggers)
+      .where(eq(iotEmergencyTriggers.userId, userId))
+      .orderBy(iotEmergencyTriggers.timestamp);
+  }
+
+  async createIotEmergencyTrigger(trigger: InsertIotEmergencyTrigger): Promise<IotEmergencyTrigger> {
+    const [newTrigger] = await db.insert(iotEmergencyTriggers).values(trigger).returning();
+    return newTrigger;
+  }
+
+  async resolveIotEmergencyTrigger(id: number): Promise<boolean> {
+    const [trigger] = await db
+      .update(iotEmergencyTriggers)
+      .set({ isResolved: true })
+      .where(eq(iotEmergencyTriggers.id, id))
+      .returning();
+    return !!trigger;
   }
 
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

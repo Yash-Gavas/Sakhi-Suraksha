@@ -126,6 +126,75 @@ export const otpVerifications = pgTable("otp_verifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// IoT Device Management
+export const iotDevices = pgTable("iot_devices", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  deviceName: text("device_name").notNull(),
+  deviceType: text("device_type").notNull(), // 'smartwatch', 'fitness_tracker', 'health_monitor'
+  macAddress: text("mac_address").unique(),
+  bluetoothId: text("bluetooth_id"),
+  isConnected: boolean("is_connected").default(false),
+  batteryLevel: integer("battery_level"),
+  firmwareVersion: text("firmware_version"),
+  lastConnected: timestamp("last_connected"),
+  connectionStatus: text("connection_status").default("disconnected"), // 'connected', 'disconnected', 'pairing'
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Health Monitoring Data
+export const healthMetrics = pgTable("health_metrics", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  deviceId: integer("device_id").references(() => iotDevices.id),
+  heartRate: integer("heart_rate"), // BPM
+  bloodPressureSystolic: integer("blood_pressure_systolic"),
+  bloodPressureDiastolic: integer("blood_pressure_diastolic"),
+  oxygenSaturation: real("oxygen_saturation"), // SpO2 percentage
+  skinTemperature: real("skin_temperature"), // Celsius
+  stressLevel: real("stress_level"), // 0-100 scale
+  stepCount: integer("step_count"),
+  caloriesBurned: real("calories_burned"),
+  sleepQuality: real("sleep_quality"), // 0-100 scale
+  activityLevel: text("activity_level"), // 'sedentary', 'light', 'moderate', 'vigorous'
+  timestamp: timestamp("timestamp").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Stress Analysis and AI Predictions
+export const stressAnalysis = pgTable("stress_analysis", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  overallStressScore: real("overall_stress_score").notNull(), // 0-100 scale
+  heartRateVariability: real("heart_rate_variability"),
+  skinConductance: real("skin_conductance"),
+  movementPattern: text("movement_pattern"), // 'restless', 'normal', 'lethargic'
+  voiceStressIndicators: jsonb("voice_stress_indicators"), // AI analysis results
+  behaviorPattern: text("behavior_pattern"), // 'agitated', 'calm', 'anxious'
+  riskLevel: text("risk_level").notNull(), // 'low', 'medium', 'high', 'critical'
+  recommendedActions: text("recommended_actions").array(),
+  triggerFactors: text("trigger_factors").array(),
+  analysisTimestamp: timestamp("analysis_timestamp").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Emergency Triggers from IoT Devices
+export const iotEmergencyTriggers = pgTable("iot_emergency_triggers", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  deviceId: integer("device_id").references(() => iotDevices.id),
+  triggerType: text("trigger_type").notNull(), // 'heart_rate_anomaly', 'fall_detection', 'panic_button', 'stress_threshold'
+  severity: text("severity").notNull(), // 'low', 'medium', 'high', 'critical'
+  sensorData: jsonb("sensor_data"), // Raw sensor readings
+  location: jsonb("location"), // GPS coordinates
+  isResolved: boolean("is_resolved").default(false),
+  responseTime: integer("response_time"), // seconds
+  emergencyAlertId: integer("emergency_alert_id").references(() => emergencyAlerts.id),
+  timestamp: timestamp("timestamp").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   updatedAt: true
@@ -177,6 +246,30 @@ export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).
   createdAt: true
 });
 
+export const insertIotDeviceSchema = createInsertSchema(iotDevices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertHealthMetricSchema = createInsertSchema(healthMetrics).omit({
+  id: true,
+  createdAt: true,
+  timestamp: true
+});
+
+export const insertStressAnalysisSchema = createInsertSchema(stressAnalysis).omit({
+  id: true,
+  createdAt: true,
+  analysisTimestamp: true
+});
+
+export const insertIotEmergencyTriggerSchema = createInsertSchema(iotEmergencyTriggers).omit({
+  id: true,
+  createdAt: true,
+  timestamp: true
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -196,3 +289,11 @@ export type HomeLocation = typeof homeLocations.$inferSelect;
 export type InsertHomeLocation = z.infer<typeof insertHomeLocationSchema>;
 export type OtpVerification = typeof otpVerifications.$inferSelect;
 export type InsertOtpVerification = z.infer<typeof insertOtpVerificationSchema>;
+export type IotDevice = typeof iotDevices.$inferSelect;
+export type InsertIotDevice = z.infer<typeof insertIotDeviceSchema>;
+export type HealthMetric = typeof healthMetrics.$inferSelect;
+export type InsertHealthMetric = z.infer<typeof insertHealthMetricSchema>;
+export type StressAnalysis = typeof stressAnalysis.$inferSelect;
+export type InsertStressAnalysis = z.infer<typeof insertStressAnalysisSchema>;
+export type IotEmergencyTrigger = typeof iotEmergencyTriggers.$inferSelect;
+export type InsertIotEmergencyTrigger = z.infer<typeof insertIotEmergencyTriggerSchema>;
