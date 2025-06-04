@@ -160,21 +160,40 @@ This is an automated safety alert. Please respond urgently.`;
 
     for (const contact of activeContacts) {
       try {
-        // In production, this would use actual SMS API (Twilio, etc.)
-        console.log(`📱 SMS sent to ${contact.name} (${contact.phoneNumber}):`);
-        console.log(messageTemplate);
-        
-        // Show individual contact notifications
-        setTimeout(() => {
-          toast({
-            title: `Message sent to ${contact.name}`,
-            description: `${contact.relationship} notified with emergency details and live location`,
-            variant: "default",
-          });
-        }, 1000 * (activeContacts.indexOf(contact) + 1));
+        // Send actual SMS message via backend API
+        const response = await fetch('/api/emergency/send-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contactId: contact.id,
+            contactName: contact.name,
+            phoneNumber: contact.phoneNumber,
+            email: contact.email,
+            message: messageTemplate,
+            emergencyData: emergencyData
+          })
+        });
+
+        if (response.ok) {
+          // Show success notification
+          setTimeout(() => {
+            toast({
+              title: `Alert sent to ${contact.name}`,
+              description: `${contact.relationship} notified via SMS and email with emergency details`,
+              variant: "default",
+            });
+          }, 1000 * (activeContacts.indexOf(contact) + 1));
+        } else {
+          throw new Error('Failed to send emergency alert');
+        }
         
       } catch (error) {
         console.error(`Failed to send message to ${contact.name}:`, error);
+        toast({
+          title: `Failed to notify ${contact.name}`,
+          description: `Error sending emergency alert to ${contact.relationship}`,
+          variant: "destructive",
+        });
       }
     }
 
