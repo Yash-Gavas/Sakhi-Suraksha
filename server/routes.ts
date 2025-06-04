@@ -205,52 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Emergency contacts routes
-  app.get("/api/emergency-contacts/:userId", isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      const contacts = await storage.getEmergencyContacts(userId);
-      res.json(contacts);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to get emergency contacts" });
-    }
-  });
 
-  app.post("/api/emergency-contacts", isAuthenticated, async (req, res) => {
-    try {
-      const validatedData = insertEmergencyContactSchema.parse(req.body);
-      const contact = await storage.createEmergencyContact(validatedData);
-      res.status(201).json(contact);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid contact data" });
-    }
-  });
-
-  app.patch("/api/emergency-contacts/:id", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updates = req.body;
-      const contact = await storage.updateEmergencyContact(id, updates);
-      if (!contact) {
-        return res.status(404).json({ message: "Contact not found" });
-      }
-      res.json(contact);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update contact" });
-    }
-  });
-
-  app.delete("/api/emergency-contacts/:id", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const deleted = await storage.deleteEmergencyContact(id);
-      if (!deleted) {
-        return res.status(404).json({ message: "Contact not found" });
-      }
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete contact" });
-    }
-  });
 
   // Emergency alerts routes
   app.post("/api/emergency-alerts", isAuthenticated, async (req, res) => {
