@@ -127,14 +127,13 @@ export default function Home() {
           
           {/* Voice Distress Detection */}
           <div className="mb-6">
-            <SimpleVoiceDetector 
-              onDistressDetected={(keyword) => {
-                console.log(`Distress keyword detected: ${keyword}`);
+            <PersistentVoiceDetector 
+              onEmergencyDetected={() => {
+                console.log('Voice emergency triggered from home page');
                 setAutoStartStream(true);
               }}
-              onEmergencyTriggered={() => {
-                console.log('Voice emergency triggered from home page');
-              }}
+              isActive={isVoiceDetectionActive}
+              onToggle={setIsVoiceDetectionActive}
             />
           </div>
 
