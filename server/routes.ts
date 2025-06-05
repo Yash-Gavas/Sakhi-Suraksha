@@ -1125,6 +1125,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Helper function to get alert message based on trigger type
+  function getAlertMessage(triggerType: string): string {
+    switch (triggerType) {
+      case 'sos_manual': return 'Emergency SOS activated by user';
+      case 'voice_detection': return 'Distress detected in voice pattern';
+      case 'geofence_exit': return 'Left designated safe zone';
+      case 'shake_detection': return 'Emergency shake gesture detected';
+      case 'panic_button': return 'Panic button pressed';
+      default: return 'Emergency alert triggered';
+    }
+  }
+
   // Parent Dashboard API Routes - Using persistent database storage
   app.get("/api/parent/children", async (req, res) => {
     try {
@@ -1140,13 +1152,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const homeLocation = await storage.getHomeLocation(connection.childUserId);
         const latestHealth = await storage.getLatestHealthMetrics(connection.childUserId);
         
+        // Check for recent activity to determine status
+        const recentAlerts = await storage.getEmergencyAlerts(connection.childUserId);
+        const hasRecentActivity = recentAlerts.length > 0;
+        const isOnline = hasRecentActivity || latestHealth;
+        
         return {
           id: connection.id,
           name: user?.firstName || user?.email?.split('@')[0] || 'Child',
           email: user?.email || 'child@example.com',
           phone: user?.phoneNumber || 'Not provided',
           lastSeen: new Date().toISOString(),
-          status: latestHealth ? 'safe' : 'offline',
+          status: isOnline ? 'safe' : 'offline',
           connectionCode: connection.inviteCode,
           connectedAt: connection.acceptedAt || connection.createdAt,
           currentLocation: homeLocation ? {
@@ -1155,7 +1172,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             address: homeLocation.address,
             timestamp: new Date().toISOString()
           } : null,
-          profileImage: user?.profileImageUrl
+          profileImage: user?.profileImageUrl,
+          isLiveTrackingEnabled: true,
+          hasActiveAlerts: recentAlerts.filter(alert => !alert.isResolved).length > 0
         };
       }));
       
@@ -1181,14 +1200,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const user = await storage.getUser(connection.childUserId);
         const childAlerts = await storage.getEmergencyAlerts(connection.childUserId);
         
-        // Format emergency alerts
+        // Format emergency alerts using correct schema fields
         childAlerts.forEach(alert => {
           alerts.push({
             id: alert.id,
             childName: user?.firstName || user?.email?.split('@')[0] || 'Child',
             childId: connection.id,
-            type: alert.alertType,
-            message: alert.message || 'Emergency alert triggered',
+            type: alert.triggerType,
+            message: getAlertMessage(alert.triggerType),
             location: alert.latitude && alert.longitude ? {
               lat: parseFloat(alert.latitude.toString()),
               lng: parseFloat(alert.longitude.toString()),
@@ -1196,7 +1215,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } : null,
             timestamp: alert.createdAt,
             status: alert.isResolved ? 'resolved' : 'active',
-            isResolved: alert.isResolved || false
+            isResolved: alert.isResolved || false,
+            audioUrl: alert.audioRecordingUrl,
+            videoUrl: alert.videoRecordingUrl
           });
         });
       }
