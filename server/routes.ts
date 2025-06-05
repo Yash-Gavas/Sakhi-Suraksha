@@ -421,7 +421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Emergency alerts routes (no authentication required for emergency situations)
-  app.post("/api/emergency-alerts", async (req, res) => {
+  app.post("/api/emergency-alert", async (req, res) => {
     try {
       // Force userId to be demo-user for Sharanya's account
       const requestData = {
