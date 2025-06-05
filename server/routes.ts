@@ -1216,22 +1216,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Parent connecting to child with code: ${connectionCode}`);
       
-      // Get actual user data for the child
-      const childUserId = 'demo-user'; // In production, extract from connection code
+      // For demo, create a new family connection directly
+      // In production, this would find an existing pending connection by invite code
+      const parentUserId = 'demo-parent';
+      const childUserId = 'demo-user';
+      
+      // Create persistent family connection in database
+      const connection = await db.insert(familyConnections).values({
+        parentUserId,
+        childUserId,
+        relationshipType: 'parent',
+        status: 'accepted',
+        inviteCode: connectionCode,
+        acceptedAt: new Date(),
+        permissions: {
+          emergencyAlerts: true,
+          locationSharing: true,
+          liveStreaming: true
+        }
+      }).returning();
+      
+      // Get real user data for response
       const user = await storage.getUser(childUserId);
       const homeLocation = await storage.getHomeLocation(childUserId);
       
-      // Create child profile with real data
       const childProfile = {
-        id: `child_${Date.now()}`,
+        id: connection[0].id,
         userId: childUserId,
         name: user?.firstName || user?.email?.split('@')[0] || 'Connected Child',
         email: user?.email || 'child@example.com',
-        phone: user?.phoneNumber || '+1234567890',
+        phone: user?.phoneNumber || 'Not provided',
         lastSeen: new Date().toISOString(),
         status: 'safe' as const,
         connectionCode: connectionCode,
-        connectedAt: new Date().toISOString(),
+        connectedAt: connection[0].acceptedAt,
         currentLocation: homeLocation ? {
           lat: parseFloat(homeLocation.latitude),
           lng: parseFloat(homeLocation.longitude),
@@ -1240,9 +1258,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } : null,
         profileImage: user?.profileImageUrl
       };
-      
-      // Store in temporary map
-      connectedChildren.set(childProfile.id, childProfile);
       
       res.json({
         success: true,

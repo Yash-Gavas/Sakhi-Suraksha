@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import {
   users,
   emergencyContacts,
@@ -14,6 +14,7 @@ import {
   healthMetrics,
   stressAnalysis,
   iotEmergencyTriggers,
+  familyConnections,
   type User,
   type UpsertUser,
   type EmergencyContact,
@@ -39,7 +40,9 @@ import {
   type StressAnalysis,
   type InsertStressAnalysis,
   type IotEmergencyTrigger,
-  type InsertIotEmergencyTrigger
+  type InsertIotEmergencyTrigger,
+  type FamilyConnection,
+  type InsertFamilyConnection,
 } from "@shared/schema";
 
 export interface IStorage {
