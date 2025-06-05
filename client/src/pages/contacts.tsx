@@ -1,4 +1,4 @@
-import { Users, Plus, Phone, Edit3, Trash2, X } from "lucide-react";
+import { Users, Plus, Phone, Edit3, Trash2, X, QrCode, Scan } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertEmergencyContactSchema, type EmergencyContact, type InsertEmergencyContact } from "@shared/schema";
 import { useState } from "react";
+import FamilyConnectionQR from "@/components/family-connection-qr";
 
 export default function Contacts() {
   const { toast } = useToast();
@@ -228,6 +229,19 @@ export default function Contacts() {
           <h1 className="text-3xl font-bold text-gray-900">Emergency Contacts</h1>
           <p className="text-gray-600">Manage your trusted contacts for emergency situations</p>
         </div>
+
+        {/* Family Connection QR Code */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <QrCode className="w-5 h-5 mr-2" />
+              Connect with Parents
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FamilyConnectionQR />
+          </CardContent>
+        </Card>
 
         {/* Add Contact Button */}
         <Card>
