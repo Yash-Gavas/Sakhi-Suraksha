@@ -453,6 +453,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manual SOS button endpoint with simplified data structure
+  app.post("/api/emergency-alerts", async (req, res) => {
+    try {
+      // Create emergency alert for manual SOS button
+      const alert = await storage.createEmergencyAlert({
+        userId: 'demo-user',
+        triggerType: 'manual_button',
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
+        address: req.body.address || 'Emergency location'
+      });
+      
+      res.status(201).json(alert);
+    } catch (error) {
+      console.error('Manual SOS error:', error);
+      res.status(500).json({ message: "Failed to create emergency alert" });
+    }
+  });
+
   app.get("/api/emergency-alerts/:userId", isAuthenticated, async (req, res) => {
     try {
       const userId = req.params.userId;
