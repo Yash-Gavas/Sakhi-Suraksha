@@ -1381,6 +1381,74 @@ This message was sent automatically by Sakhi Suraksha app.`;
 
 
 
+  // WhatsApp webhook endpoints
+  app.get('/webhook/whatsapp', (req, res) => {
+    // Verify webhook with Meta
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+    
+    // Verify token (use this token when configuring webhook in Meta)
+    const VERIFY_TOKEN = 'sakhi_suraksha_webhook_token_2024';
+    
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      console.log('WhatsApp webhook verified successfully');
+      res.status(200).send(challenge);
+    } else {
+      console.log('WhatsApp webhook verification failed');
+      res.status(403).send('Forbidden');
+    }
+  });
+
+  app.post('/webhook/whatsapp', (req, res) => {
+    try {
+      const body = req.body;
+      
+      // Check if this is a WhatsApp webhook event
+      if (body.object === 'whatsapp_business_account') {
+        body.entry?.forEach((entry: any) => {
+          entry.changes?.forEach((change: any) => {
+            if (change.field === 'messages') {
+              const messages = change.value?.messages;
+              const statuses = change.value?.statuses;
+              
+              // Handle incoming messages
+              if (messages) {
+                messages.forEach((message: any) => {
+                  console.log('Received WhatsApp message:', {
+                    from: message.from,
+                    text: message.text?.body,
+                    type: message.type,
+                    timestamp: message.timestamp
+                  });
+                });
+              }
+              
+              // Handle message status updates (sent, delivered, read)
+              if (statuses) {
+                statuses.forEach((status: any) => {
+                  console.log('WhatsApp message status:', {
+                    id: status.id,
+                    status: status.status,
+                    timestamp: status.timestamp,
+                    recipient: status.recipient_id
+                  });
+                });
+              }
+            }
+          });
+        });
+        
+        res.status(200).send('OK');
+      } else {
+        res.status(404).send('Not Found');
+      }
+    } catch (error) {
+      console.error('WhatsApp webhook error:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
   // Clean up expired OTPs periodically
   setInterval(async () => {
     try {
