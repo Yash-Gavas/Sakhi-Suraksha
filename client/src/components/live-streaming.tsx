@@ -27,7 +27,8 @@ export default function LiveStreaming({
   autoStart = false, 
   onStreamStarted, 
   onStreamEnded,
-  emergencyMode = false 
+  emergencyMode = false,
+  voiceScenario = null
 }: LiveStreamingProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -216,7 +217,9 @@ export default function LiveStreaming({
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
               address: `Emergency Location: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`,
-              triggerType: 'sos_manual'
+              triggerType: voiceScenario?.triggerType || 'sos_manual',
+              scenario: voiceScenario?.scenario,
+              detectedText: voiceScenario?.detectedText
             });
           },
           (error) => {

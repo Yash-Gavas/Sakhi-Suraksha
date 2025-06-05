@@ -1794,7 +1794,7 @@ Please respond immediately if you can assist.`;
   // Live streaming endpoints
   app.post('/api/live-stream/start', async (req, res) => {
     try {
-      const { streamUrl, shareableLink, isEmergency, latitude, longitude, address, triggerType } = req.body;
+      const { streamUrl, shareableLink, isEmergency, latitude, longitude, address, triggerType, scenario, detectedText } = req.body;
 
       // Create live stream record
       const stream = await storage.createLiveStream({
@@ -1814,9 +1814,8 @@ Please respond immediately if you can assist.`;
           longitude: longitude || 77.5946,
           address: address || 'Bangalore, Karnataka, India - CURRENT LOCATION',
           isResolved: false,
-          audioRecordingUrl: null,
-          videoRecordingUrl: shareableLink,
-          emergencyMessage: 'Emergency live stream activated - immediate assistance needed'
+          audioRecordingUrl: detectedText || null,
+          videoRecordingUrl: shareableLink
         });
         
         console.log(`Emergency alert created: ID ${emergencyAlert.id} for user demo-user`);

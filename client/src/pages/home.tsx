@@ -146,12 +146,15 @@ export default function Home() {
               onStreamStarted={(streamUrl) => {
                 console.log('Live stream started:', streamUrl);
                 setAutoStartStream(false);
+                setVoiceDetectionScenario(null);
               }}
               onStreamEnded={() => {
                 console.log('Live stream ended');
                 setAutoStartStream(false);
+                setVoiceDetectionScenario(null);
               }}
               emergencyMode={autoStartStream}
+              voiceScenario={voiceDetectionScenario}
             />
           </div>
         </div>
