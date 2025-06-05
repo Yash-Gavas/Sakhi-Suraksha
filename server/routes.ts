@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { generateOTP, sendSMSOTP, sendEmailOTP, sendWhatsAppMessage } from "./otpService";
+import { generateOTP, sendWhatsAppOTP, sendEmailOTP, sendWhatsAppEmergency, sendEmailAlert } from "./whatsappService";
 import { WebSocketServer } from 'ws';
 import { 
   insertEmergencyContactSchema, 
@@ -963,7 +963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let success = false;
       
       if (type === 'phone') {
-        success = await sendSMSOTP(identifier, otp);
+        success = await sendWhatsAppOTP(identifier, otp);
       } else if (type === 'email') {
         success = await sendEmailOTP(identifier, otp);
       }
