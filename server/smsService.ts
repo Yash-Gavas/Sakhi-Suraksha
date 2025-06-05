@@ -12,9 +12,14 @@ export async function sendSMS(phoneNumber: string, message: string): Promise<boo
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const fromNumber = process.env.TWILIO_PHONE_NUMBER;
 
+    // Format phone number to international format if needed
+    const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber.replace(/[^\d]/g, '')}`;
+
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
     
     const credentials = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+
+    console.log(`Sending SMS to ${formattedNumber} via Twilio...`);
 
     const response = await fetch(twilioUrl, {
       method: 'POST',
@@ -24,22 +29,22 @@ export async function sendSMS(phoneNumber: string, message: string): Promise<boo
       },
       body: new URLSearchParams({
         From: fromNumber,
-        To: phoneNumber,
+        To: formattedNumber,
         Body: message
       })
     });
 
     if (response.ok) {
       const result = await response.json() as any;
-      console.log(`SMS sent successfully to ${phoneNumber}, SID: ${result.sid}`);
+      console.log(`SMS sent successfully to ${formattedNumber}, SID: ${result.sid}`);
       return true;
     } else {
       const error = await response.text();
-      console.error(`Twilio SMS error:`, error);
+      console.error(`Twilio SMS error for ${formattedNumber}:`, error);
       return false;
     }
   } catch (error) {
-    console.error('Failed to send SMS:', error);
+    console.error(`Failed to send SMS to ${phoneNumber}:`, error);
     return false;
   }
 }
