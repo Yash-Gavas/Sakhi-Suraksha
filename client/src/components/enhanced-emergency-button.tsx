@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { EmergencyContact } from "@shared/schema";
 import LiveStreaming from "./live-streaming";
 import FixedVoiceDetector from "./fixed-voice-detector";
+import { DeviceSmsService } from "@/lib/deviceSmsService";
 
 interface EmergencyAlert {
   triggerType: string;
@@ -147,8 +148,8 @@ Emergency Contacts:
 
 This is an automated safety alert. Please respond urgently.`;
 
-    // Send SMS to all emergency contacts from database
-    const activeContacts = emergencyContacts.filter(contact => contact.isActive);
+    // Send SMS from device to all emergency contacts from database
+    const activeContacts = emergencyContacts.filter(contact => contact.isActive && contact.phoneNumber);
     
     if (activeContacts.length === 0) {
       toast({
@@ -157,6 +158,32 @@ This is an automated safety alert. Please respond urgently.`;
         variant: "destructive",
       });
       return;
+    }
+
+    // Send device SMS to emergency contacts
+    try {
+      const deviceSmsMessage = DeviceSmsService.formatEmergencyMessage(
+        emergencyData.triggerType,
+        emergencyData.location,
+        `📹 Live video stream: ${emergencyData.streamUrl || 'Starting...'}`
+      );
+
+      const smsContacts = activeContacts.map(contact => ({
+        name: contact.name,
+        phoneNumber: contact.phoneNumber!
+      }));
+
+      if (DeviceSmsService.isSupported()) {
+        const smsResult = await DeviceSmsService.sendEmergencyBroadcast(smsContacts, deviceSmsMessage);
+        
+        toast({
+          title: "Device SMS Alerts Sent",
+          description: `SMS app opened for ${smsResult.sent} contacts`,
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error('Device SMS error:', error);
     }
 
     for (const contact of activeContacts) {
