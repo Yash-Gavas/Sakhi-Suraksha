@@ -20,10 +20,43 @@ export default function EmergencyWatchPage() {
     }
   }, [streamId]);
 
-  // Display emergency stream status when component mounts
+  // Initialize WebRTC connection to child's camera
   useEffect(() => {
-    // Set streaming status to show emergency information
-    setIsStreaming(true);
+    const initializeStream = async () => {
+      try {
+        // In a real implementation, this would connect to the child's WebRTC stream
+        // For now, we'll use the device camera as a simulation of the child's stream
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user' // Front camera to simulate child's view
+          }, 
+          audio: true 
+        });
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setIsStreaming(true);
+          
+          // Add stream started notification
+          console.log('Emergency stream connected - displaying child camera feed');
+        }
+      } catch (error) {
+        console.error('Failed to access child camera stream:', error);
+        setIsStreaming(false);
+      }
+    };
+
+    initializeStream();
+
+    // Cleanup function
+    return () => {
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
   }, []);
 
   const { data: emergencyAlert, isLoading } = useQuery({
@@ -105,46 +138,70 @@ export default function EmergencyWatchPage() {
           </CardContent>
         </Card>
 
-        {/* Emergency Stream Information */}
+        {/* Live Video Stream */}
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="relative bg-gradient-to-br from-red-900 via-red-800 to-red-900 aspect-video">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-white p-8">
-                  <div className="bg-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Video className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-4">Emergency Stream Active</h3>
-                  <p className="text-lg mb-2">Child's Camera Stream</p>
-                  <p className="text-sm text-red-200 mb-6">Live monitoring from emergency location</p>
-                  
-                  {emergencyAlert && (
-                    <div className="bg-black bg-opacity-50 rounded-lg p-4 text-left max-w-md">
-                      <div className="space-y-2 text-sm">
-                        <div><span className="font-semibold">Child:</span> {emergencyAlert.childName || 'Sharanya'}</div>
-                        <div><span className="font-semibold">Alert Type:</span> {emergencyAlert.triggerType?.replace('_', ' ').toUpperCase()}</div>
-                        {emergencyAlert.voiceDetectionText && (
-                          <div><span className="font-semibold">Voice:</span> "{emergencyAlert.voiceDetectionText}"</div>
-                        )}
-                        <div><span className="font-semibold">Status:</span> <span className="text-green-300">Stream Connected</span></div>
-                      </div>
-                    </div>
-                  )}
+            <div className="relative bg-black aspect-video">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                controls
+                muted={false}
+                className="w-full h-full object-cover"
+                style={{ backgroundColor: '#000' }}
+                onLoadedMetadata={() => {
+                  if (videoRef.current) {
+                    videoRef.current.play();
+                  }
+                }}
+              />
+              
+              {/* Overlay for stream status */}
+              <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center" style={{ 
+                display: isStreaming ? 'none' : 'flex' 
+              }}>
+                <div className="text-center text-white">
+                  <Video className="w-12 h-12 mx-auto mb-4 animate-pulse" />
+                  <p className="text-lg font-semibold">Connecting to Child's Camera...</p>
+                  <p className="text-sm text-gray-300 mt-2">Establishing secure emergency stream</p>
                 </div>
               </div>
 
               {/* Live indicator */}
               <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                CHILD STREAM LIVE
+                {isStreaming ? 'LIVE STREAM' : 'CONNECTING...'}
               </div>
+
+              {/* Emergency info overlay */}
+              {emergencyAlert && (
+                <div className="absolute top-4 right-4 bg-black bg-opacity-75 text-white p-3 rounded-lg text-sm max-w-xs">
+                  <div className="font-semibold text-red-400 mb-1">EMERGENCY ACTIVE</div>
+                  <div>Child: {emergencyAlert.childName || 'Sharanya'}</div>
+                  <div>Type: {emergencyAlert.triggerType?.replace('_', ' ').toUpperCase()}</div>
+                  {emergencyAlert.voiceDetectionText && (
+                    <div className="mt-1 text-yellow-300">Voice: "{emergencyAlert.voiceDetectionText}"</div>
+                  )}
+                </div>
+              )}
 
               {/* Stream controls */}
               <div className="absolute bottom-4 right-4 flex gap-2">
-                <button className="bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm">
-                  📞 Call Emergency Services
+                <button 
+                  onClick={() => window.open('tel:100')}
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-medium"
+                >
+                  📞 Call Police (100)
                 </button>
-                <button className="bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm">
+                <button 
+                  onClick={() => {
+                    if (emergencyAlert?.location) {
+                      window.open(`https://www.google.com/maps?q=${emergencyAlert.location.lat},${emergencyAlert.location.lng}&z=18&t=h`, '_blank');
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium"
+                >
                   📍 Track Location
                 </button>
               </div>
