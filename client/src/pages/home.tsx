@@ -299,6 +299,29 @@ export default function Home() {
           </CardContent>
         </Card>
 
+        {/* Parent Dashboard Access */}
+        <Card className="mb-8 border-orange-200 bg-gradient-to-r from-orange-50 to-red-50">
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+                <Shield className="w-8 h-8 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Parent Dashboard</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Monitor your child's safety status and receive emergency alerts in real-time
+                </p>
+              </div>
+              <Button 
+                onClick={() => window.open('/parent-dashboard', '_blank')}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+              >
+                Open Parent Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Footer spacing */}
         <div className="h-20"></div>
       </div>

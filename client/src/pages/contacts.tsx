@@ -491,6 +491,9 @@ export default function Contacts() {
             ))
           )}
         </div>
+
+        {/* Footer spacing to prevent content cutoff */}
+        <div className="h-24"></div>
       </div>
     </div>
   );

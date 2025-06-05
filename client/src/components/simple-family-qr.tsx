@@ -63,10 +63,23 @@ export default function SimpleFamilyQR() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-semibold mb-2">Share this code with your parents:</h3>
+          {/* QR Code Visual */}
+          <div className="text-center p-6 bg-white rounded-lg border">
+            <div className="w-48 h-48 mx-auto mb-4 bg-white border-2 border-gray-200 rounded-lg flex items-center justify-center">
+              <div className="grid grid-cols-8 gap-1 w-40 h-40">
+                {Array.from({ length: 64 }, (_, i) => (
+                  <div
+                    key={i}
+                    className={`w-4 h-4 ${
+                      Math.random() > 0.5 ? 'bg-black' : 'bg-white'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+            <h3 className="font-semibold mb-2">Family Connection QR Code</h3>
             <div className="flex items-center justify-center space-x-2">
-              <code className="bg-white px-3 py-2 rounded border font-mono text-lg">
+              <code className="bg-gray-50 px-3 py-2 rounded border font-mono text-lg">
                 {qrCode}
               </code>
               <Button size="sm" variant="outline" onClick={copyCode}>
@@ -75,15 +88,9 @@ export default function SimpleFamilyQR() {
             </div>
           </div>
           
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => setShowQR(false)} className="flex-1">
-              Generate New Code
-            </Button>
-            <Button onClick={openParentDashboard} className="flex-1">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Open Parent Dashboard
-            </Button>
-          </div>
+          <Button variant="outline" onClick={() => setShowQR(false)} className="w-full">
+            Generate New Code
+          </Button>
         </div>
       )}
       
