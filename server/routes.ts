@@ -1168,35 +1168,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/parent/emergency-alerts", async (req, res) => {
     try {
-      // Fetch actual emergency alerts from connected children
-      const connectedChildIds = Array.from(connectedChildren.keys());
-      if (connectedChildIds.length === 0) {
+      // Fetch emergency alerts from connected children using database
+      const parentUserId = 'demo-parent';
+      const connections = await storage.getConnectedChildren(parentUserId);
+      
+      if (connections.length === 0) {
         return res.json([]);
       }
       
-      // Get recent emergency alerts for all connected children
-      const alerts = await storage.getEmergencyAlerts('demo-user');
+      const alerts = [];
+      for (const connection of connections) {
+        const user = await storage.getUser(connection.childUserId);
+        const childAlerts = await storage.getEmergencyAlerts(connection.childUserId);
+        
+        // Format emergency alerts
+        childAlerts.forEach(alert => {
+          alerts.push({
+            id: alert.id,
+            childName: user?.firstName || user?.email?.split('@')[0] || 'Child',
+            childId: connection.id,
+            type: alert.alertType,
+            message: alert.message || 'Emergency alert triggered',
+            location: alert.latitude && alert.longitude ? {
+              lat: parseFloat(alert.latitude.toString()),
+              lng: parseFloat(alert.longitude.toString()),
+              address: alert.address || 'Location not available'
+            } : null,
+            timestamp: alert.createdAt,
+            status: alert.isResolved ? 'resolved' : 'active',
+            isResolved: alert.isResolved || false
+          });
+        });
+      }
       
-      // Format alerts for parent dashboard
-      const parentAlerts = alerts.map(alert => ({
-        id: alert.id,
-        childId: 'demo-user',
-        childName: 'Child',
-        type: alert.triggerType,
-        message: alert.message || 'Emergency alert triggered',
-        location: {
-          lat: parseFloat(alert.latitude),
-          lng: parseFloat(alert.longitude),
-          address: alert.address
-        },
-        timestamp: alert.createdAt,
-        status: alert.status,
-        streamUrl: alert.liveStreamUrl
-      }));
+      // Sort by timestamp, most recent first
+      alerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       
-      res.json(parentAlerts);
+      res.json(alerts);
     } catch (error) {
-      console.error('Error fetching parent emergency alerts:', error);
+      console.error('Error fetching emergency alerts:', error);
       res.status(500).json({ message: "Failed to fetch emergency alerts" });
     }
   });
