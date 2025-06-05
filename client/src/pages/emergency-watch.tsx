@@ -20,44 +20,80 @@ export default function EmergencyWatchPage() {
     }
   }, [streamId]);
 
-  // Initialize WebRTC connection to child's camera
+  // Initialize WebRTC connection to receive child's camera stream
   useEffect(() => {
-    const initializeStream = async () => {
+    const connectToChildStream = async () => {
       try {
-        // In a real implementation, this would connect to the child's WebRTC stream
-        // For now, we'll use the device camera as a simulation of the child's stream
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'user' // Front camera to simulate child's view
-          }, 
-          audio: true 
-        });
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setIsStreaming(true);
-          
-          // Add stream started notification
-          console.log('Emergency stream connected - displaying child camera feed');
+        if (!streamId || !emergencyAlertId) {
+          console.log('Waiting for stream ID and emergency alert ID...');
+          return;
         }
+
+        // Connect to the child's WebRTC stream via WebSocket
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        const socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+          console.log('WebSocket connected for emergency stream');
+          // Request to receive stream from child
+          socket.send(JSON.stringify({
+            type: 'request_child_stream',
+            streamId: streamId,
+            emergencyAlertId: emergencyAlertId,
+            role: 'parent'
+          }));
+        };
+
+        socket.onmessage = async (event) => {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'child_stream_offer') {
+            // Set up WebRTC peer connection to receive child's stream
+            const pc = new RTCPeerConnection({
+              iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+
+            // When we receive the child's stream, display it
+            pc.ontrack = (event) => {
+              console.log('Received child camera stream');
+              if (videoRef.current && event.streams[0]) {
+                videoRef.current.srcObject = event.streams[0];
+                setIsStreaming(true);
+              }
+            };
+
+            // Set remote description and create answer
+            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            // Send answer back to child
+            socket.send(JSON.stringify({
+              type: 'parent_stream_answer',
+              answer: answer,
+              streamId: streamId
+            }));
+          }
+        };
+
+        socket.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setIsStreaming(false);
+        };
+
+        // Cleanup function
+        return () => {
+          socket.close();
+        };
       } catch (error) {
-        console.error('Failed to access child camera stream:', error);
+        console.error('Failed to connect to child stream:', error);
         setIsStreaming(false);
       }
     };
 
-    initializeStream();
-
-    // Cleanup function
-    return () => {
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
+    connectToChildStream();
+  }, [streamId, emergencyAlertId]);
 
   const { data: emergencyAlert, isLoading } = useQuery({
     queryKey: ["/api/emergency-alerts", emergencyAlertId],

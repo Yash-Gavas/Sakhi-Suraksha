@@ -199,6 +199,60 @@ export default function LiveStreaming({
       const generatedStreamUrl = `webrtc://${streamId}`;
       const generatedShareableLink = `${window.location.origin}/watch/${streamId}`;
       
+      // Set up WebRTC connection to send stream to parent
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+      
+      // Add the stream to the peer connection
+      stream.getTracks().forEach(track => {
+        pc.addTrack(track, stream);
+      });
+      
+      // Create offer and set local description
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      
+      // Connect to WebSocket to send offer to parent
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const socket = new WebSocket(wsUrl);
+      
+      socket.onopen = () => {
+        console.log('Child WebSocket connected, sending stream offer');
+        socket.send(JSON.stringify({
+          type: 'child_stream_offer',
+          offer: offer,
+          streamId: streamId,
+          emergencyAlertId: emergencyMode ? Date.now() : null
+        }));
+      };
+      
+      socket.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'parent_stream_answer') {
+          console.log('Received parent answer, completing WebRTC connection');
+          await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+        }
+        
+        if (data.type === 'ice_candidate') {
+          console.log('Received ICE candidate from parent');
+          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+        }
+      };
+      
+      // Handle ICE candidates
+      pc.onicecandidate = (event) => {
+        if (event.candidate && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            type: 'ice_candidate',
+            candidate: event.candidate,
+            streamId: streamId
+          }));
+        }
+      };
+      
       setStreamUrl(generatedStreamUrl);
       setShareableLink(generatedShareableLink);
       setIsStreaming(true);
