@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import QRScanner from "@/components/qr-scanner";
 import { 
   AlertTriangle, 
   MapPin, 
@@ -215,7 +216,14 @@ export default function SimpleParentDashboard() {
             <div className="text-center py-4">Loading children...</div>
           ) : (children as ChildProfile[]).length === 0 ? (
             <div className="text-center py-4 text-gray-600">
-              No children connected yet
+              <p className="mb-4">No children connected yet</p>
+              <Button
+                onClick={() => setCurrentView('children')}
+                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+              >
+                <User className="w-4 h-4 mr-2" />
+                Connect Your First Child
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -238,6 +246,14 @@ export default function SimpleParentDashboard() {
                   )}
                 </div>
               ))}
+              <Button
+                onClick={() => setCurrentView('children')}
+                variant="outline"
+                className="w-full mt-4"
+              >
+                <User className="w-4 h-4 mr-2" />
+                Manage All Children
+              </Button>
             </div>
           )}
         </CardContent>
@@ -280,48 +296,14 @@ export default function SimpleParentDashboard() {
                 </div>
               </>
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">QR Code Scanner</h4>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowScanner(false)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-                <div className="relative bg-gray-100 rounded-lg p-8 text-center">
-                  <div className="w-48 h-48 mx-auto border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <Camera className="w-12 h-12 mx-auto mb-2 text-gray-500" />
-                      <p className="text-sm text-gray-600">
-                        Position QR code within the frame
-                      </p>
-                    </div>
-                  </div>
-                  <p className="mt-4 text-sm text-gray-500">
-                    Point your camera at the QR code from your child's app
-                  </p>
-                </div>
-                <Input
-                  placeholder="Or manually enter the scanned code here"
-                  value={connectionCode}
-                  onChange={(e) => setConnectionCode(e.target.value)}
-                />
-                <Button
-                  onClick={() => {
-                    if (connectionCode) {
-                      connectChildMutation.mutate(connectionCode);
-                      setShowScanner(false);
-                    }
-                  }}
-                  disabled={!connectionCode || connectChildMutation.isPending}
-                  className="w-full"
-                >
-                  {connectChildMutation.isPending ? "Connecting..." : "Connect with Code"}
-                </Button>
-              </div>
+              <QRScanner
+                onScanResult={(code) => {
+                  setConnectionCode(code);
+                  connectChildMutation.mutate(code);
+                  setShowScanner(false);
+                }}
+                onClose={() => setShowScanner(false)}
+              />
             )}
           </div>
         </CardContent>
