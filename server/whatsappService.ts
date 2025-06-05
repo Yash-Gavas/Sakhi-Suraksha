@@ -74,7 +74,7 @@ Please respond immediately if you can assist.
   }
 }
 
-// Core WhatsApp message sending function
+// Core WhatsApp message sending function with delivery monitoring
 export async function sendWhatsAppMessage(phoneNumber: string, message: string): Promise<boolean> {
   try {
     if (!process.env.WHATSAPP_ACCESS_TOKEN || !process.env.WHATSAPP_PHONE_NUMBER_ID) {
@@ -105,11 +105,28 @@ export async function sendWhatsAppMessage(phoneNumber: string, message: string):
 
     if (response.ok) {
       const result = await response.json() as any;
-      console.log(`WhatsApp message sent successfully to ${phoneNumber}, Message ID: ${result.messages?.[0]?.id || 'unknown'}`);
+      const messageId = result.messages?.[0]?.id;
+      console.log(`WhatsApp API accepted message to ${phoneNumber}, Message ID: ${messageId}`);
+      
+      // Note: Actual delivery depends on WhatsApp Business account verification
+      // Check webhook for delivery confirmation
       return true;
     } else {
       const error = await response.text();
       console.error(`WhatsApp API error:`, error);
+      
+      // Parse error to check for specific issues
+      try {
+        const errorData = JSON.parse(error);
+        if (errorData.error?.code === 131030) {
+          console.log(`Phone number ${phoneNumber} not in WhatsApp Business recipient list`);
+        } else if (errorData.error?.code === 131047) {
+          console.log(`24-hour conversation window expired for ${phoneNumber}`);
+        }
+      } catch (e) {
+        // Error parsing not critical
+      }
+      
       return false;
     }
   } catch (error) {
