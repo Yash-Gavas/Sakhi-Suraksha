@@ -16,6 +16,7 @@ import Destinations from "@/pages/destinations";
 import ProfileSetup from "@/pages/profile-setup";
 import StreamView from "@/pages/stream-view";
 import EmergencyStreamPage from "@/pages/emergency-stream";
+import ParentDashboard from "@/pages/parent-dashboard";
 import IoTDeviceManager from "@/components/iot-device-manager";
 import BottomNavigation from "@/components/bottom-navigation";
 import VoiceIndicator from "@/components/voice-indicator";
@@ -58,6 +59,7 @@ function Router() {
         <Route path="/profile-setup" component={ProfileSetup} />
         <Route path="/stream/:streamId" component={StreamView} />
         <Route path="/emergency-stream/:streamId" component={EmergencyStreamPage} />
+        <Route path="/parent-dashboard" component={ParentDashboard} />
         <Route component={NotFound} />
       </Switch>
       
