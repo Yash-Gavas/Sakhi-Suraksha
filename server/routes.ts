@@ -335,14 +335,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Emergency alerts routes (no authentication required for emergency situations)
   app.post("/api/emergency-alerts", async (req, res) => {
     try {
-      // Ensure all data types are properly converted
+      // Force userId to be demo-user for Sharanya's account
       const requestData = {
         ...req.body,
-        userId: req.body.userId ? String(req.body.userId) : 'demo-user',
+        userId: 'demo-user', // Always use demo-user for current session
         latitude: req.body.latitude ? Number(req.body.latitude) : undefined,
         longitude: req.body.longitude ? Number(req.body.longitude) : undefined,
         triggerType: req.body.triggerType || 'manual_button'
       };
+      
+      console.log('Emergency alert request data:', requestData);
       
       const validatedData = insertEmergencyAlertSchema.parse(requestData);
       const alert = await storage.createEmergencyAlert(validatedData);
