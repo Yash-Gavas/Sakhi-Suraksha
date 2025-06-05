@@ -40,8 +40,8 @@ function Router() {
         <Switch>
           <Route path="/login" component={Login} />
           <Route path="/auth" component={Landing} />
-          <Route path="/parent-dashboard" component={SimpleParentDashboard} />
           <Route path="/emergency-stream/:streamId" component={EmergencyStreamPage} />
+          <Route path="/parent-dashboard" component={SimpleParentDashboard} />
           <Route component={Login} />
         </Switch>
       </div>
@@ -49,25 +49,34 @@ function Router() {
   }
 
   return (
-    <div className="max-w-mobile mx-auto bg-gradient-to-br from-pink-50 to-purple-50 min-h-screen relative">
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/map" component={Map} />
-        <Route path="/contacts" component={Contacts} />
-        <Route path="/settings" component={Settings} />
-        <Route path="/destinations" component={Destinations} />
-        <Route path="/iot-devices" component={IoTDeviceManager} />
-        <Route path="/profile-setup" component={ProfileSetup} />
-        <Route path="/stream/:streamId" component={StreamView} />
-        <Route path="/emergency-stream/:streamId" component={EmergencyStreamPage} />
-        <Route path="/parent-dashboard" component={SimpleParentDashboard} />
-        <Route component={NotFound} />
-      </Switch>
+    <Switch>
+      {/* Parent dashboard route - completely independent */}
+      <Route path="/parent-dashboard">
+        <SimpleParentDashboard />
+      </Route>
       
-      <BottomNavigation />
-      <VoiceIndicator />
-      <FakeCallOverlay />
-    </div>
+      {/* Main app routes with navigation */}
+      <Route>
+        <div className="max-w-mobile mx-auto bg-gradient-to-br from-pink-50 to-purple-50 min-h-screen relative">
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/map" component={Map} />
+            <Route path="/contacts" component={Contacts} />
+            <Route path="/settings" component={Settings} />
+            <Route path="/destinations" component={Destinations} />
+            <Route path="/iot-devices" component={IoTDeviceManager} />
+            <Route path="/profile-setup" component={ProfileSetup} />
+            <Route path="/stream/:streamId" component={StreamView} />
+            <Route path="/emergency-stream/:streamId" component={EmergencyStreamPage} />
+            <Route component={NotFound} />
+          </Switch>
+          
+          <BottomNavigation />
+          <VoiceIndicator />
+          <FakeCallOverlay />
+        </div>
+      </Route>
+    </Switch>
   );
 }
 
