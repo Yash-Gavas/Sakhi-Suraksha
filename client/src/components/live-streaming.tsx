@@ -221,8 +221,9 @@ export default function LiveStreaming({
         
         socket.onopen = () => {
           console.log('Child device streaming to parent');
-          // Use a consistent emergency room ID for cross-device connection
-          const emergencyRoomId = `emergency_room_${streamId}`;
+          // Get emergency alert ID from the current emergency state
+          const currentEmergencyId = sessionStorage.getItem('currentEmergencyAlertId');
+          const emergencyRoomId = `emergency_room_emergency_${currentEmergencyId || Date.now()}`;
           socket.send(JSON.stringify({
             type: 'child_join_room',
             roomId: emergencyRoomId,

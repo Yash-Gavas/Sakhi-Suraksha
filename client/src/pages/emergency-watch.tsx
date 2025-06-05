@@ -33,8 +33,8 @@ export default function EmergencyWatchPage() {
         
         socket.onopen = () => {
           console.log('Parent WebSocket connected');
-          // Join the same emergency room as the child
-          const emergencyRoomId = `emergency_room_${streamId}`;
+          // Join the same emergency room as the child using emergency alert ID
+          const emergencyRoomId = `emergency_room_emergency_${emergencyAlertId}`;
           socket.send(JSON.stringify({
             type: 'parent_join_room',
             roomId: emergencyRoomId,
