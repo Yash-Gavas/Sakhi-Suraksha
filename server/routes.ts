@@ -1222,52 +1222,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/parent/emergency-alerts", async (req, res) => {
     try {
-      // Fetch emergency alerts from connected children using database
-      const parentUserId = 'demo-parent';
-      const connections = await storage.getConnectedChildren(parentUserId);
+      // For demo purposes, directly fetch alerts from demo-user since parent-child connection is simulated
       const { status } = req.query; // 'active', 'resolved', or undefined for all
       
-      if (connections.length === 0) {
-        return res.json([]);
-      }
+      // Get emergency alerts from the main user (simulating child alerts for parent view)
+      const childAlerts = await storage.getEmergencyAlerts('demo-user');
+      const user = await storage.getUser('demo-user');
       
       const alerts = [];
-      for (const connection of connections) {
-        const user = await storage.getUser(connection.childUserId);
-        const childAlerts = await storage.getEmergencyAlerts(connection.childUserId);
-        
-        // Format emergency alerts using correct schema fields
-        childAlerts.forEach(alert => {
-          const location = alert.latitude && alert.longitude ? {
-            lat: parseFloat(alert.latitude.toString()),
-            lng: parseFloat(alert.longitude.toString()),
-            address: alert.address || 'Location not available'
-          } : null;
+      
+      // Format emergency alerts using correct schema fields
+      childAlerts.forEach(alert => {
+        const location = alert.latitude && alert.longitude ? {
+          lat: parseFloat(alert.latitude.toString()),
+          lng: parseFloat(alert.longitude.toString()),
+          address: alert.address || 'Location not available'
+        } : null;
 
-          const alertData = {
-            id: alert.id,
-            childName: user?.firstName || user?.email?.split('@')[0] || 'Child',
-            childId: connection.id,
-            type: alert.triggerType,
-            message: getAlertMessage(alert.triggerType, location, alert.createdAt?.toISOString(), alert.audioRecordingUrl),
-            location,
-            timestamp: alert.createdAt,
-            status: alert.isResolved ? 'resolved' : 'active',
-            isResolved: alert.isResolved || false,
-            audioUrl: alert.audioRecordingUrl,
-            videoUrl: alert.videoRecordingUrl,
-            liveStreamUrl: alert.isResolved ? null : `https://live-stream.sakhi.com/emergency/${alert.id}`,
-            canStartStream: !alert.isResolved
-          };
+        const alertData = {
+          id: alert.id,
+          childName: user?.firstName || user?.email?.split('@')[0] || 'Sharanya',
+          childId: 1,
+          type: alert.triggerType,
+          message: getAlertMessage(alert.triggerType, location, alert.createdAt?.toISOString(), alert.audioRecordingUrl),
+          location,
+          timestamp: alert.createdAt,
+          status: alert.isResolved ? 'resolved' : 'active',
+          isResolved: alert.isResolved || false,
+          audioRecordingUrl: alert.audioRecordingUrl,
+          videoUrl: alert.videoRecordingUrl,
+          liveStreamUrl: alert.isResolved ? null : `${req.protocol}://${req.get('host')}/emergency/${alert.id}`,
+          canStartStream: !alert.isResolved
+        };
 
-          // Filter based on status query parameter
-          if (!status || 
-              (status === 'active' && !alert.isResolved) ||
-              (status === 'resolved' && alert.isResolved)) {
-            alerts.push(alertData);
-          }
-        });
-      }
+        // Filter based on status query parameter
+        if (!status || 
+            (status === 'active' && !alert.isResolved) ||
+            (status === 'resolved' && alert.isResolved)) {
+          alerts.push(alertData);
+        }
+      });
       
       // Sort by timestamp, most recent first
       alerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
