@@ -1010,7 +1010,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let result = false;
       if (type === 'phone') {
-        result = await sendSMSOTP(identifier, testOtp);
+        result = await sendWhatsAppOTP(identifier, testOtp);
       } else if (type === 'email') {
         result = await sendEmailOTP(identifier, testOtp);
       }
@@ -1068,21 +1068,11 @@ Please contact immediately or call emergency services: 100, 101, 102, 108`;
         let whatsappSuccess = false;
         let emailSuccess = false;
         
-        // Send SMS if phone number exists
+        // Send WhatsApp emergency alert if phone number exists
         if (contact.phoneNumber) {
           try {
-            smsSuccess = await sendSMSOTP(contact.phoneNumber, message);
-            console.log(`Voice Alert SMS to ${contact.phoneNumber}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
-          } catch (error) {
-            console.error(`Voice Alert SMS error for ${contact.phoneNumber}:`, error);
-          }
-        }
-        
-        // Send WhatsApp if phone number exists
-        if (contact.phoneNumber) {
-          try {
-            whatsappSuccess = await sendWhatsAppMessage(contact.phoneNumber, message);
-            console.log(`Voice Alert WhatsApp to ${contact.phoneNumber}: ${whatsappSuccess ? 'SUCCESS' : 'FAILED'}`);
+            smsSuccess = await sendWhatsAppEmergency(contact.phoneNumber, message);
+            console.log(`Voice Alert WhatsApp to ${contact.phoneNumber}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
           } catch (error) {
             console.error(`Voice Alert WhatsApp error for ${contact.phoneNumber}:`, error);
           }
@@ -1130,21 +1120,11 @@ Please contact immediately or call emergency services: 100, 101, 102, 108`;
       let whatsappSuccess = false;
       let emailSuccess = false;
       
-      // Send SMS if phone number exists
+      // Send WhatsApp emergency alert if phone number exists
       if (phoneNumber) {
         try {
-          smsSuccess = await sendSMSOTP(phoneNumber, message);
-          console.log(`SMS to ${phoneNumber}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
-        } catch (error) {
-          console.error(`SMS error for ${phoneNumber}:`, error);
-        }
-      }
-      
-      // Send WhatsApp if phone number exists
-      if (phoneNumber) {
-        try {
-          whatsappSuccess = await sendWhatsAppMessage(phoneNumber, message);
-          console.log(`WhatsApp to ${phoneNumber}: ${whatsappSuccess ? 'SUCCESS' : 'FAILED'}`);
+          smsSuccess = await sendWhatsAppEmergency(phoneNumber, message);
+          console.log(`WhatsApp to ${phoneNumber}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
         } catch (error) {
           console.error(`WhatsApp error for ${phoneNumber}:`, error);
         }
@@ -1198,10 +1178,10 @@ Please contact immediately or call emergency services: 100, 101, 102, 108`;
       let smsResult = { success: false, error: null };
       let emailResult = { success: false, error: null };
       
-      // Test SMS if phone number provided
+      // Test WhatsApp if phone number provided
       if (phoneNumber) {
         try {
-          smsResult.success = await sendSMSOTP(phoneNumber, testMessage);
+          smsResult.success = await sendWhatsAppOTP(phoneNumber, "123456");
         } catch (error) {
           smsResult.error = error.message;
         }
@@ -1354,10 +1334,10 @@ This message was sent automatically by Sakhi Suraksha app.`;
         
         if (contact.phoneNumber) {
           try {
-            smsSuccess = await sendSMSOTP(contact.phoneNumber, message);
-            console.log(`Stream share SMS to ${contact.name}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
+            smsSuccess = await sendWhatsAppEmergency(contact.phoneNumber, message);
+            console.log(`Stream share WhatsApp to ${contact.name}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
           } catch (error) {
-            console.error(`Stream share SMS error for ${contact.name}:`, error);
+            console.error(`Stream share WhatsApp error for ${contact.name}:`, error);
           }
         }
         
