@@ -22,6 +22,8 @@ interface EmergencyAlert {
 export default function EnhancedEmergencyButton() {
   const [isTriggering, setIsTriggering] = useState(false);
   const [showLiveStream, setShowLiveStream] = useState(false);
+  const [showMobileInterface, setShowMobileInterface] = useState(false);
+  const [emergencyMessageText, setEmergencyMessageText] = useState("");
   const [holdProgress, setHoldProgress] = useState(0);
   const [emergencyActive, setEmergencyActive] = useState(false);
   
@@ -182,21 +184,15 @@ This is an automated safety alert. Please respond urgently.`;
         email: contact.email
       }));
 
-      // Send emergency alerts via device apps (opens SMS and WhatsApp)
-      console.log('Sending emergency messages to contacts:', contacts);
+      // Show mobile emergency interface for native app access
+      console.log('Opening mobile emergency interface for contacts:', contacts);
       
-      // Use MobileMessaging class to open native apps
-      MobileMessaging.sendEmergencyMessages(contacts, emergencyData);
-      
-      // Show notification about message sending
-      MobileMessaging.showNativeNotification(
-        "Emergency Alert Triggered", 
-        `Opening messaging apps for ${contacts.length} contacts`
-      );
+      setEmergencyMessageText(messageTemplate);
+      setShowMobileInterface(true);
 
       toast({
-        title: "Emergency Alerts Sending",
-        description: `Opening SMS and WhatsApp for ${contacts.length} contacts`,
+        title: "Emergency Interface Opened",
+        description: `Tap buttons to send messages via native apps`,
         variant: "default",
       });
     } catch (error) {
@@ -490,6 +486,18 @@ This is an automated safety alert. Please respond urgently.`;
             onStreamEnd={() => setShowLiveStream(false)}
           />
         </div>
+      )}
+
+      {/* Mobile Emergency Interface */}
+      {showMobileInterface && (
+        <MobileEmergencyInterface
+          contacts={emergencyContacts.filter(contact => contact.isActive).map(contact => ({
+            name: contact.name,
+            phoneNumber: contact.phoneNumber!
+          }))}
+          emergencyMessage={emergencyMessageText}
+          onClose={() => setShowMobileInterface(false)}
+        />
       )}
     </div>
   );
