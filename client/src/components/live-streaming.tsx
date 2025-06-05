@@ -46,6 +46,10 @@ export default function LiveStreaming({
       streamUrl: string;
       shareableLink: string;
       isEmergency: boolean;
+      latitude?: number;
+      longitude?: number;
+      address?: string;
+      triggerType?: string;
     }) => {
       const response = await fetch('/api/live-stream/start', {
         method: 'POST',

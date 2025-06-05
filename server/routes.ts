@@ -1794,7 +1794,7 @@ Please respond immediately if you can assist.`;
   // Live streaming endpoints
   app.post('/api/live-stream/start', async (req, res) => {
     try {
-      const { streamUrl, shareableLink, isEmergency } = req.body;
+      const { streamUrl, shareableLink, isEmergency, latitude, longitude, address, triggerType } = req.body;
 
       // Create live stream record
       const stream = await storage.createLiveStream({
@@ -1803,6 +1803,24 @@ Please respond immediately if you can assist.`;
         shareLink: shareableLink,
         isActive: true
       });
+      
+      // If emergency mode, create emergency alert in database
+      if (isEmergency) {
+        // Create emergency alert record for parent dashboard
+        const emergencyAlert = await storage.createEmergencyAlert({
+          userId: 'demo-user',
+          triggerType: triggerType || 'sos_manual',
+          latitude: latitude || 12.9716, // Bangalore coordinates
+          longitude: longitude || 77.5946,
+          address: address || 'Bangalore, Karnataka, India - CURRENT LOCATION',
+          isResolved: false,
+          audioRecordingUrl: null,
+          videoRecordingUrl: shareableLink,
+          emergencyMessage: 'Emergency live stream activated - immediate assistance needed'
+        });
+        
+        console.log(`Emergency alert created: ID ${emergencyAlert.id} for user demo-user`);
+      }
       
       // If emergency mode, automatically share with contacts
       if (isEmergency) {
