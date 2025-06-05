@@ -4,7 +4,7 @@ import { Mic, MicOff, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PersistentVoiceDetectorProps {
-  onEmergencyDetected: () => void;
+  onEmergencyDetected: (triggerType: string, scenario: string, detectedText: string) => void;
   isActive: boolean;
   onToggle: (active: boolean) => void;
 }
@@ -181,8 +181,11 @@ export default function PersistentVoiceDetector({
           variant: "destructive"
         });
 
-        // Trigger emergency immediately
-        onEmergencyDetected();
+        // Create detailed scenario based on detected keyword and context
+        const scenario = `Voice Distress Alert: "${keyword}" detected in speech. Audio Analysis: "${text.trim()}". Stress Level: HIGH - Automatic trigger activated.`;
+        
+        // Trigger emergency with voice detection details
+        onEmergencyDetected('voice_detection', scenario, text.trim());
         
         // Show additional notification
         if ('Notification' in window && Notification.permission === 'granted') {

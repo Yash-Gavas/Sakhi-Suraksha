@@ -21,6 +21,7 @@ export default function Home() {
   const { isListening, isSupported } = useVoiceRecognition();
   const [autoStartStream, setAutoStartStream] = useState(false);
   const [isVoiceDetectionActive, setIsVoiceDetectionActive] = useState(false);
+  const [voiceDetectionScenario, setVoiceDetectionScenario] = useState<{triggerType: string, scenario: string, detectedText: string} | null>(null);
   
   const { data: user } = useQuery<UserType>({
     queryKey: ["/api/user/profile"],
@@ -128,8 +129,9 @@ export default function Home() {
           {/* Voice Distress Detection */}
           <div className="mb-6">
             <PersistentVoiceDetector 
-              onEmergencyDetected={() => {
-                console.log('Voice emergency triggered from home page');
+              onEmergencyDetected={(triggerType, scenario, detectedText) => {
+                console.log('Voice emergency triggered:', triggerType, scenario);
+                setVoiceDetectionScenario({ triggerType, scenario, detectedText });
                 setAutoStartStream(true);
               }}
               isActive={isVoiceDetectionActive}

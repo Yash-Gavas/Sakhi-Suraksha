@@ -11,6 +11,7 @@ interface LiveStreamingProps {
   onStreamStarted?: (streamUrl: string) => void;
   onStreamEnded?: () => void;
   emergencyMode?: boolean;
+  voiceScenario?: {triggerType: string, scenario: string, detectedText: string} | null;
 }
 
 interface LiveStream {
