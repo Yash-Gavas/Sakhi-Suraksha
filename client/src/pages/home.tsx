@@ -15,10 +15,12 @@ import { Link } from "wouter";
 import type { EmergencyContact, HomeLocation, User as UserType } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { userSession } from "@/lib/userSession";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const { location, isLocationSharingActive } = useLocation();
   const { isListening, isSupported } = useVoiceRecognition();
+  const { toast } = useToast();
   const [autoStartStream, setAutoStartStream] = useState(false);
   const [isVoiceDetectionActive, setIsVoiceDetectionActive] = useState(false);
   const [voiceDetectionScenario, setVoiceDetectionScenario] = useState<{triggerType: string, scenario: string, detectedText: string} | null>(null);

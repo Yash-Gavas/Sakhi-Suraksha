@@ -1100,7 +1100,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       message += `\nChild: Sharanya\n`;
       message += `Time: ${currentTime}\n`;
       message += `Location: ${locationText}\n`;
-      message += `📹 Room ID: emergency_${alert.id}\n\n`;
+      message += `📹 LIVE STREAM ROOM ID: emergency_${alert.id}\n`;
+      message += `🔗 Join Stream: https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}/emergency-watch/emergency_${alert.id}\n\n`;
       message += `⚠️ IMMEDIATE ATTENTION REQUIRED ⚠️\n`;
       message += `Please check on Sharanya's safety immediately.`;
 

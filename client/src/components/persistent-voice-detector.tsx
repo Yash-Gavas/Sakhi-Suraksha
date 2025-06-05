@@ -172,10 +172,10 @@ export default function PersistentVoiceDetector({
     const lowercaseText = text.toLowerCase().trim();
     console.log('Checking text for keywords:', lowercaseText);
     
-    // Check for debounce - prevent multiple alerts within 10 seconds
+    // Check for debounce - prevent multiple alerts within 30 seconds
     const now = Date.now();
-    if (now - lastEmergencyTriggerRef.current < emergencyDebounceTimeRef.current) {
-      console.log('Emergency debounced - ignoring detection within cooldown period');
+    if (now - lastEmergencyTriggerRef.current < 30000) {
+      console.log(`Emergency debounced - ${Math.ceil((30000 - (now - lastEmergencyTriggerRef.current)) / 1000)}s remaining`);
       return;
     }
     
