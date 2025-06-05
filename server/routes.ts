@@ -335,7 +335,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Emergency alerts routes (no authentication required for emergency situations)
   app.post("/api/emergency-alerts", async (req, res) => {
     try {
-      const validatedData = insertEmergencyAlertSchema.parse(req.body);
+      // Ensure latitude and longitude are properly converted to numbers
+      const requestData = {
+        ...req.body,
+        latitude: req.body.latitude ? Number(req.body.latitude) : undefined,
+        longitude: req.body.longitude ? Number(req.body.longitude) : undefined
+      };
+      
+      const validatedData = insertEmergencyAlertSchema.parse(requestData);
       const alert = await storage.createEmergencyAlert(validatedData);
       
       // Trigger emergency protocol with live streaming
@@ -344,7 +351,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(alert);
     } catch (error) {
       console.error('Emergency alert error:', error);
-      res.status(400).json({ message: "Failed to create emergency alert" });
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+      }
+      res.status(400).json({ 
+        message: "Failed to create emergency alert",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 

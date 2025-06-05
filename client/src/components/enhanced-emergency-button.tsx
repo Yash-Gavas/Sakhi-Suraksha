@@ -450,22 +450,32 @@ This is an automated safety alert. Please respond urgently.`;
         <div className="w-full max-w-md">
           <LiveStreaming 
             isEmergency={true}
-            onStreamStart={(streamUrl) => {
+            onStreamStart={(streamUrl: string) => {
               // Send live location alerts via device messaging
-              const contacts = activeContacts.map(contact => ({
-                name: contact.name,
-                phoneNumber: contact.phoneNumber!,
-                email: contact.email
-              }));
+              if (emergencyContacts.length > 0) {
+                const contacts = emergencyContacts.filter(contact => contact.isActive).map(contact => ({
+                  name: contact.name,
+                  phoneNumber: contact.phoneNumber,
+                  email: contact.email
+                }));
 
-              // Send live location alerts through device apps
-              for (const contact of contacts) {
-                sendLiveLocationAlert(
-                  contact.phoneNumber,
-                  streamUrl,
-                  emergencyData.location,
-                  '+917892937490' // Your WhatsApp number
-                );
+                // Send live location alerts through device apps
+                for (const contact of contacts) {
+                  navigator.geolocation.getCurrentPosition((position) => {
+                    const location = {
+                      lat: position.coords.latitude,
+                      lng: position.coords.longitude,
+                      address: `Live Location: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`
+                    };
+                    
+                    sendLiveLocationAlert(
+                      contact.phoneNumber,
+                      streamUrl,
+                      location,
+                      '+917892937490' // Your WhatsApp number
+                    );
+                  });
+                }
               }
 
               toast({

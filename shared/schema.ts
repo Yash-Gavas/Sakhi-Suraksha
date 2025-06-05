@@ -216,8 +216,8 @@ export const insertEmergencyAlertSchema = createInsertSchema(emergencyAlerts).om
   id: true,
   createdAt: true
 }).extend({
-  latitude: z.number().optional(),
-  longitude: z.number().optional()
+  latitude: z.union([z.number(), z.string().transform(Number)]).optional(),
+  longitude: z.union([z.number(), z.string().transform(Number)]).optional()
 });
 
 export const insertCommunityAlertSchema = createInsertSchema(communityAlerts).omit({
