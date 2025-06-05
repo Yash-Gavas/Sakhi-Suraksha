@@ -187,10 +187,43 @@ export default function LiveStreaming({
         videoRef.current.play();
       }
 
-      // Create MediaRecorder for recording
+      // Create MediaRecorder for automatic session recording
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'video/webm;codecs=vp8,opus'
       });
+      
+      const recordedChunks: BlobPart[] = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const formData = new FormData();
+        formData.append('video', blob, `emergency_session_${Date.now()}.webm`);
+        formData.append('sessionType', emergencyMode ? 'emergency' : 'normal');
+        formData.append('userId', 'demo-user');
+        formData.append('timestamp', new Date().toISOString());
+        
+        try {
+          const response = await fetch('/api/emergency/save-session-recording', {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (response.ok) {
+            console.log('Session recording saved to emergency history');
+          }
+        } catch (error) {
+          console.error('Failed to save session recording:', error);
+        }
+      };
+      
+      // Start recording immediately
+      mediaRecorder.start(1000);
       
       mediaRecorderRef.current = mediaRecorder;
       

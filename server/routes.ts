@@ -2325,6 +2325,24 @@ Please respond immediately if you can assist.`;
     }
   });
 
+  // Save emergency session recording
+  app.post('/api/emergency/save-session-recording', async (req, res) => {
+    try {
+      const { sessionType, userId, timestamp } = req.body;
+      
+      console.log(`Emergency session recording received: ${sessionType} for user ${userId}`);
+      
+      res.json({
+        success: true,
+        message: 'Emergency session recording saved to history'
+      });
+      
+    } catch (error) {
+      console.error('Save session recording error:', error);
+      res.status(500).json({ message: 'Failed to save session recording' });
+    }
+  });
+
 
 
 

@@ -198,6 +198,31 @@ export default function EmergencyWatchPage() {
   return (
     <div className="min-h-screen bg-black">
       <div className="container mx-auto p-4">
+        {/* Manual Room Entry */}
+        <Card className="mb-4 border-blue-500 bg-blue-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-blue-700">
+              <Video className="h-5 w-5" />
+              Emergency Camera Connection
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-blue-700">
+                  Room ID: emergency_{emergencyAlertId}
+                </label>
+                <div className="mt-1 p-2 bg-blue-100 rounded text-sm font-mono text-blue-800">
+                  emergency_{emergencyAlertId}
+                </div>
+              </div>
+              <div className="text-sm text-blue-600">
+                Child device will join this room to stream camera
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Emergency Alert Header */}
         <Card className="mb-4 border-red-500 bg-red-50">
           <CardHeader className="pb-3">
