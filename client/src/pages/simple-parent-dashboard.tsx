@@ -155,10 +155,21 @@ export default function SimpleParentDashboard() {
       {/* Emergency Alerts */}
       <Card className="border-red-200 bg-red-50">
         <CardHeader>
-          <CardTitle className="flex items-center text-red-800">
-            <AlertTriangle className="w-5 h-5 mr-2" />
-            Emergency Alerts
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center text-red-800">
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              Active Emergency Alerts
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.href = '/emergency-alerts'}
+              className="text-red-600 border-red-300 hover:bg-red-50"
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              View All History
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {alertsLoading ? (
@@ -169,33 +180,68 @@ export default function SimpleParentDashboard() {
               No active emergencies
             </div>
           ) : (
-            <div className="space-y-3">
-              {(emergencyAlerts as EmergencyAlert[]).map((alert) => (
+            <div className="space-y-4">
+              {(emergencyAlerts as any[]).map((alert) => (
                 <div
                   key={alert.id}
-                  className={`p-4 rounded-lg border ${getAlertStatusColor(alert.status)}`}
+                  className="p-4 rounded-lg border border-red-300 bg-white shadow-sm"
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      <span className="font-medium">{alert.triggerType}</span>
-                      <Badge variant="outline">{alert.status}</Badge>
+                      <AlertTriangle className="w-5 h-5 text-red-600" />
+                      <span className="font-semibold text-red-800">{alert.childName}</span>
+                      <Badge className="bg-red-100 text-red-700 border-red-300">
+                        {alert.type}
+                      </Badge>
                     </div>
-                    <span className="text-sm">{formatTime(alert.createdAt)}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <MapPin className="w-3 h-3" />
-                    <span>{alert.address}</span>
-                  </div>
-                  {alert.status === 'active' && (
                     <Button
                       size="sm"
                       onClick={() => resolveAlertMutation.mutate(alert.id)}
                       disabled={resolveAlertMutation.isPending}
-                      className="mt-2"
+                      className="bg-green-600 hover:bg-green-700"
                     >
-                      Mark as Resolved
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Resolve
                     </Button>
+                  </div>
+                  
+                  <div className="text-sm text-gray-700 whitespace-pre-line mb-3">
+                    {alert.message}
+                  </div>
+                  
+                  {alert.location && (
+                    <div className="flex items-center space-x-2 text-sm text-blue-600 mb-2">
+                      <MapPin className="w-4 h-4" />
+                      <a 
+                        href={`https://maps.google.com/?q=${alert.location.lat},${alert.location.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                      >
+                        View on Maps: {alert.location.address}
+                      </a>
+                    </div>
+                  )}
+                  
+                  {alert.liveStreamUrl && (
+                    <div className="flex space-x-2 mt-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                        onClick={() => window.open(alert.liveStreamUrl, '_blank')}
+                      >
+                        🔴 Live Stream
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-600 border-green-300 hover:bg-green-50"
+                        onClick={() => window.open(`/api/parent/live-location/${alert.childId}`, '_blank')}
+                      >
+                        📍 Live Location
+                      </Button>
+                    </div>
                   )}
                 </div>
               ))}

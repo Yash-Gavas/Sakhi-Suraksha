@@ -1126,16 +1126,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to get alert message based on trigger type
-  function getAlertMessage(triggerType: string): string {
+  function getAlertMessage(triggerType: string, location?: any, timestamp?: string): string {
+    const now = new Date();
+    const alertTime = timestamp ? new Date(timestamp) : now;
+    const timeStr = alertTime.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    
+    const locationLink = location ? 
+      `📍 Current Location: ${location.address} (${location.lat.toFixed(4)}, ${location.lng.toFixed(4)})` : 
+      '📍 Location: Coordinates being tracked';
+    
+    const liveStreamText = '🔴 Live Stream Available | 📱 Real-time monitoring active';
+    
     switch (triggerType) {
-      case 'sos_manual': return 'Emergency SOS activated by user - Immediate assistance needed';
-      case 'voice_detection': return 'Voice distress detected: "Help me, someone is following me" - Audio analysis shows high stress levels';
-      case 'geofence_exit': return 'Left designated safe zone after 10 PM - Location monitoring active';
-      case 'shake_detection': return 'Emergency shake gesture detected - Device motion indicates distress';
-      case 'panic_button': return 'Panic button pressed - Silent alarm activated';
-      case 'audio_trigger': return 'Voice distress: "I feel unsafe, please help" - Automatic emergency protocol initiated';
-      case 'pattern_recognition': return 'Unusual movement pattern detected - Possible emergency situation';
-      default: return 'Emergency alert triggered - Location tracking active';
+      case 'sos_manual': 
+        return `🚨 MANUAL SOS ACTIVATED\n${timeStr}\n\nUser manually triggered emergency alert - Immediate assistance needed\n\n${locationLink}\n\n${liveStreamText}`;
+      case 'voice_detection': 
+        return `🎤 VOICE DISTRESS DETECTED\n${timeStr}\n\nAudio Analysis: "Help me, someone is following me"\nStress Level: HIGH | Automatic trigger activated\n\n${locationLink}\n\n${liveStreamText}`;
+      case 'geofence_exit': 
+        return `🚧 SAFE ZONE BREACH\n${timeStr}\n\nLeft designated safe zone after 10 PM\nAutomatic trigger - Location monitoring active\n\n${locationLink}\n\n${liveStreamText}`;
+      case 'shake_detection': 
+        return `📳 EMERGENCY GESTURE DETECTED\n${timeStr}\n\nDevice motion indicates distress pattern\nAutomatic trigger - Shake gesture recognized\n\n${locationLink}\n\n${liveStreamText}`;
+      case 'panic_button': 
+        return `🔴 PANIC BUTTON ACTIVATED\n${timeStr}\n\nSilent alarm triggered manually\nImmediate response required\n\n${locationLink}\n\n${liveStreamText}`;
+      case 'audio_trigger': 
+        return `🎤 VOICE DISTRESS ANALYSIS\n${timeStr}\n\nDetected phrase: "I feel unsafe, please help"\nAutomatic emergency protocol initiated\n\n${locationLink}\n\n${liveStreamText}`;
+      case 'pattern_recognition': 
+        return `🤖 AI BEHAVIOR ANALYSIS\n${timeStr}\n\nUnusual movement pattern detected\nAutomatic trigger - Possible emergency situation\n\n${locationLink}\n\n${liveStreamText}`;
+      default: 
+        return `⚠️ EMERGENCY ALERT\n${timeStr}\n\nEmergency situation detected\nAutomatic monitoring active\n\n${locationLink}\n\n${liveStreamText}`;
     }
   }
 
@@ -1205,17 +1229,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Format emergency alerts using correct schema fields
         childAlerts.forEach(alert => {
+          const location = alert.latitude && alert.longitude ? {
+            lat: parseFloat(alert.latitude.toString()),
+            lng: parseFloat(alert.longitude.toString()),
+            address: alert.address || 'Location not available'
+          } : null;
+
           const alertData = {
             id: alert.id,
             childName: user?.firstName || user?.email?.split('@')[0] || 'Child',
             childId: connection.id,
             type: alert.triggerType,
-            message: getAlertMessage(alert.triggerType),
-            location: alert.latitude && alert.longitude ? {
-              lat: parseFloat(alert.latitude.toString()),
-              lng: parseFloat(alert.longitude.toString()),
-              address: alert.address || 'Location not available'
-            } : null,
+            message: getAlertMessage(alert.triggerType, location, alert.createdAt?.toISOString()),
+            location,
             timestamp: alert.createdAt,
             status: alert.isResolved ? 'resolved' : 'active',
             isResolved: alert.isResolved || false,
