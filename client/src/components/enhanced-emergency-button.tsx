@@ -161,30 +161,42 @@ This is an automated safety alert. Please respond urgently.`;
       return;
     }
 
-    // Send device SMS to emergency contacts
+    // Send messages through device's native SMS and WhatsApp apps
     try {
+      const contacts = activeContacts.map(contact => ({
+        name: contact.name,
+        phoneNumber: contact.phoneNumber!,
+        email: contact.email
+      }));
+
+      // Send emergency alerts via device apps (opens SMS and WhatsApp)
+      for (const contact of contacts) {
+        // Send emergency alert through device WhatsApp and SMS
+        sendEmergencyAlert(
+          contact.phoneNumber,
+          emergencyData.location,
+          '+917892937490' // Your WhatsApp number
+        );
+      }
+
+      // Also use existing device SMS service
       const deviceSmsMessage = DeviceSmsService.formatEmergencyMessage(
         emergencyData.triggerType,
         emergencyData.location,
         `📹 Live video stream: ${emergencyData.streamUrl || 'Starting...'}`
       );
 
-      const smsContacts = activeContacts.map(contact => ({
-        name: contact.name,
-        phoneNumber: contact.phoneNumber!
-      }));
-
       if (DeviceSmsService.isSupported()) {
-        const smsResult = await DeviceSmsService.sendEmergencyBroadcast(smsContacts, deviceSmsMessage);
+        const smsResult = await DeviceSmsService.sendEmergencyBroadcast(contacts, deviceSmsMessage);
         
         toast({
-          title: "Device SMS Alerts Sent",
-          description: `SMS app opened for ${smsResult.sent} contacts`,
+          title: "Emergency Alerts Sending",
+          description: `Opening SMS and WhatsApp for ${contacts.length} contacts`,
           variant: "default",
         });
       }
     } catch (error) {
-      console.error('Device SMS error:', error);
+      console.error('Device messaging error:', error);
     }
 
     for (const contact of activeContacts) {
@@ -439,9 +451,26 @@ This is an automated safety alert. Please respond urgently.`;
           <LiveStreaming 
             isEmergency={true}
             onStreamStart={(streamUrl) => {
+              // Send live location alerts via device messaging
+              const contacts = activeContacts.map(contact => ({
+                name: contact.name,
+                phoneNumber: contact.phoneNumber!,
+                email: contact.email
+              }));
+
+              // Send live location alerts through device apps
+              for (const contact of contacts) {
+                sendLiveLocationAlert(
+                  contact.phoneNumber,
+                  streamUrl,
+                  emergencyData.location,
+                  '+917892937490' // Your WhatsApp number
+                );
+              }
+
               toast({
                 title: "Emergency Stream Active",
-                description: "Live video shared with emergency contacts",
+                description: "Live video and location shared with emergency contacts via SMS and WhatsApp",
               });
             }}
             onStreamEnd={() => setShowLiveStream(false)}
