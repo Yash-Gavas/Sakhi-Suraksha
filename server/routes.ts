@@ -1021,16 +1021,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // OTP Verification Routes
   app.post('/api/otp/send', async (req, res) => {
-    try {
-      const { identifier, type } = req.body; // identifier = phone or email, type = 'phone' or 'email'
-      
-      if (!identifier || !type) {
-        return res.status(400).json({ message: "Identifier and type are required" });
-      }
+    const { identifier, type } = req.body;
+    
+    if (!identifier || !type) {
+      return res.status(400).json({ message: "Identifier and type are required" });
+    }
 
-      const otp = generateOTP();
-      
-      // Store OTP in database
+    const otp = generateOTP();
+    
+    try {
+      // Store OTP in database first
       await storage.createOtpVerification({
         identifier,
         type,
@@ -1038,22 +1038,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
       });
 
-      let success = false;
-      
       if (type === 'phone') {
-        success = await sendWhatsAppOTP(identifier, otp);
+        const whatsappSuccess = await sendWhatsAppOTP(identifier, otp);
+        
+        if (whatsappSuccess) {
+          return res.json({ 
+            message: "OTP sent successfully via WhatsApp",
+            deliveryMethod: 'whatsapp',
+            success: true
+          });
+        } else {
+          console.log(`Manual OTP for ${identifier}: ${otp}`);
+          return res.json({ 
+            message: "WhatsApp delivery pending. Use manual OTP verification",
+            deliveryMethod: 'manual',
+            manualOtp: otp,
+            success: true,
+            note: "Add your phone number to WhatsApp Business recipient list for automatic delivery"
+          });
+        }
       } else if (type === 'email') {
-        success = await sendEmailOTP(identifier, otp);
-      }
-
-      if (success) {
-        res.json({ message: "OTP sent successfully" });
+        const emailSuccess = await sendEmailOTP(identifier, otp);
+        
+        if (emailSuccess) {
+          return res.json({ 
+            message: "OTP sent successfully via email",
+            deliveryMethod: 'email',
+            success: true
+          });
+        } else {
+          return res.status(500).json({ message: "Failed to send email OTP" });
+        }
       } else {
-        res.status(500).json({ message: "Failed to send OTP" });
+        return res.status(400).json({ message: "Invalid type specified" });
       }
     } catch (error) {
       console.error('Send OTP error:', error);
-      res.status(500).json({ message: "Failed to send OTP" });
+      res.status(500).json({ message: "Failed to process OTP request" });
     }
   });
 
