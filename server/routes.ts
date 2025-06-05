@@ -1221,27 +1221,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parentUserId = 'demo-parent';
       const childUserId = 'demo-user';
       
-      // Create persistent family connection in database
-      const connection = await db.insert(familyConnections).values({
+      // Create persistent family connection in database using storage method
+      const connection = await storage.createFamilyConnection({
         parentUserId,
         childUserId,
         relationshipType: 'parent',
         status: 'accepted',
         inviteCode: connectionCode,
-        acceptedAt: new Date(),
         permissions: {
           emergencyAlerts: true,
           locationSharing: true,
           liveStreaming: true
         }
-      }).returning();
+      });
       
       // Get real user data for response
       const user = await storage.getUser(childUserId);
       const homeLocation = await storage.getHomeLocation(childUserId);
       
       const childProfile = {
-        id: connection[0].id,
+        id: connection.id,
         userId: childUserId,
         name: user?.firstName || user?.email?.split('@')[0] || 'Connected Child',
         email: user?.email || 'child@example.com',
@@ -1249,7 +1248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastSeen: new Date().toISOString(),
         status: 'safe' as const,
         connectionCode: connectionCode,
-        connectedAt: connection[0].acceptedAt,
+        connectedAt: connection.acceptedAt || connection.createdAt,
         currentLocation: homeLocation ? {
           lat: parseFloat(homeLocation.latitude),
           lng: parseFloat(homeLocation.longitude),
