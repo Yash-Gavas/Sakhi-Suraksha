@@ -213,45 +213,62 @@ export default function LiveStreaming({
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       
-      // Connect to WebSocket to send offer to parent
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
-      const socket = new WebSocket(wsUrl);
-      
-      socket.onopen = () => {
-        console.log('Child WebSocket connected, sending stream offer');
-        socket.send(JSON.stringify({
-          type: 'child_stream_offer',
-          offer: offer,
-          streamId: streamId,
-          emergencyAlertId: emergencyMode ? Date.now() : null
-        }));
-      };
-      
-      socket.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
+      // Immediately establish WebSocket connection for emergency streaming
+      if (emergencyMode) {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        const socket = new WebSocket(wsUrl);
         
-        if (data.type === 'parent_stream_answer') {
-          console.log('Received parent answer, completing WebRTC connection');
-          await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-        }
-        
-        if (data.type === 'ice_candidate') {
-          console.log('Received ICE candidate from parent');
-          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-        }
-      };
-      
-      // Handle ICE candidates
-      pc.onicecandidate = (event) => {
-        if (event.candidate && socket.readyState === WebSocket.OPEN) {
+        socket.onopen = () => {
+          console.log('Child WebSocket connected, sending stream offer');
+          // Send the stream offer to waiting parents
           socket.send(JSON.stringify({
-            type: 'ice_candidate',
-            candidate: event.candidate,
-            streamId: streamId
+            type: 'child_stream_offer',
+            offer: offer,
+            streamId: streamId,
+            emergencyAlertId: Date.now()
           }));
-        }
-      };
+        };
+        
+        socket.onmessage = async (event) => {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'parent_stream_answer') {
+            console.log('Received parent answer, completing WebRTC connection');
+            try {
+              await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+              console.log('WebRTC connection established with parent');
+            } catch (error) {
+              console.error('Error setting remote description:', error);
+            }
+          }
+          
+          if (data.type === 'ice_candidate') {
+            console.log('Received ICE candidate from parent');
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+            } catch (error) {
+              console.error('Error adding ICE candidate:', error);
+            }
+          }
+        };
+        
+        // Handle ICE candidates
+        pc.onicecandidate = (event) => {
+          if (event.candidate && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+              type: 'ice_candidate',
+              candidate: event.candidate,
+              streamId: streamId
+            }));
+          }
+        };
+        
+        // Store socket for cleanup
+        streamRef.current = stream;
+        (streamRef.current as any).socket = socket;
+        (streamRef.current as any).pc = pc;
+      }
       
       setStreamUrl(generatedStreamUrl);
       setShareableLink(generatedShareableLink);

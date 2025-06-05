@@ -24,10 +24,10 @@ export default function EmergencyWatchPage() {
   useEffect(() => {
     const connectToChildStream = async () => {
       try {
-        if (!streamId || !emergencyAlertId) {
-          console.log('Waiting for stream ID and emergency alert ID...');
-          return;
-        }
+        // Extract stream ID from the emergency alert ID for WebRTC connection
+        const actualStreamId = streamId || `emergency_${emergencyAlertId}`;
+        
+        console.log('Connecting to child stream:', actualStreamId);
 
         // Connect to the child's WebRTC stream via WebSocket
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -35,11 +35,11 @@ export default function EmergencyWatchPage() {
         const socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
-          console.log('WebSocket connected for emergency stream');
+          console.log('Parent WebSocket connected, requesting child stream');
           // Request to receive stream from child
           socket.send(JSON.stringify({
             type: 'request_child_stream',
-            streamId: streamId,
+            streamId: actualStreamId,
             emergencyAlertId: emergencyAlertId,
             role: 'parent'
           }));
@@ -47,8 +47,11 @@ export default function EmergencyWatchPage() {
 
         socket.onmessage = async (event) => {
           const data = JSON.parse(event.data);
+          console.log('Parent received WebSocket message:', data.type);
           
           if (data.type === 'child_stream_offer') {
+            console.log('Received child stream offer, setting up WebRTC connection');
+            
             // Set up WebRTC peer connection to receive child's stream
             const pc = new RTCPeerConnection({
               iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
@@ -56,24 +59,47 @@ export default function EmergencyWatchPage() {
 
             // When we receive the child's stream, display it
             pc.ontrack = (event) => {
-              console.log('Received child camera stream');
+              console.log('Received child camera stream track');
               if (videoRef.current && event.streams[0]) {
                 videoRef.current.srcObject = event.streams[0];
                 setIsStreaming(true);
+                console.log('Child stream connected and playing');
               }
             };
 
-            // Set remote description and create answer
-            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
+            // Handle ICE candidates
+            pc.onicecandidate = (event) => {
+              if (event.candidate) {
+                socket.send(JSON.stringify({
+                  type: 'ice_candidate',
+                  candidate: event.candidate,
+                  streamId: actualStreamId
+                }));
+              }
+            };
 
-            // Send answer back to child
-            socket.send(JSON.stringify({
-              type: 'parent_stream_answer',
-              answer: answer,
-              streamId: streamId
-            }));
+            try {
+              // Set remote description and create answer
+              await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+
+              // Send answer back to child
+              socket.send(JSON.stringify({
+                type: 'parent_stream_answer',
+                answer: answer,
+                streamId: actualStreamId
+              }));
+              
+              console.log('Sent answer to child, WebRTC handshake in progress');
+            } catch (error) {
+              console.error('Error in WebRTC handshake:', error);
+            }
+          }
+          
+          if (data.type === 'ice_candidate') {
+            console.log('Received ICE candidate from child');
+            // Handle ICE candidates when we have a peer connection
           }
         };
 
@@ -82,7 +108,11 @@ export default function EmergencyWatchPage() {
           setIsStreaming(false);
         };
 
-        // Cleanup function
+        socket.onclose = () => {
+          console.log('Parent WebSocket connection closed');
+        };
+
+        // Store socket for cleanup
         return () => {
           socket.close();
         };
@@ -92,7 +122,10 @@ export default function EmergencyWatchPage() {
       }
     };
 
-    connectToChildStream();
+    // Only connect if we have an emergency alert ID
+    if (emergencyAlertId) {
+      connectToChildStream();
+    }
   }, [streamId, emergencyAlertId]);
 
   const { data: emergencyAlert, isLoading } = useQuery({
