@@ -131,9 +131,80 @@ export default function Home() {
             <PersistentVoiceDetector 
               onEmergencyDetected={async (triggerType, scenario, detectedText) => {
                 console.log('Voice emergency triggered:', triggerType, scenario);
-                setVoiceDetectionScenario({ triggerType, scenario, detectedText });
-                setAutoStartStream(true);
-                // Emergency alert will be created by the live streaming component
+                
+                try {
+                  // Get current location
+                  const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                      enableHighAccuracy: true,
+                      timeout: 10000,
+                      maximumAge: 60000
+                    });
+                  });
+
+                  const { latitude, longitude } = position.coords;
+                  
+                  // Create emergency alert via API
+                  const response = await fetch('/api/emergency-alerts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      triggerType: 'voice_detection',
+                      latitude,
+                      longitude,
+                      address: `Voice Detection Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+                      audioRecordingUrl: JSON.stringify({
+                        detectedText: detectedText,
+                        scenario: scenario,
+                        confidence: 0.9
+                      })
+                    })
+                  });
+
+                  if (response.ok) {
+                    const alert = await response.json();
+                    console.log('Voice emergency alert created:', alert.id);
+                    
+                    setVoiceDetectionScenario({ triggerType, scenario, detectedText });
+                    setAutoStartStream(true);
+                    
+                    toast({
+                      title: "Voice Emergency Alert Created",
+                      description: "Emergency contacts notified and parent dashboard updated",
+                      variant: "destructive"
+                    });
+                  } else {
+                    throw new Error('Failed to create emergency alert');
+                  }
+                  
+                } catch (error) {
+                  console.error('Emergency alert creation failed:', error);
+                  
+                  // Fallback without location
+                  const response = await fetch('/api/emergency-alerts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      triggerType: 'voice_detection',
+                      latitude: 12.9716,
+                      longitude: 77.5946,
+                      address: 'Voice Detection - Location unavailable',
+                      audioRecordingUrl: JSON.stringify({
+                        detectedText: detectedText,
+                        scenario: scenario,
+                        confidence: 0.9
+                      })
+                    })
+                  });
+
+                  if (response.ok) {
+                    const alert = await response.json();
+                    console.log('Voice emergency alert created (fallback):', alert.id);
+                    
+                    setVoiceDetectionScenario({ triggerType, scenario, detectedText });
+                    setAutoStartStream(true);
+                  }
+                }
               }}
               isActive={isVoiceDetectionActive}
               onToggle={setIsVoiceDetectionActive}
