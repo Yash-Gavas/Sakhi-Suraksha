@@ -129,10 +129,43 @@ export default function Home() {
           {/* Voice Distress Detection */}
           <div className="mb-6">
             <PersistentVoiceDetector 
-              onEmergencyDetected={(triggerType, scenario, detectedText) => {
+              onEmergencyDetected={async (triggerType, scenario, detectedText) => {
                 console.log('Voice emergency triggered:', triggerType, scenario);
                 setVoiceDetectionScenario({ triggerType, scenario, detectedText });
                 setAutoStartStream(true);
+                
+                // Also send emergency alert to contacts immediately
+                try {
+                  if ('geolocation' in navigator) {
+                    navigator.geolocation.getCurrentPosition(async (position) => {
+                      const { latitude, longitude } = position.coords;
+                      const locationAddress = `Emergency Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                      
+                      // Send emergency alert to contacts
+                      const response = await fetch('/api/emergency-alert', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          triggerType: 'voice_detection',
+                          scenario: scenario,
+                          detectedText: detectedText,
+                          location: {
+                            lat: latitude,
+                            lng: longitude,
+                            address: locationAddress
+                          },
+                          timestamp: new Date().toISOString()
+                        })
+                      });
+                      
+                      if (response.ok) {
+                        console.log('Emergency alert sent to contacts');
+                      }
+                    });
+                  }
+                } catch (error) {
+                  console.error('Failed to send emergency alert:', error);
+                }
               }}
               isActive={isVoiceDetectionActive}
               onToggle={setIsVoiceDetectionActive}
