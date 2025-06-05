@@ -17,6 +17,7 @@ import ProfileSetup from "@/pages/profile-setup";
 import StreamView from "@/pages/stream-view";
 import EmergencyStreamPage from "@/pages/emergency-stream";
 import SimpleParentDashboard from "@/pages/simple-parent-dashboard";
+import EmergencyAlerts from "@/pages/emergency-alerts";
 import IoTDeviceManager from "@/components/iot-device-manager";
 import BottomNavigation from "@/components/bottom-navigation";
 import VoiceIndicator from "@/components/voice-indicator";
@@ -53,6 +54,11 @@ function Router() {
       {/* Parent dashboard route - completely independent */}
       <Route path="/parent-dashboard">
         <SimpleParentDashboard />
+      </Route>
+      
+      {/* Emergency alerts page for parent dashboard */}
+      <Route path="/emergency-alerts">
+        <EmergencyAlerts />
       </Route>
       
       {/* Main app routes with navigation */}

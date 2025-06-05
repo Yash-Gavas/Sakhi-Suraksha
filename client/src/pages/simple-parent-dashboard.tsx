@@ -65,9 +65,10 @@ export default function SimpleParentDashboard() {
     refetchInterval: 30000,
   });
 
-  // Fetch emergency alerts
+  // Fetch only active emergency alerts for home screen
   const { data: emergencyAlerts = [], isLoading: alertsLoading } = useQuery({
-    queryKey: ["/api/parent/emergency-alerts"],
+    queryKey: ["/api/parent/emergency-alerts", { status: "active" }],
+    queryFn: () => fetch("/api/parent/emergency-alerts?status=active").then(res => res.json()),
     refetchInterval: 5000,
   });
 
