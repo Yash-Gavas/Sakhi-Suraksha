@@ -552,10 +552,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt
       });
 
-      // In a real implementation, you would send SMS via Twilio or similar service
+      // Try WhatsApp first, fallback to manual verification for testing
+      const whatsappSent = await sendWhatsAppOTP(phoneNumber, otp);
+      
       console.log(`SMS OTP for ${phoneNumber}: ${otp}`);
       
-      res.json({ message: "OTP sent successfully" });
+      if (whatsappSent) {
+        res.json({ message: "OTP sent via WhatsApp successfully" });
+      } else {
+        // For testing: display OTP in response when WhatsApp is not configured
+        res.json({ 
+          message: "WhatsApp configuration pending. Use OTP for verification",
+          testOtp: otp // Temporary for testing
+        });
+      }
     } catch (error) {
       console.error("Error sending phone OTP:", error);
       res.status(500).json({ message: "Failed to send OTP" });
