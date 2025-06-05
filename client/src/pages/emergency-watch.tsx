@@ -20,18 +20,19 @@ export default function EmergencyWatchPage() {
     }
   }, [streamId]);
 
-  // Initialize direct camera access for emergency monitoring
+  // Initialize child camera stream monitoring (simulated for demo)
   useEffect(() => {
-    const startDirectStream = async () => {
+    const startChildMonitoring = async () => {
       try {
-        console.log('Starting direct camera stream for emergency monitoring');
+        console.log('Connecting to child emergency stream...');
         
-        // Access camera directly for immediate emergency viewing
+        // In a real app, this would connect to actual child device
+        // For demo purposes, simulate child camera with back camera
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
             width: { ideal: 1280 },
             height: { ideal: 720 },
-            facingMode: 'user' // Child's front camera view
+            facingMode: 'environment' // Back camera to differentiate from main app
           }, 
           audio: true 
         });
@@ -40,7 +41,7 @@ export default function EmergencyWatchPage() {
           videoRef.current.srcObject = stream;
           setIsStreaming(true);
           
-          // Start recording the emergency stream
+          // Record child emergency feed for evidence
           const mediaRecorder = new MediaRecorder(stream, {
             mimeType: 'video/webm;codecs=vp8,opus'
           });
@@ -53,35 +54,58 @@ export default function EmergencyWatchPage() {
             }
           };
           
-          mediaRecorder.onstop = () => {
+          mediaRecorder.onstop = async () => {
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
+            const formData = new FormData();
+            formData.append('video', blob, `emergency_${emergencyAlertId}_${Date.now()}.webm`);
+            formData.append('emergencyAlertId', emergencyAlertId?.toString() || '');
             
-            // Save recording reference for emergency evidence
-            console.log('Emergency recording completed:', url);
-            
-            // In a real implementation, this would be uploaded to server
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `emergency_recording_${emergencyAlertId}_${Date.now()}.webm`;
-            // Auto-save functionality could be implemented here
+            try {
+              // Save recording to server
+              const response = await fetch('/api/emergency/save-recording', {
+                method: 'POST',
+                body: formData
+              });
+              
+              if (response.ok) {
+                console.log('Emergency recording saved to server');
+              }
+            } catch (error) {
+              console.error('Failed to save recording:', error);
+            }
           };
           
-          // Start recording
-          mediaRecorder.start(1000); // Record in 1-second intervals
+          // Start recording immediately
+          mediaRecorder.start(1000);
           
-          console.log('Emergency camera stream active with recording');
+          // Store recorder for cleanup
+          (videoRef.current as any).mediaRecorder = mediaRecorder;
+          
+          console.log('Child emergency stream connected with recording');
         }
       } catch (error) {
-        console.error('Failed to access emergency camera:', error);
+        console.error('Failed to connect to child emergency stream:', error);
+        // Show connection status as attempting
         setIsStreaming(false);
       }
     };
 
-    // Start direct stream for emergency monitoring
+    // Connect to child stream when emergency alert exists
     if (emergencyAlertId) {
-      startDirectStream();
+      startChildMonitoring();
     }
+
+    // Cleanup function
+    return () => {
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
+      
+      if ((videoRef.current as any)?.mediaRecorder) {
+        (videoRef.current as any).mediaRecorder.stop();
+      }
+    };
   }, [emergencyAlertId]);
 
   const { data: emergencyAlert, isLoading } = useQuery({
@@ -193,11 +217,18 @@ export default function EmergencyWatchPage() {
                 </div>
               </div>
 
-              {/* Live indicator */}
+              {/* Live indicator with recording status */}
               <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                {isStreaming ? 'LIVE STREAM' : 'CONNECTING...'}
+                {isStreaming ? 'LIVE • RECORDING' : 'CONNECTING...'}
               </div>
+              
+              {/* Child device indicator */}
+              {isStreaming && (
+                <div className="absolute bottom-4 left-4 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm">
+                  📱 Child Device Camera
+                </div>
+              )}
 
               {/* Emergency info overlay */}
               {emergencyAlert && (

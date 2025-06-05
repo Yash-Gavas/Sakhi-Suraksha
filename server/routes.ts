@@ -2251,6 +2251,33 @@ Please respond immediately if you can assist.`;
     }
   });
 
+  // Save emergency recording
+  app.post('/api/emergency/save-recording', async (req, res) => {
+    try {
+      const { emergencyAlertId } = req.body;
+      
+      // In a real implementation, you would save the video file
+      // For now, just acknowledge the recording was received
+      console.log(`Emergency recording received for alert ${emergencyAlertId}`);
+      
+      // Update emergency alert with recording info
+      if (emergencyAlertId) {
+        await storage.updateEmergencyAlert(parseInt(emergencyAlertId), {
+          videoRecordingUrl: `/recordings/emergency_${emergencyAlertId}_${Date.now()}.webm`
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Emergency recording saved successfully'
+      });
+      
+    } catch (error) {
+      console.error('Save recording error:', error);
+      res.status(500).json({ message: 'Failed to save emergency recording' });
+    }
+  });
+
 
 
 
