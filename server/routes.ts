@@ -1040,23 +1040,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (type === 'phone') {
-        // Try WhatsApp first, then SMS as backup
-        const whatsappSuccess = await sendWhatsAppOTP(identifier, otp);
+        // Try SMS first for reliable delivery
+        const smsSuccess = await sendSMSOTP(identifier, otp);
         
-        if (whatsappSuccess) {
+        if (smsSuccess) {
           return res.json({ 
-            message: "OTP sent successfully via WhatsApp",
-            deliveryMethod: 'whatsapp',
+            message: "OTP sent successfully via SMS",
+            deliveryMethod: 'sms',
             success: true
           });
         } else {
-          // Try SMS as backup
-          const smsSuccess = await sendSMSOTP(identifier, otp);
+          // Try WhatsApp as backup
+          const whatsappSuccess = await sendWhatsAppOTP(identifier, otp);
           
-          if (smsSuccess) {
+          if (whatsappSuccess) {
             return res.json({ 
-              message: "OTP sent successfully via SMS",
-              deliveryMethod: 'sms',
+              message: "OTP sent successfully via WhatsApp",
+              deliveryMethod: 'whatsapp',
               success: true
             });
           } else {

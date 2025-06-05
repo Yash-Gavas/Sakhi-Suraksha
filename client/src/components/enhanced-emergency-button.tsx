@@ -7,6 +7,7 @@ import type { EmergencyContact } from "@shared/schema";
 import LiveStreaming from "./live-streaming";
 import FixedVoiceDetector from "./fixed-voice-detector";
 import { DeviceSmsService } from "@/lib/deviceSmsService";
+import { sendEmergencyAlert, sendLiveLocationAlert, sendToMultipleContacts } from "@/lib/deviceMessaging";
 
 interface EmergencyAlert {
   triggerType: string;
