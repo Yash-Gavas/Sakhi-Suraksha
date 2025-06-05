@@ -421,7 +421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Emergency alerts routes (no authentication required for emergency situations)
-  app.post("/api/emergency-alert", async (req, res) => {
+  app.post("/api/emergency-alerts", async (req, res) => {
     try {
       // Force userId to be demo-user for Sharanya's account
       const requestData = {
@@ -430,7 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         latitude: req.body.location?.lat || req.body.latitude || 12.9716, // Default to Bangalore coordinates
         longitude: req.body.location?.lng || req.body.longitude || 77.5946,
         address: req.body.location?.address || req.body.address || 'Emergency Location - Coordinates tracked',
-        triggerType: req.body.triggerType || 'manual_button'
+        triggerType: req.body.triggerType // Don't override the triggerType - keep original value
       };
       
       console.log('Emergency alert request data:', requestData);
@@ -1435,6 +1435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const liveStreamText = '🔴 Live Stream Available | 📱 Real-time monitoring active';
     
     switch (triggerType) {
+      case 'manual_button':
       case 'sos_manual': 
         return `🚨 MANUAL SOS ACTIVATED\n${timeStr}\n\nUser manually triggered emergency alert - Immediate assistance needed\n\n${locationLink}\n\n${liveStreamText}`;
       case 'voice_detection': 
@@ -1446,7 +1447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return audioData || 'Voice distress detected';
           }
         })() : 'Voice distress detected';
-        return `🎤 VOICE DISTRESS DETECTED\n${timeStr}\n\nAudio Analysis: "${detectedText}"\nStress Level: HIGH | Automatic trigger activated\n\n${locationLink}\n\n${liveStreamText}`;
+        return `🎤 VOICE DISTRESS DETECTED\n${timeStr}\n\nDetected Words: "${detectedText}"\nTrigger: Voice analysis detected distress keywords\nStress Level: HIGH | Automatic activation\n\n${locationLink}\n\n${liveStreamText}`;
       case 'geofence_exit': 
         return `🚧 SAFE ZONE BREACH\n${timeStr}\n\nLeft designated safe zone after 10 PM\nAutomatic trigger - Location monitoring active\n\n${locationLink}\n\n${liveStreamText}`;
       case 'shake_detection': 
