@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Camera, X, RotateCcw, QrCode } from "lucide-react";
+import jsQR from "jsqr";
 
 interface QRScannerProps {
   onScanResult: (result: string) => void;
@@ -10,11 +11,13 @@ interface QRScannerProps {
 
 export default function QRScanner({ onScanResult, onClose }: QRScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string>("");
   const [manualCode, setManualCode] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
+  const scanInterval = useRef<NodeJS.Timeout>();
 
   const startCamera = async () => {
     try {
@@ -33,6 +36,7 @@ export default function QRScanner({ onScanResult, onClose }: QRScannerProps) {
       }
       setStream(mediaStream);
       setIsScanning(true);
+      startQRScanning();
       
     } catch (err) {
       setError("Camera access denied. Please enable camera permissions and try again.");
@@ -45,7 +49,53 @@ export default function QRScanner({ onScanResult, onClose }: QRScannerProps) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
     }
+    if (scanInterval.current) {
+      clearInterval(scanInterval.current);
+    }
     setIsScanning(false);
+  };
+
+  const startQRScanning = () => {
+    scanInterval.current = setInterval(() => {
+      scanForQRCode();
+    }, 100); // Scan every 100ms for better detection
+  };
+
+  const scanForQRCode = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    
+    if (!video || !canvas || !isScanning) return;
+
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    // Set canvas size to video size
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    if (canvas.width === 0 || canvas.height === 0) return;
+
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    try {
+      // Get image data for QR code detection
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      
+      // Use jsQR to detect QR code
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+      
+      if (code) {
+        console.log('QR Code detected:', code.data);
+        onScanResult(code.data);
+        stopCamera();
+      }
+    } catch (err) {
+      console.error("QR scan error:", err);
+    }
   };
 
   const handleManualSubmit = () => {
@@ -103,6 +153,10 @@ export default function QRScanner({ onScanResult, onClose }: QRScannerProps) {
                 muted
                 autoPlay
               />
+              <canvas
+                ref={canvasRef}
+                className="hidden"
+              />
               
               {/* QR Code overlay frame */}
               <div className="absolute inset-0 flex items-center justify-center">
@@ -118,7 +172,7 @@ export default function QRScanner({ onScanResult, onClose }: QRScannerProps) {
                 <div className="absolute bottom-4 left-0 right-0 text-center">
                   <div className="inline-flex items-center px-3 py-1 bg-black bg-opacity-50 rounded-full text-white text-sm">
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                    Position QR code in frame
+                    Scanning for QR code...
                   </div>
                 </div>
               )}
@@ -136,7 +190,7 @@ export default function QRScanner({ onScanResult, onClose }: QRScannerProps) {
           </div>
           
           <Input
-            placeholder="Enter connection code (e.g., SK1749115000ABC123)"
+            placeholder="e.g., SK1749116994187EYJFML"
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
             className="text-center font-mono"
@@ -176,6 +230,7 @@ export default function QRScanner({ onScanResult, onClose }: QRScannerProps) {
 
       <div className="text-sm text-gray-600 text-center">
         <p>Scan the QR code from your child's app or enter the code manually</p>
+        <p className="text-xs mt-1">Make sure the QR code is well-lit and centered in the frame</p>
       </div>
     </div>
   );
