@@ -23,7 +23,7 @@ export default function Map() {
   const [selectedAlert, setSelectedAlert] = useState<CommunityAlert | null>(null);
   const { location: userLocation } = useLocation();
 
-  // Fetch real community alerts from the database
+  // Fetch real community alerts from the database with reduced polling
   const { data: communityAlerts = [], isLoading: alertsLoading } = useQuery({
     queryKey: ["/api/community-alerts", userLocation?.latitude, userLocation?.longitude],
     queryFn: async () => {
@@ -51,6 +51,9 @@ export default function Map() {
       }));
     },
     enabled: !!userLocation,
+    staleTime: 30000, // 30 seconds before data is considered stale
+    refetchInterval: 60000, // Refetch every 60 seconds instead of constantly
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
   });
 
 

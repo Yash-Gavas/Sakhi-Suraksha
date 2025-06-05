@@ -33,16 +33,17 @@ export default function AutoSOSSender({
         const cleanNumber = contact.phoneNumber.replace(/\D/g, '');
         const messageBody = encodeURIComponent(emergencyMessage);
         
-        // iPhone Messages URL scheme
+        // iPhone 13 Pro Max Messages URL scheme - Fixed format
         if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iOS')) {
-          const iOSMessagesUrl = `sms:${cleanNumber}&body=${messageBody}`;
+          const iOSMessagesUrl = `sms:${cleanNumber}?body=${messageBody}`;
+          
+          // Primary method - direct location change
           window.location.href = iOSMessagesUrl;
           
-          // Alternative iOS format
+          // Backup method - window.open
           setTimeout(() => {
-            const iOSAltUrl = `sms://${cleanNumber}?body=${messageBody}`;
-            window.open(iOSAltUrl, '_self');
-          }, 500);
+            window.open(iOSMessagesUrl, '_self');
+          }, 100);
         } else {
           // Standard SMS for other devices
           const smsUrl = `sms:${contact.phoneNumber}?body=${messageBody}`;
@@ -81,19 +82,11 @@ export default function AutoSOSSender({
     const cleanNumber = contact.phoneNumber.replace(/\D/g, '');
     const messageBody = encodeURIComponent(emergencyMessage);
     
-    // iPhone 13 Pro Max Messages integration
-    if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iOS')) {
-      const iOSMessagesUrl = `sms:${cleanNumber}&body=${messageBody}`;
-      window.location.href = iOSMessagesUrl;
-      
-      setTimeout(() => {
-        const iOSAltUrl = `sms://${cleanNumber}?body=${messageBody}`;
-        window.open(iOSAltUrl, '_self');
-      }, 300);
-    } else {
-      const smsUrl = `sms:${contact.phoneNumber}?body=${messageBody}`;
-      window.location.href = smsUrl;
-    }
+    // iPhone 13 Pro Max Messages integration - corrected format
+    const iOSMessagesUrl = `sms:${cleanNumber}?body=${messageBody}`;
+    
+    // Try direct window.location first
+    window.location.href = iOSMessagesUrl;
     
     setSentContacts(prev => new Set(prev).add(contact.phoneNumber));
     

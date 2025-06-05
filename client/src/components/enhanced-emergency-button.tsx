@@ -11,6 +11,7 @@ import { sendEmergencyAlert, sendLiveLocationAlert, sendToMultipleContacts } fro
 import { MobileMessaging } from "@/lib/mobileMessaging";
 import MobileEmergencyInterface from "@/components/mobile-emergency-interface";
 import AutoSOSSender from "@/components/auto-sos-sender";
+import iPhoneDirectMessaging from "@/components/iphone-direct-messaging";
 
 interface EmergencyAlert {
   triggerType: string;
@@ -25,6 +26,7 @@ export default function EnhancedEmergencyButton() {
   const [showLiveStream, setShowLiveStream] = useState(false);
   const [showMobileInterface, setShowMobileInterface] = useState(false);
   const [showAutoSOS, setShowAutoSOS] = useState(false);
+  const [showDirectMessaging, setShowDirectMessaging] = useState(false);
   const [emergencyMessageText, setEmergencyMessageText] = useState("");
   const [holdProgress, setHoldProgress] = useState(0);
   const [emergencyActive, setEmergencyActive] = useState(false);
@@ -186,17 +188,17 @@ This is an automated safety alert. Please respond urgently.`;
         email: contact.email
       }));
 
-      // Detect device and show appropriate interface
+      // Detect device and use direct messaging for iPhone 13 Pro Max
       console.log('Opening emergency messaging for contacts:', contacts);
       
       setEmergencyMessageText(messageTemplate);
       
-      // Use Auto SOS for iPhone 13 Pro Max, mobile interface for others
+      // Use direct messaging for iPhone 13 Pro Max
       if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iOS')) {
-        setShowAutoSOS(true);
+        setShowDirectMessaging(true);
         toast({
-          title: "iPhone Auto-SOS Activated",
-          description: `Opening Messages app for ${contacts.length} contacts`,
+          title: "Opening Messages App",
+          description: `Direct messaging to emergency contacts`,
           variant: "default",
         });
       } else {
@@ -522,6 +524,18 @@ This is an automated safety alert. Please respond urgently.`;
           emergencyMessage={emergencyMessageText}
           onComplete={() => setShowAutoSOS(false)}
           autoSend={true}
+        />
+      )}
+
+      {/* Direct iPhone Messaging */}
+      {showDirectMessaging && (
+        <iPhoneDirectMessaging
+          contacts={emergencyContacts.filter(contact => contact.isActive).map(contact => ({
+            name: contact.name,
+            phoneNumber: contact.phoneNumber!
+          }))}
+          emergencyMessage={emergencyMessageText}
+          onComplete={() => setShowDirectMessaging(false)}
         />
       )}
     </div>
