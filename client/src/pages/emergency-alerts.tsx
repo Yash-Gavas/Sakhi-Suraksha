@@ -181,6 +181,29 @@ export default function EmergencyAlerts() {
       </CardHeader>
       <CardContent>
         <p className="text-gray-700 mb-3">{alert.message}</p>
+        
+        {/* Voice Detection Details */}
+        {alert.triggerType === 'voice_detection' && alert.audioUrl && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-red-600 font-semibold text-sm">🎤 Voice Detection Details:</span>
+            </div>
+            <div className="text-sm text-red-800">
+              <strong>Detected Text:</strong> "{(() => {
+                try {
+                  const data = JSON.parse(alert.audioUrl || '{}');
+                  return data.detectedText || data.scenario || 'Voice distress keyword detected';
+                } catch {
+                  return alert.audioUrl || 'Voice distress keyword detected';
+                }
+              })()}"
+            </div>
+            <div className="text-xs text-red-600 mt-1">
+              Automatic trigger activated by voice recognition system
+            </div>
+          </div>
+        )}
+        
         {alert.location && (
           <div className="flex items-center space-x-2 text-sm text-gray-600 mb-3">
             <MapPin className="h-4 w-4" />
