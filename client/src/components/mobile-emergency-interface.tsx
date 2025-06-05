@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, MessageCircle, Phone } from "lucide-react";
+import { X, MessageCircle, Phone, Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface MobileEmergencyInterfaceProps {
   contacts: Array<{name: string; phoneNumber: string}>;
@@ -15,22 +16,101 @@ export default function MobileEmergencyInterface({
   onClose 
 }: MobileEmergencyInterfaceProps) {
   const [sentContacts, setSentContacts] = useState<Set<string>>(new Set());
+  const { toast } = useToast();
 
   const openSMS = (phoneNumber: string, contactName: string) => {
-    const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(emergencyMessage)}`;
-    window.location.href = smsUrl;
-    setSentContacts(prev => new Set(prev).add(phoneNumber));
+    try {
+      // Multiple attempts for different Android SMS handlers
+      const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(emergencyMessage)}`;
+      
+      // Method 1: Direct window.open with _self
+      window.open(smsUrl, '_self');
+      
+      // Method 2: Create and click invisible link (for better mobile support)
+      setTimeout(() => {
+        const link = document.createElement('a');
+        link.href = smsUrl;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }, 100);
+      
+      setSentContacts(prev => new Set(prev).add(phoneNumber));
+      console.log(`SMS opened for ${contactName} at ${phoneNumber}`);
+      
+      toast({
+        title: "SMS App Opening",
+        description: `Opening SMS for ${contactName}`,
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Failed to open SMS:', error);
+      toast({
+        title: "SMS Error",
+        description: "Could not open SMS app",
+        variant: "destructive",
+      });
+    }
   };
 
   const openWhatsApp = (phoneNumber: string, contactName: string) => {
-    const formattedNumber = phoneNumber.replace(/\D/g, '');
-    const whatsappUrl = `whatsapp://send?phone=${formattedNumber}&text=${encodeURIComponent(emergencyMessage)}`;
-    window.location.href = whatsappUrl;
-    setSentContacts(prev => new Set(prev).add(phoneNumber));
+    try {
+      const formattedNumber = phoneNumber.replace(/\D/g, '');
+      
+      // Method 1: WhatsApp app scheme
+      const whatsappUrl = `whatsapp://send?phone=${formattedNumber}&text=${encodeURIComponent(emergencyMessage)}`;
+      window.open(whatsappUrl, '_self');
+      
+      // Method 2: WhatsApp web fallback
+      setTimeout(() => {
+        const webUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(emergencyMessage)}`;
+        window.open(webUrl, '_blank');
+      }, 1000);
+      
+      setSentContacts(prev => new Set(prev).add(phoneNumber));
+      console.log(`WhatsApp opened for ${contactName} at ${phoneNumber}`);
+      
+      toast({
+        title: "WhatsApp Opening",
+        description: `Opening WhatsApp for ${contactName}`,
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Failed to open WhatsApp:', error);
+      toast({
+        title: "WhatsApp Error",
+        description: "Could not open WhatsApp app",
+        variant: "destructive",
+      });
+    }
   };
 
   const callContact = (phoneNumber: string) => {
-    window.location.href = `tel:${phoneNumber}`;
+    try {
+      // Method 1: Direct tel: protocol
+      window.location.href = `tel:${phoneNumber}`;
+      
+      // Method 2: window.open for better mobile support
+      setTimeout(() => {
+        window.open(`tel:${phoneNumber}`, '_self');
+      }, 100);
+      
+      console.log(`Calling ${phoneNumber}`);
+      
+      toast({
+        title: "Calling",
+        description: `Dialing ${phoneNumber}`,
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Failed to initiate call:', error);
+      toast({
+        title: "Call Error",
+        description: "Could not initiate call",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
