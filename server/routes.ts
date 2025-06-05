@@ -1814,7 +1814,12 @@ Please respond immediately if you can assist.`;
           longitude: longitude || 77.5946,
           address: address || 'Bangalore, Karnataka, India - CURRENT LOCATION',
           isResolved: false,
-          audioRecordingUrl: detectedText || null,
+          audioRecordingUrl: triggerType === 'voice_detection' && (detectedText || scenario) ? JSON.stringify({
+            detectedText: detectedText,
+            scenario: scenario,
+            triggerType: triggerType,
+            timestamp: new Date().toISOString()
+          }) : detectedText,
           videoRecordingUrl: shareableLink
         });
         
@@ -1833,7 +1838,15 @@ URGENT: Someone needs help immediately!
 
 🎥 Watch Live Stream: ${shareableLink}
 📍 Location: Active emergency situation
-⏰ Started: ${new Date().toLocaleString()}
+⏰ Started: ${new Date().toLocaleString('en-IN', { 
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit', 
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          })}
 
 ${userWhatsApp ? `📱 Contact via WhatsApp: ${userWhatsApp}` : ''}
 
