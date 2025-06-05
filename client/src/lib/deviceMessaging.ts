@@ -15,9 +15,29 @@ export function sendDeviceSMS(phoneNumber: string, message: string): boolean {
       return true;
     }
     
-    // For desktop - copy to clipboard as fallback
-    navigator.clipboard.writeText(`SMS to ${phoneNumber}: ${message}`);
-    alert(`SMS content copied to clipboard. Send to: ${phoneNumber}`);
+    // For macOS - try to open Messages app
+    if (navigator.userAgent.match(/Mac OS X/i)) {
+      const smsUrl = `sms:${phoneNumber}&body=${encodeURIComponent(message)}`;
+      window.location.href = smsUrl;
+      return true;
+    }
+    
+    // For desktop - copy to clipboard and show instructions
+    navigator.clipboard.writeText(message);
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed; top: 20px; right: 20px; z-index: 10000;
+      background: #dc2626; color: white; padding: 15px; border-radius: 8px;
+      font-family: Arial; max-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    notification.innerHTML = `
+      <strong>Emergency SMS Ready</strong><br>
+      Message copied to clipboard<br>
+      <small>Send to: ${phoneNumber}</small><br>
+      <button onclick="this.parentElement.remove()" style="margin-top: 8px; background: white; color: #dc2626; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Close</button>
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 8000);
     return true;
   } catch (error) {
     console.error('Failed to send device SMS:', error);
