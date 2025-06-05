@@ -20,35 +20,53 @@ export default function MobileEmergencyInterface({
 
   const openSMS = (phoneNumber: string, contactName: string) => {
     try {
-      // Multiple attempts for different Android SMS handlers
-      const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(emergencyMessage)}`;
+      // Enhanced for iPhone 13 Pro Max and iOS Messages app
+      const cleanNumber = phoneNumber.replace(/\D/g, '');
+      const messageBody = encodeURIComponent(emergencyMessage);
       
-      // Method 1: Direct window.open with _self
-      window.open(smsUrl, '_self');
+      // Method 1: iOS Messages URL scheme (preferred for iPhone)
+      const iOSMessagesUrl = `sms:${cleanNumber}&body=${messageBody}`;
       
-      // Method 2: Create and click invisible link (for better mobile support)
+      // Method 2: Alternative iOS format
+      const iOSAltUrl = `sms://${cleanNumber}?body=${messageBody}`;
+      
+      // Method 3: Standard SMS format
+      const standardSmsUrl = `sms:${phoneNumber}?body=${messageBody}`;
+      
+      // Try iOS-specific first, then fallback to standard
+      if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iOS')) {
+        // iPhone 13 Pro Max specific handling
+        window.location.href = iOSMessagesUrl;
+        setTimeout(() => window.open(iOSAltUrl, '_self'), 200);
+      } else {
+        // Android and other devices
+        window.location.href = standardSmsUrl;
+        setTimeout(() => window.open(standardSmsUrl, '_self'), 200);
+      }
+      
+      // Additional fallback with invisible link
       setTimeout(() => {
         const link = document.createElement('a');
-        link.href = smsUrl;
+        link.href = standardSmsUrl;
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-      }, 100);
+      }, 500);
       
       setSentContacts(prev => new Set(prev).add(phoneNumber));
-      console.log(`SMS opened for ${contactName} at ${phoneNumber}`);
+      console.log(`Messages app opened for ${contactName} at ${phoneNumber}`);
       
       toast({
-        title: "SMS App Opening",
-        description: `Opening SMS for ${contactName}`,
+        title: "Messages App Opening",
+        description: `Opening Messages for ${contactName}`,
         variant: "default",
       });
     } catch (error) {
-      console.error('Failed to open SMS:', error);
+      console.error('Failed to open Messages app:', error);
       toast({
-        title: "SMS Error",
-        description: "Could not open SMS app",
+        title: "Messages Error",
+        description: "Could not open Messages app",
         variant: "destructive",
       });
     }
@@ -57,16 +75,32 @@ export default function MobileEmergencyInterface({
   const openWhatsApp = (phoneNumber: string, contactName: string) => {
     try {
       const formattedNumber = phoneNumber.replace(/\D/g, '');
+      const messageText = encodeURIComponent(emergencyMessage);
       
-      // Method 1: WhatsApp app scheme
-      const whatsappUrl = `whatsapp://send?phone=${formattedNumber}&text=${encodeURIComponent(emergencyMessage)}`;
-      window.open(whatsappUrl, '_self');
-      
-      // Method 2: WhatsApp web fallback
-      setTimeout(() => {
-        const webUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(emergencyMessage)}`;
-        window.open(webUrl, '_blank');
-      }, 1000);
+      // Enhanced for iPhone 13 Pro Max WhatsApp integration
+      if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iOS')) {
+        // iOS WhatsApp URL schemes
+        const iOSWhatsAppUrl = `whatsapp://send?phone=${formattedNumber}&text=${messageText}`;
+        const iOSWhatsAppAlt = `https://api.whatsapp.com/send?phone=${formattedNumber}&text=${messageText}`;
+        
+        // Primary iOS method
+        window.location.href = iOSWhatsAppUrl;
+        
+        // Fallback for iOS
+        setTimeout(() => {
+          window.open(iOSWhatsAppAlt, '_blank');
+        }, 800);
+      } else {
+        // Android and other devices
+        const whatsappUrl = `whatsapp://send?phone=${formattedNumber}&text=${messageText}`;
+        window.location.href = whatsappUrl;
+        
+        // Web fallback
+        setTimeout(() => {
+          const webUrl = `https://wa.me/${formattedNumber}?text=${messageText}`;
+          window.open(webUrl, '_blank');
+        }, 1000);
+      }
       
       setSentContacts(prev => new Set(prev).add(phoneNumber));
       console.log(`WhatsApp opened for ${contactName} at ${phoneNumber}`);
@@ -88,26 +122,41 @@ export default function MobileEmergencyInterface({
 
   const callContact = (phoneNumber: string) => {
     try {
-      // Method 1: Direct tel: protocol
-      window.location.href = `tel:${phoneNumber}`;
+      const cleanNumber = phoneNumber.replace(/\D/g, '');
       
-      // Method 2: window.open for better mobile support
-      setTimeout(() => {
-        window.open(`tel:${phoneNumber}`, '_self');
-      }, 100);
+      // Enhanced for iPhone 13 Pro Max calling
+      if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iOS')) {
+        // iOS Phone app integration
+        const iOSCallUrl = `tel:${cleanNumber}`;
+        const iOSCallAlt = `tel://${cleanNumber}`;
+        
+        // Primary iOS calling method
+        window.location.href = iOSCallUrl;
+        
+        // Fallback for iOS
+        setTimeout(() => {
+          window.open(iOSCallAlt, '_self');
+        }, 300);
+      } else {
+        // Android and other devices
+        window.location.href = `tel:${phoneNumber}`;
+        setTimeout(() => {
+          window.open(`tel:${phoneNumber}`, '_self');
+        }, 200);
+      }
       
-      console.log(`Calling ${phoneNumber}`);
+      console.log(`Phone app opened for ${phoneNumber}`);
       
       toast({
-        title: "Calling",
+        title: "Phone App Opening",
         description: `Dialing ${phoneNumber}`,
         variant: "default",
       });
     } catch (error) {
-      console.error('Failed to initiate call:', error);
+      console.error('Failed to open Phone app:', error);
       toast({
         title: "Call Error",
-        description: "Could not initiate call",
+        description: "Could not open Phone app",
         variant: "destructive",
       });
     }

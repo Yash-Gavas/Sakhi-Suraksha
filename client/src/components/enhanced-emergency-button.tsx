@@ -10,6 +10,7 @@ import { DeviceSmsService } from "@/lib/deviceSmsService";
 import { sendEmergencyAlert, sendLiveLocationAlert, sendToMultipleContacts } from "@/lib/deviceMessaging";
 import { MobileMessaging } from "@/lib/mobileMessaging";
 import MobileEmergencyInterface from "@/components/mobile-emergency-interface";
+import AutoSOSSender from "@/components/auto-sos-sender";
 
 interface EmergencyAlert {
   triggerType: string;
@@ -23,6 +24,7 @@ export default function EnhancedEmergencyButton() {
   const [isTriggering, setIsTriggering] = useState(false);
   const [showLiveStream, setShowLiveStream] = useState(false);
   const [showMobileInterface, setShowMobileInterface] = useState(false);
+  const [showAutoSOS, setShowAutoSOS] = useState(false);
   const [emergencyMessageText, setEmergencyMessageText] = useState("");
   const [holdProgress, setHoldProgress] = useState(0);
   const [emergencyActive, setEmergencyActive] = useState(false);
@@ -184,17 +186,27 @@ This is an automated safety alert. Please respond urgently.`;
         email: contact.email
       }));
 
-      // Show mobile emergency interface for native app access
-      console.log('Opening mobile emergency interface for contacts:', contacts);
+      // Detect device and show appropriate interface
+      console.log('Opening emergency messaging for contacts:', contacts);
       
       setEmergencyMessageText(messageTemplate);
-      setShowMobileInterface(true);
-
-      toast({
-        title: "Emergency Interface Opened",
-        description: `Tap buttons to send messages via native apps`,
-        variant: "default",
-      });
+      
+      // Use Auto SOS for iPhone 13 Pro Max, mobile interface for others
+      if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iOS')) {
+        setShowAutoSOS(true);
+        toast({
+          title: "iPhone Auto-SOS Activated",
+          description: `Opening Messages app for ${contacts.length} contacts`,
+          variant: "default",
+        });
+      } else {
+        setShowMobileInterface(true);
+        toast({
+          title: "Emergency Interface Opened",
+          description: `Tap buttons to send messages via native apps`,
+          variant: "default",
+        });
+      }
     } catch (error) {
       console.error('Device messaging error:', error);
     }
@@ -497,6 +509,19 @@ This is an automated safety alert. Please respond urgently.`;
           }))}
           emergencyMessage={emergencyMessageText}
           onClose={() => setShowMobileInterface(false)}
+        />
+      )}
+
+      {/* Auto SOS Sender for iPhone 13 Pro Max */}
+      {showAutoSOS && (
+        <AutoSOSSender
+          contacts={emergencyContacts.filter(contact => contact.isActive).map(contact => ({
+            name: contact.name,
+            phoneNumber: contact.phoneNumber!
+          }))}
+          emergencyMessage={emergencyMessageText}
+          onComplete={() => setShowAutoSOS(false)}
+          autoSend={true}
         />
       )}
     </div>
