@@ -1126,10 +1126,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to get alert message based on trigger type
-  function getAlertMessage(triggerType: string, location?: any, timestamp?: string): string {
+  function getAlertMessage(triggerType: string, location?: any, timestamp?: string, audioData?: string): string {
     const now = new Date();
     const alertTime = timestamp ? new Date(timestamp) : now;
-    const timeStr = alertTime.toLocaleString('en-US', { 
+    const timeStr = alertTime.toLocaleString('en-IN', { 
+      timeZone: 'Asia/Kolkata',
       month: 'short', 
       day: 'numeric', 
       hour: '2-digit', 
@@ -1147,7 +1148,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       case 'sos_manual': 
         return `🚨 MANUAL SOS ACTIVATED\n${timeStr}\n\nUser manually triggered emergency alert - Immediate assistance needed\n\n${locationLink}\n\n${liveStreamText}`;
       case 'voice_detection': 
-        return `🎤 VOICE DISTRESS DETECTED\n${timeStr}\n\nAudio Analysis: "Help me, someone is following me"\nStress Level: HIGH | Automatic trigger activated\n\n${locationLink}\n\n${liveStreamText}`;
+        const detectedText = audioData ? (() => {
+          try {
+            const parsedData = JSON.parse(audioData);
+            return parsedData.detectedText || parsedData.scenario || 'Voice distress detected';
+          } catch {
+            return audioData || 'Voice distress detected';
+          }
+        })() : 'Voice distress detected';
+        return `🎤 VOICE DISTRESS DETECTED\n${timeStr}\n\nAudio Analysis: "${detectedText}"\nStress Level: HIGH | Automatic trigger activated\n\n${locationLink}\n\n${liveStreamText}`;
       case 'geofence_exit': 
         return `🚧 SAFE ZONE BREACH\n${timeStr}\n\nLeft designated safe zone after 10 PM\nAutomatic trigger - Location monitoring active\n\n${locationLink}\n\n${liveStreamText}`;
       case 'shake_detection': 
@@ -1240,7 +1249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             childName: user?.firstName || user?.email?.split('@')[0] || 'Child',
             childId: connection.id,
             type: alert.triggerType,
-            message: getAlertMessage(alert.triggerType, location, alert.createdAt?.toISOString()),
+            message: getAlertMessage(alert.triggerType, location, alert.createdAt?.toISOString(), alert.audioRecordingUrl),
             location,
             timestamp: alert.createdAt,
             status: alert.isResolved ? 'resolved' : 'active',
