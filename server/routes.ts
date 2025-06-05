@@ -1017,15 +1017,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Track sent messages to prevent duplicates
+  const sentMessages = new Map<string, number>();
+  
   // Emergency protocol trigger with live streaming
   async function triggerEmergencyProtocol(alert: any) {
     try {
+      console.log(`Triggering emergency protocol for alert ${alert.id}`);
+      
       // Get user and emergency contacts
       const user = await storage.getUser(alert.userId);
       if (!user) return;
 
-      const contacts = await storage.getEmergencyContacts(alert.userId);
-      
       // Create live stream session
       const streamUrl = `wss://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}/ws/stream/${alert.id}`;
       const shareLink = `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}/emergency/${alert.id}`;
@@ -1037,17 +1040,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shareLink,
         isActive: true
       });
-
-      // Prepare emergency message with live stream link
-      const emergencyMessage = `🚨 EMERGENCY ALERT 🚨\n\n${user.emergencyMessage}\n\nLocation: ${alert.address || 'Location unavailable'}\nTime: ${new Date().toLocaleString()}\n\nLive Stream: ${shareLink}\n\nThis message was sent automatically by Sakhi Suraksha app.`;
-      
-      // Send SMS to all emergency contacts
-      for (const contact of contacts) {
-        if (contact.isActive) {
-          // Simulate SMS sending (replace with actual Twilio integration)
-          console.log(`Emergency SMS sent to ${contact.name} (${contact.phoneNumber}): ${emergencyMessage}`);
-        }
-      }
 
       // Update user location sharing status
       await storage.updateUser(alert.userId, { isLocationSharingActive: true });
@@ -1061,6 +1053,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }));
         }
       });
+      
+      console.log(`Emergency protocol completed for alert ${alert.id} - live stream created`);
       
     } catch (error) {
       console.error("Failed to trigger emergency protocol:", error);
