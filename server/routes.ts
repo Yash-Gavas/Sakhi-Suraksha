@@ -1085,6 +1085,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Handle different message types
         switch (data.type) {
+          case 'start_emergency_stream':
+            // Notify all connected clients about new emergency stream
+            wss.clients.forEach(client => {
+              if (client !== ws && client.readyState === 1) {
+                client.send(JSON.stringify({
+                  type: 'emergency_stream_available',
+                  streamId: data.streamId,
+                  emergencyData: data.emergencyData
+                }));
+              }
+            });
+            break;
+
+          case 'join_emergency_stream':
+            // Handle parent/viewer joining emergency stream
+            ws.send(JSON.stringify({
+              type: 'stream_joined',
+              streamId: data.streamId,
+              message: 'Connected to emergency stream'
+            }));
+            // Notify streamer that viewer joined
+            wss.clients.forEach(client => {
+              if (client !== ws && client.readyState === 1) {
+                client.send(JSON.stringify({
+                  type: 'viewer_joined',
+                  streamId: data.streamId,
+                  viewerRole: data.role
+                }));
+              }
+            });
+            break;
+
+          case 'offer':
+            // Forward WebRTC offer to specific stream viewers
+            wss.clients.forEach(client => {
+              if (client !== ws && client.readyState === 1) {
+                client.send(JSON.stringify(data));
+              }
+            });
+            break;
+
+          case 'answer':
+            // Forward WebRTC answer to streamer
+            wss.clients.forEach(client => {
+              if (client !== ws && client.readyState === 1) {
+                client.send(JSON.stringify(data));
+              }
+            });
+            break;
+
+          case 'ice_candidate':
+            // Forward ICE candidates between peers
+            wss.clients.forEach(client => {
+              if (client !== ws && client.readyState === 1) {
+                client.send(JSON.stringify(data));
+              }
+            });
+            break;
+          
           case 'emergency_stream':
             // Broadcast emergency stream to all connected clients
             wss.clients.forEach(client => {
@@ -1251,7 +1310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isResolved: alert.isResolved || false,
           audioRecordingUrl: alert.audioRecordingUrl,
           videoUrl: alert.videoRecordingUrl,
-          liveStreamUrl: alert.isResolved ? null : `${req.protocol}://${req.get('host')}/emergency/${alert.id}`,
+          liveStreamUrl: alert.isResolved ? null : `${req.protocol}://${req.get('host')}/watch/emergency_${alert.id}`,
           canStartStream: !alert.isResolved
         };
 

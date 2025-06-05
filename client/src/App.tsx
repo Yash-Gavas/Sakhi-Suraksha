@@ -17,6 +17,7 @@ import ProfileSetup from "@/pages/profile-setup";
 import StreamView from "@/pages/stream-view";
 import EmergencyStreamPage from "@/pages/emergency-stream";
 import WatchStream from "@/pages/watch-stream";
+import EmergencyWatchPage from "@/pages/emergency-watch";
 import SimpleParentDashboard from "@/pages/simple-parent-dashboard";
 import EmergencyAlerts from "@/pages/emergency-alerts";
 import IoTDeviceManager from "@/components/iot-device-manager";

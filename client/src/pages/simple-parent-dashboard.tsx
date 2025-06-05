@@ -245,34 +245,37 @@ export default function SimpleParentDashboard() {
                     </div>
                   )}
                   
-                  {alert.liveStreamUrl && (
-                    <div className="flex space-x-2 mt-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                        onClick={() => window.open(alert.liveStreamUrl, '_blank')}
-                      >
-                        🔴 Live Stream
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-green-600 border-green-300 hover:bg-green-50"
-                        onClick={() => {
-                          if (alert.location) {
-                            const googleMapsUrl = `https://maps.google.com/?q=${alert.location.lat},${alert.location.lng}&z=18&t=h`;
-                            console.log('Opening Google Maps:', googleMapsUrl);
-                            window.open(googleMapsUrl, '_blank');
-                          } else {
-                            console.error('No location data available for this alert');
-                          }
-                        }}
-                      >
-                        📍 Live Location
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex space-x-2 mt-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                      onClick={() => {
+                        // Generate WebRTC stream link for emergency viewing
+                        const streamId = `emergency_${alert.id}_${Date.now()}`;
+                        const watchUrl = `${window.location.origin}/watch/${streamId}`;
+                        window.open(watchUrl, '_blank');
+                      }}
+                    >
+                      🔴 View Live Stream
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-green-600 border-green-300 hover:bg-green-50"
+                      onClick={() => {
+                        if (alert.location) {
+                          const googleMapsUrl = `https://maps.google.com/?q=${alert.location.lat},${alert.location.lng}&z=18&t=h`;
+                          console.log('Opening Google Maps:', googleMapsUrl);
+                          window.open(googleMapsUrl, '_blank');
+                        } else {
+                          console.error('No location data available for this alert');
+                        }
+                      }}
+                    >
+                      📍 Live Location
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
