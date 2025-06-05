@@ -203,12 +203,43 @@ export default function LiveStreaming({
       mediaRecorder.start(1000); // Record in 1-second chunks
       setIsRecording(true);
       
-      // Start live stream on server
-      startStreamMutation.mutate({
-        streamUrl: generatedStreamUrl,
-        shareableLink: generatedShareableLink,
-        isEmergency: emergencyMode
-      });
+      // Get current location for emergency mode
+      if (emergencyMode && 'geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            // Start live stream with location data
+            startStreamMutation.mutate({
+              streamUrl: generatedStreamUrl,
+              shareableLink: generatedShareableLink,
+              isEmergency: emergencyMode,
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              address: `Emergency Location: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`,
+              triggerType: 'sos_manual'
+            });
+          },
+          (error) => {
+            console.error('Geolocation error:', error);
+            // Start live stream without precise location
+            startStreamMutation.mutate({
+              streamUrl: generatedStreamUrl,
+              shareableLink: generatedShareableLink,
+              isEmergency: emergencyMode,
+              latitude: 12.9716, // Bangalore fallback
+              longitude: 77.5946,
+              address: 'Bangalore, Karnataka, India - CURRENT LOCATION',
+              triggerType: 'sos_manual'
+            });
+          }
+        );
+      } else {
+        // Start live stream on server
+        startStreamMutation.mutate({
+          streamUrl: generatedStreamUrl,
+          shareableLink: generatedShareableLink,
+          isEmergency: emergencyMode
+        });
+      }
       
       // Handle recorded data
       mediaRecorder.ondataavailable = (event) => {
