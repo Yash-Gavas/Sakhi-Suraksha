@@ -1054,7 +1054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      console.log(`Emergency protocol completed for alert ${alert.id} - live stream created`);
+      console.log(`Emergency protocol completed for alert ${alert.id} - live stream created (no duplicate messaging)`);
       
     } catch (error) {
       console.error("Failed to trigger emergency protocol:", error);
@@ -1716,6 +1716,17 @@ Please contact immediately or call emergency services: 100, 101, 102, 108`;
     try {
       const { contactId, contactName, phoneNumber, email, message, emergencyData } = req.body;
       
+      // Check if this exact alert was already sent to prevent duplicates
+      const messageKey = `${emergencyData.triggerType}_${emergencyData.timestamp}_${phoneNumber || email}`;
+      if (sentMessages.has(messageKey)) {
+        console.log(`Duplicate message prevented for ${contactName} - already sent`);
+        return res.json({
+          success: true,
+          duplicate: true,
+          message: `Alert already sent to ${contactName}`
+        });
+      }
+
       console.log(`Sending emergency alert to ${contactName}...`);
       
       let smsSuccess = false;
@@ -1773,18 +1784,17 @@ Please respond immediately if you can assist.`;
         }
       }
       
-      // Save emergency alert record
-      try {
-        await storage.createEmergencyAlert({
-          userId: 'demo-user', // Use actual user ID in production
-          triggerType: emergencyData.triggerType,
-          latitude: emergencyData.location.lat,
-          longitude: emergencyData.location.lng,
-          address: emergencyData.location.address
+      // Mark message as sent to prevent duplicates
+      sentMessages.set(messageKey, Date.now());
+      
+      // Clean up old entries (older than 1 hour)
+      setTimeout(() => {
+        sentMessages.forEach((timestamp, key) => {
+          if (Date.now() - timestamp > 3600000) {
+            sentMessages.delete(key);
+          }
         });
-      } catch (error) {
-        console.error('Failed to save emergency alert:', error);
-      }
+      }, 60000);
       
       const success = smsSuccess || whatsappSuccess || emailSuccess;
       res.json({
