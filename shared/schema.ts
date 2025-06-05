@@ -219,7 +219,9 @@ export const insertEmergencyAlertSchema = createInsertSchema(emergencyAlerts).om
   createdAt: true
 }).extend({
   latitude: z.union([z.number(), z.string().transform(Number)]).optional(),
-  longitude: z.union([z.number(), z.string().transform(Number)]).optional()
+  longitude: z.union([z.number(), z.string().transform(Number)]).optional(),
+  triggerType: z.string().optional().default('manual_button'),
+  userId: z.string().optional().default('demo-user')
 });
 
 export const insertCommunityAlertSchema = createInsertSchema(communityAlerts).omit({
