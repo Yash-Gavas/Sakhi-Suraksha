@@ -265,15 +265,12 @@ export default function SimpleParentDashboard() {
                       className="text-green-600 border-green-300 hover:bg-green-50"
                       onClick={() => {
                         if (alert.location) {
-                          const googleMapsUrl = `https://maps.google.com/?q=${alert.location.lat},${alert.location.lng}&z=18&t=h`;
-                          console.log('Opening Google Maps:', googleMapsUrl);
+                          const googleMapsUrl = `https://www.google.com/maps?q=${alert.location.lat},${alert.location.lng}&z=18&t=h`;
                           window.open(googleMapsUrl, '_blank');
-                        } else {
-                          console.error('No location data available for this alert');
                         }
                       }}
                     >
-                      📍 Live Location
+                      📍 View on Google Maps
                     </Button>
                   </div>
                 </div>

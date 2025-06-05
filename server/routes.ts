@@ -1960,72 +1960,14 @@ Please respond immediately if you can assist.`;
         console.log(`Emergency alert created: ID ${emergencyAlert.id} for user demo-user`);
       }
       
-      // If emergency mode, automatically share with contacts
-      if (isEmergency) {
-        const contacts = await storage.getEmergencyContacts('demo-user');
-        const user = await storage.getUser('demo-user');
-        const userWhatsApp = user?.whatsappNumber || user?.phoneNumber;
-        
-        const emergencyMessage = `🔴 EMERGENCY LIVE STREAM ALERT 🔴
-
-URGENT: Someone needs help immediately!
-
-🎥 Watch Live Stream: ${shareableLink}
-📍 Location: Active emergency situation
-⏰ Started: ${new Date().toLocaleString('en-IN', { 
-            timeZone: 'Asia/Kolkata',
-            year: 'numeric',
-            month: '2-digit', 
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-          })}
-
-${userWhatsApp ? `📱 Contact via WhatsApp: ${userWhatsApp}` : ''}
-
-This is an active emergency. Please monitor the stream and contact authorities if needed.
-
-Emergency Resources:
-• Police: 100
-• Ambulance: 108
-• Women Helpline: 1091
-
-Automated alert from Sakhi Suraksha safety app.`;
-
-        // Send stream link to all emergency contacts via multiple channels
-        for (const contact of contacts) {
-          if (contact.phoneNumber) {
-            try {
-              // Try WhatsApp first
-              const whatsappResult = await sendWhatsAppEmergency(contact.phoneNumber, emergencyMessage);
-              console.log(`Emergency stream WhatsApp to ${contact.name}: ${whatsappResult ? 'SUCCESS' : 'FAILED'}`);
-              
-              // Send SMS as backup with live location
-              const smsResult = await sendSMSLiveLocation(contact.phoneNumber, shareableLink, shareableLink, userWhatsApp);
-              console.log(`Emergency stream SMS to ${contact.name}: ${smsResult ? 'SUCCESS' : 'FAILED'}`);
-            } catch (error) {
-              console.error(`Emergency stream alert error for ${contact.name}:`, error);
-            }
-          }
-          
-          if (contact.email) {
-            try {
-              await sendEmailAlert(contact.email, emergencyMessage);
-              console.log(`Emergency stream Email to ${contact.name}: SUCCESS`);
-            } catch (error) {
-              console.error(`Emergency stream Email error for ${contact.name}:`, error);
-            }
-          }
-        }
-      }
+      // Emergency contacts already notified by main emergency alert system - no duplicate messaging
       
       res.json({
         success: true,
         streamId: stream.id,
         shareableLink: stream.shareLink,
         viewerCount: 0,
-        message: isEmergency ? 'Emergency stream started and shared with contacts' : 'Live stream started successfully'
+        message: isEmergency ? 'Emergency stream started' : 'Live stream started successfully'
       });
       
     } catch (error) {
