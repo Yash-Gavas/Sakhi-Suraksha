@@ -16,7 +16,11 @@ import {
   Bell,
   User,
   Settings,
-  Home
+  Home,
+  QrCode,
+  Camera,
+  LogOut,
+  X
 } from "lucide-react";
 
 interface EmergencyAlert {
@@ -52,6 +56,7 @@ export default function SimpleParentDashboard() {
   const queryClient = useQueryClient();
   const [connectionCode, setConnectionCode] = useState("");
   const [currentView, setCurrentView] = useState<'home' | 'children' | 'settings'>('home');
+  const [showScanner, setShowScanner] = useState(false);
 
   // Fetch connected children
   const { data: children = [], isLoading: childrenLoading } = useQuery({
@@ -249,18 +254,75 @@ export default function SimpleParentDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <Input
-              placeholder="Enter connection code from child's app"
-              value={connectionCode}
-              onChange={(e) => setConnectionCode(e.target.value)}
-            />
-            <Button
-              onClick={() => connectChildMutation.mutate(connectionCode)}
-              disabled={!connectionCode || connectChildMutation.isPending}
-              className="w-full"
-            >
-              {connectChildMutation.isPending ? "Connecting..." : "Connect Child"}
-            </Button>
+            {!showScanner ? (
+              <>
+                <Input
+                  placeholder="Enter connection code from child's app"
+                  value={connectionCode}
+                  onChange={(e) => setConnectionCode(e.target.value)}
+                />
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => connectChildMutation.mutate(connectionCode)}
+                    disabled={!connectionCode || connectChildMutation.isPending}
+                    className="flex-1"
+                  >
+                    {connectChildMutation.isPending ? "Connecting..." : "Connect Child"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowScanner(true)}
+                    className="flex-1"
+                  >
+                    <QrCode className="w-4 h-4 mr-2" />
+                    Scan QR Code
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">QR Code Scanner</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowScanner(false)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="relative bg-gray-100 rounded-lg p-8 text-center">
+                  <div className="w-48 h-48 mx-auto border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <Camera className="w-12 h-12 mx-auto mb-2 text-gray-500" />
+                      <p className="text-sm text-gray-600">
+                        Position QR code within the frame
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-sm text-gray-500">
+                    Point your camera at the QR code from your child's app
+                  </p>
+                </div>
+                <Input
+                  placeholder="Or manually enter the scanned code here"
+                  value={connectionCode}
+                  onChange={(e) => setConnectionCode(e.target.value)}
+                />
+                <Button
+                  onClick={() => {
+                    if (connectionCode) {
+                      connectChildMutation.mutate(connectionCode);
+                      setShowScanner(false);
+                    }
+                  }}
+                  disabled={!connectionCode || connectChildMutation.isPending}
+                  className="w-full"
+                >
+                  {connectChildMutation.isPending ? "Connecting..." : "Connect with Code"}
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -312,6 +374,16 @@ export default function SimpleParentDashboard() {
     </div>
   );
 
+  const exitParentDashboard = () => {
+    // Close the current tab/window or redirect to a safe page
+    if (window.opener) {
+      window.close();
+    } else {
+      // If opened in same window, go to a neutral page
+      window.location.href = '/';
+    }
+  };
+
   const renderSettingsView = () => (
     <div className="space-y-6">
       <Card>
@@ -337,6 +409,31 @@ export default function SimpleParentDashboard() {
               <p className="text-sm text-gray-600">
                 For help or technical support, contact your child's safety app administrator
               </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Exit Parent Dashboard */}
+      <Card className="border-red-200">
+        <CardHeader>
+          <CardTitle className="text-red-800">Dashboard Controls</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 rounded-lg">
+              <h4 className="font-medium mb-2 text-red-800">Exit Parent Dashboard</h4>
+              <p className="text-sm text-red-600 mb-4">
+                This will close the parent monitoring interface. You can return anytime using the connection link.
+              </p>
+              <Button
+                variant="destructive"
+                onClick={exitParentDashboard}
+                className="w-full"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Exit Parent Dashboard
+              </Button>
             </div>
           </div>
         </CardContent>
