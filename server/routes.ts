@@ -3,6 +3,9 @@ import { createServer, type Server } from "http";
 import path from "path";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { familyConnections, emergencyAlerts } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, or, desc, inArray } from "drizzle-orm";
 import { generateOTP, sendWhatsAppOTP, sendEmailOTP, sendWhatsAppEmergency, sendEmailAlert } from "./whatsappService";
 import { sendSMS, sendSMSOTP, sendSMSEmergency, sendSMSLiveLocation } from "./smsService";
 import { WebSocketServer } from 'ws';
@@ -1593,6 +1596,110 @@ Automated alert from Sakhi Suraksha safety app.`;
     } catch (error) {
       console.error('Live stream end error:', error);
       res.status(500).json({ message: 'Failed to end live stream' });
+    }
+  });
+
+  // Family Connection QR Code Routes
+  app.post("/api/family/generate-qr", isAuthenticated, async (req: any, res) => {
+    try {
+      const childUserId = req.user.claims.sub;
+      
+      // Generate unique invite code
+      const inviteCode = `SK${Date.now()}${Math.random().toString(36).substr(2, 9)}`.toUpperCase();
+      const inviteExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      // Create family connection entry
+      const connection = await db.insert(familyConnections).values({
+        childUserId,
+        parentUserId: '', // Will be filled when parent scans
+        relationshipType: 'parent',
+        status: 'pending',
+        inviteCode,
+        inviteExpiry,
+        permissions: {
+          emergencyAlerts: true,
+          locationSharing: true,
+          liveStreaming: true
+        }
+      }).returning();
+      
+      res.json({
+        qrCode: inviteCode,
+        expiresAt: inviteExpiry,
+        connectionId: connection[0].id
+      });
+    } catch (error) {
+      console.error("Error generating QR code:", error);
+      res.status(500).json({ message: "Failed to generate QR code" });
+    }
+  });
+
+  app.get("/api/family/connections", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      const connections = await db
+        .select()
+        .from(familyConnections)
+        .where(or(
+          eq(familyConnections.childUserId, userId),
+          eq(familyConnections.parentUserId, userId)
+        ));
+      
+      res.json(connections);
+    } catch (error) {
+      console.error("Error fetching family connections:", error);
+      res.status(500).json({ message: "Failed to fetch connections" });
+    }
+  });
+
+  app.post("/api/family/scan-qr", isAuthenticated, async (req: any, res) => {
+    try {
+      const parentUserId = req.user.claims.sub;
+      const { inviteCode } = req.body;
+      
+      // Find pending connection with this invite code
+      const [connection] = await db
+        .select()
+        .from(familyConnections)
+        .where(and(
+          eq(familyConnections.inviteCode, inviteCode),
+          eq(familyConnections.status, 'pending')
+        ));
+      
+      if (!connection) {
+        return res.status(404).json({ message: "Invalid or expired QR code" });
+      }
+      
+      // Check if invite is expired
+      if (new Date() > new Date(connection.inviteExpiry!)) {
+        return res.status(400).json({ message: "QR code has expired" });
+      }
+      
+      // Update connection with parent info
+      const updatedConnection = await db
+        .update(familyConnections)
+        .set({
+          parentUserId,
+          status: 'accepted',
+          acceptedAt: new Date()
+        })
+        .where(eq(familyConnections.id, connection.id))
+        .returning();
+      
+      // Get child user info
+      const childUser = await storage.getUser(connection.childUserId);
+      
+      res.json({
+        connection: updatedConnection[0],
+        childInfo: {
+          name: childUser?.firstName || childUser?.email || 'Child',
+          email: childUser?.email
+        }
+      });
+    } catch (error) {
+      console.error("Error scanning QR code:", error);
+      res.status(500).json({ message: "Failed to process QR code" });
     }
   });
 
