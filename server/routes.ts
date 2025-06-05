@@ -1103,8 +1103,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Handle different message types
         switch (data.type) {
+          case 'child_join_room':
+            // Child device joining emergency room
+            console.log('Child device joined emergency room:', data.roomId);
+            streamingSessions.set(data.roomId, {
+              childSocket: ws,
+              offer: data.offer,
+              streamId: data.streamId,
+              roomId: data.roomId
+            });
+            
+            // If parent is already waiting, send offer immediately
+            activeConnections.forEach((connection, socket) => {
+              if (connection.role === 'parent' && connection.roomId === data.roomId) {
+                socket.send(JSON.stringify({
+                  type: 'child_stream_offer',
+                  offer: data.offer,
+                  roomId: data.roomId
+                }));
+                console.log('Sent child stream offer to waiting parent');
+              }
+            });
+            break;
+            
+          case 'parent_join_room':
+            // Parent device joining emergency room
+            console.log('Parent device joined emergency room:', data.roomId);
+            activeConnections.set(ws, {
+              role: 'parent',
+              roomId: data.roomId,
+              deviceType: 'parent'
+            });
+            
+            // Check if child is already streaming
+            const room = streamingSessions.get(data.roomId);
+            if (room && room.offer) {
+              ws.send(JSON.stringify({
+                type: 'child_stream_offer',
+                offer: room.offer,
+                roomId: data.roomId
+              }));
+              console.log('Sent existing child stream to parent');
+            }
+            break;
+            
           case 'child_stream_offer':
-            // Child device is offering to stream
+            // Legacy support - Child device is offering to stream
             console.log('Child stream offer received for stream:', data.streamId);
             streamingSessions.set(data.streamId, {
               childSocket: ws,
@@ -1147,14 +1191,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
           case 'parent_stream_answer':
             // Parent answering child's offer
-            console.log('Parent stream answer received for:', data.streamId);
-            const childSession = streamingSessions.get(data.streamId);
+            console.log('Parent stream answer received for room:', data.roomId || data.streamId);
+            const roomId = data.roomId || data.streamId;
+            const childSession = streamingSessions.get(roomId);
             if (childSession && childSession.childSocket) {
               childSession.childSocket.send(JSON.stringify({
                 type: 'parent_stream_answer',
                 answer: data.answer,
+                roomId: roomId,
                 streamId: data.streamId
               }));
+              console.log('Forwarded parent answer to child device');
             }
             break;
             

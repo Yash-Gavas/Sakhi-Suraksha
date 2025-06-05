@@ -20,93 +20,140 @@ export default function EmergencyWatchPage() {
     }
   }, [streamId]);
 
-  // Initialize child camera stream monitoring (simulated for demo)
+  // Connect to child device stream via WebRTC
   useEffect(() => {
-    const startChildMonitoring = async () => {
+    const connectToChildDevice = async () => {
       try {
-        console.log('Connecting to child emergency stream...');
+        console.log('Parent connecting to child device stream...');
         
-        // In a real app, this would connect to actual child device
-        // For demo purposes, simulate child camera with back camera
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'environment' // Back camera to differentiate from main app
-          }, 
-          audio: true 
-        });
+        // Connect to WebSocket server
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        const socket = new WebSocket(wsUrl);
         
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setIsStreaming(true);
+        socket.onopen = () => {
+          console.log('Parent WebSocket connected');
+          // Join the same emergency room as the child
+          const emergencyRoomId = `emergency_room_${streamId}`;
+          socket.send(JSON.stringify({
+            type: 'parent_join_room',
+            roomId: emergencyRoomId,
+            deviceType: 'parent'
+          }));
           
-          // Record child emergency feed for evidence
-          const mediaRecorder = new MediaRecorder(stream, {
-            mimeType: 'video/webm;codecs=vp8,opus'
-          });
+          console.log(`Parent joined emergency room: ${emergencyRoomId}`);
+        };
+        
+        socket.onmessage = async (event) => {
+          const data = JSON.parse(event.data);
+          console.log('Parent received message:', data.type);
           
-          const recordedChunks: BlobPart[] = [];
-          
-          mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-              recordedChunks.push(event.data);
-            }
-          };
-          
-          mediaRecorder.onstop = async () => {
-            const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            const formData = new FormData();
-            formData.append('video', blob, `emergency_${emergencyAlertId}_${Date.now()}.webm`);
-            formData.append('emergencyAlertId', emergencyAlertId?.toString() || '');
+          if (data.type === 'child_stream_offer') {
+            console.log('Received child device stream offer');
+            
+            // Set up WebRTC peer connection to receive child's stream
+            const pc = new RTCPeerConnection({
+              iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+            
+            // When we receive the child's stream, display it
+            pc.ontrack = (event) => {
+              console.log('Received child device camera stream');
+              if (videoRef.current && event.streams[0]) {
+                videoRef.current.srcObject = event.streams[0];
+                setIsStreaming(true);
+                
+                // Start recording the child's stream
+                const mediaRecorder = new MediaRecorder(event.streams[0], {
+                  mimeType: 'video/webm;codecs=vp8,opus'
+                });
+                
+                const recordedChunks: BlobPart[] = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                  if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                  }
+                };
+                
+                mediaRecorder.onstop = async () => {
+                  const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                  const formData = new FormData();
+                  formData.append('video', blob, `emergency_${emergencyAlertId}_${Date.now()}.webm`);
+                  formData.append('emergencyAlertId', emergencyAlertId?.toString() || '');
+                  
+                  try {
+                    const response = await fetch('/api/emergency/save-recording', {
+                      method: 'POST',
+                      body: formData
+                    });
+                    
+                    if (response.ok) {
+                      console.log('Child device recording saved');
+                    }
+                  } catch (error) {
+                    console.error('Failed to save recording:', error);
+                  }
+                };
+                
+                mediaRecorder.start(1000);
+                (videoRef.current as any).mediaRecorder = mediaRecorder;
+                
+                console.log('Now recording child device stream');
+              }
+            };
+            
+            // Handle ICE candidates
+            pc.onicecandidate = (event) => {
+              if (event.candidate) {
+                socket.send(JSON.stringify({
+                  type: 'ice_candidate',
+                  candidate: event.candidate,
+                  roomId: data.roomId
+                }));
+              }
+            };
             
             try {
-              // Save recording to server
-              const response = await fetch('/api/emergency/save-recording', {
-                method: 'POST',
-                body: formData
-              });
+              // Set remote description and create answer
+              await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
               
-              if (response.ok) {
-                console.log('Emergency recording saved to server');
-              }
+              // Send answer back to child
+              socket.send(JSON.stringify({
+                type: 'parent_stream_answer',
+                answer: answer,
+                roomId: data.roomId
+              }));
+              
+              console.log('WebRTC handshake completed with child device');
             } catch (error) {
-              console.error('Failed to save recording:', error);
+              console.error('WebRTC handshake error:', error);
             }
-          };
-          
-          // Start recording immediately
-          mediaRecorder.start(1000);
-          
-          // Store recorder for cleanup
-          (videoRef.current as any).mediaRecorder = mediaRecorder;
-          
-          console.log('Child emergency stream connected with recording');
-        }
+          }
+        };
+        
+        socket.onerror = (error) => {
+          console.error('Parent WebSocket error:', error);
+          setIsStreaming(false);
+        };
+        
+        // Store socket for cleanup
+        return () => {
+          socket.close();
+        };
       } catch (error) {
-        console.error('Failed to connect to child emergency stream:', error);
-        // Show connection status as attempting
+        console.error('Failed to connect to child device:', error);
         setIsStreaming(false);
       }
     };
 
-    // Connect to child stream when emergency alert exists
-    if (emergencyAlertId) {
-      startChildMonitoring();
+    // Connect to child device when stream ID exists
+    if (streamId && emergencyAlertId) {
+      connectToChildDevice();
     }
-
-    // Cleanup function
-    return () => {
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
-      
-      if ((videoRef.current as any)?.mediaRecorder) {
-        (videoRef.current as any).mediaRecorder.stop();
-      }
-    };
-  }, [emergencyAlertId]);
+  }, [streamId, emergencyAlertId]);
 
   const { data: emergencyAlert, isLoading } = useQuery({
     queryKey: ["/api/emergency-alerts", emergencyAlertId],

@@ -220,19 +220,18 @@ export default function LiveStreaming({
         const socket = new WebSocket(wsUrl);
         
         socket.onopen = () => {
-          console.log('Child WebSocket connected, sending stream offer');
-          // Send the stream offer with emergency alert ID as stream identifier
-          const emergencyStreamId = `emergency_${Date.now()}`;
+          console.log('Child device streaming to parent');
+          // Use a consistent emergency room ID for cross-device connection
+          const emergencyRoomId = `emergency_room_${streamId}`;
           socket.send(JSON.stringify({
-            type: 'child_stream_offer',
+            type: 'child_join_room',
+            roomId: emergencyRoomId,
             offer: offer,
-            streamId: emergencyStreamId,
-            originalStreamId: streamId,
-            emergencyAlertId: Date.now()
+            streamId: streamId,
+            deviceType: 'child'
           }));
           
-          // Store the emergency stream ID for the parent to find
-          sessionStorage.setItem('currentEmergencyStreamId', emergencyStreamId);
+          console.log(`Child joined emergency room: ${emergencyRoomId}`);
         };
         
         socket.onmessage = async (event) => {
