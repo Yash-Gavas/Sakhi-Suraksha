@@ -221,13 +221,18 @@ export default function LiveStreaming({
         
         socket.onopen = () => {
           console.log('Child WebSocket connected, sending stream offer');
-          // Send the stream offer to waiting parents
+          // Send the stream offer with emergency alert ID as stream identifier
+          const emergencyStreamId = `emergency_${Date.now()}`;
           socket.send(JSON.stringify({
             type: 'child_stream_offer',
             offer: offer,
-            streamId: streamId,
+            streamId: emergencyStreamId,
+            originalStreamId: streamId,
             emergencyAlertId: Date.now()
           }));
+          
+          // Store the emergency stream ID for the parent to find
+          sessionStorage.setItem('currentEmergencyStreamId', emergencyStreamId);
         };
         
         socket.onmessage = async (event) => {
