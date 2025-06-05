@@ -107,6 +107,7 @@ export default function PersistentVoiceDetector({
 
         recognitionRef.current = recognition;
         recognition.start();
+        setIsListening(true);
       }
 
       // Setup media recorder for audio buffering

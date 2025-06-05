@@ -1478,10 +1478,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const homeLocation = await storage.getHomeLocation(connection.childUserId);
         const latestHealth = await storage.getLatestHealthMetrics(connection.childUserId);
         
-        // Check for recent activity to determine status
+        // Check for recent activity and emergency status
         const recentAlerts = await storage.getEmergencyAlerts(connection.childUserId);
+        const hasActiveEmergency = recentAlerts.filter(alert => !alert.isResolved).length > 0;
         const hasRecentActivity = recentAlerts.length > 0;
         const isOnline = hasRecentActivity || latestHealth;
+        
+        // Determine status: emergency takes priority, then safe/offline
+        let status: 'safe' | 'emergency' | 'offline' = 'offline';
+        if (hasActiveEmergency) {
+          status = 'emergency';
+        } else if (isOnline) {
+          status = 'safe';
+        }
         
         return {
           id: connection.id,
@@ -1489,7 +1498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: user?.email || 'child@example.com',
           phone: user?.phoneNumber || 'Not provided',
           lastSeen: new Date().toISOString(),
-          status: isOnline ? 'safe' : 'offline',
+          status,
           connectionCode: connection.inviteCode,
           connectedAt: connection.acceptedAt || connection.createdAt,
           currentLocation: homeLocation ? {
