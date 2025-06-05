@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, MapPin, Clock, CheckCircle, Video, Radio } from "lucide-react";
+import { AlertTriangle, MapPin, Clock, CheckCircle, Video, Radio, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -217,7 +217,18 @@ export default function EmergencyAlerts() {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Emergency Alerts</h1>
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.href = '/parent-dashboard'}
+            className="flex items-center space-x-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Dashboard</span>
+          </Button>
+          <h1 className="text-3xl font-bold">Emergency Alerts</h1>
+        </div>
         <div className="flex space-x-4">
           <Badge variant="destructive" className="text-sm">
             {activeAlerts.length} Active
