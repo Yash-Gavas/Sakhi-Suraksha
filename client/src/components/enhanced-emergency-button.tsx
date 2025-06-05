@@ -58,7 +58,8 @@ export default function EnhancedEmergencyButton() {
 
           // Auto-start live streaming
           setShowLiveStream(true);
-          const streamUrl = `${window.location.origin}/emergency-stream/${Date.now()}`;
+          const streamId = Date.now();
+          const streamUrl = `${window.location.origin}/watch/stream_${streamId}_emergency`;
           emergencyData.streamUrl = streamUrl;
 
           // Send emergency messages to all contacts via device messaging
