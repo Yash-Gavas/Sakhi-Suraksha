@@ -56,16 +56,28 @@ export default function PersistentVoiceDetector({
 
         recognition.onresult = (event: any) => {
           let finalTranscript = '';
+          let interimTranscript = '';
+          
           for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript;
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
             }
           }
           
-          if (finalTranscript) {
-            console.log('Voice input:', finalTranscript);
-            setTranscription(prev => prev + ' ' + finalTranscript);
-            checkForDistressKeywords(finalTranscript);
+          // Check both final and interim results for faster detection
+          const textToCheck = finalTranscript || interimTranscript;
+          if (textToCheck) {
+            console.log('Voice input (final):', finalTranscript);
+            console.log('Voice input (interim):', interimTranscript);
+            
+            if (finalTranscript) {
+              setTranscription(prev => prev + ' ' + finalTranscript);
+            }
+            
+            checkForDistressKeywords(textToCheck);
           }
         };
 
@@ -155,19 +167,30 @@ export default function PersistentVoiceDetector({
   };
 
   const checkForDistressKeywords = (text: string) => {
-    const lowercaseText = text.toLowerCase();
+    const lowercaseText = text.toLowerCase().trim();
+    console.log('Checking text for keywords:', lowercaseText);
     
     for (const keyword of distressKeywords) {
-      if (lowercaseText.includes(keyword.toLowerCase())) {
-        console.log(`Distress keyword detected: "${keyword}"`);
+      const keywordLower = keyword.toLowerCase();
+      if (lowercaseText.includes(keywordLower)) {
+        console.log(`🚨 DISTRESS KEYWORD DETECTED: "${keyword}" in text: "${text}"`);
         
         toast({
-          title: "Emergency Keyword Detected",
+          title: "🚨 Emergency Keyword Detected!",
           description: `Detected: "${keyword}" - Triggering emergency alert`,
           variant: "destructive"
         });
 
+        // Trigger emergency immediately
         onEmergencyDetected();
+        
+        // Show additional notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Emergency Alert Triggered', {
+            body: `Voice keyword "${keyword}" detected - Emergency services being contacted`,
+            icon: '/favicon.ico'
+          });
+        }
         break;
       }
     }
@@ -250,6 +273,14 @@ export default function PersistentVoiceDetector({
             >
               <Trash2 className="w-3 h-3" />
               Clear Buffer
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => checkForDistressKeywords("help test")}
+              className="flex items-center gap-1"
+            >
+              Test Detection
             </Button>
           </div>
 
