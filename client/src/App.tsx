@@ -11,6 +11,7 @@ import Map from "@/pages/map";
 import Contacts from "@/pages/contacts";
 import Settings from "@/pages/settings";
 import Landing from "@/pages/landing";
+import Login from "@/pages/login";
 import Destinations from "@/pages/destinations";
 import ProfileSetup from "@/pages/profile-setup";
 import StreamView from "@/pages/stream-view";
@@ -22,6 +23,28 @@ import FakeCallOverlay from "@/components/fake-call-overlay";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
+
+  // Show login page first if not authenticated
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-mobile mx-auto bg-gradient-to-br from-pink-50 to-purple-50 min-h-screen">
+        <Switch>
+          <Route path="/login" component={Login} />
+          <Route path="/auth" component={Landing} />
+          <Route path="/emergency-stream/:streamId" component={EmergencyStreamPage} />
+          <Route component={Login} />
+        </Switch>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-mobile mx-auto bg-gradient-to-br from-pink-50 to-purple-50 min-h-screen relative">
@@ -35,7 +58,6 @@ function Router() {
         <Route path="/profile-setup" component={ProfileSetup} />
         <Route path="/stream/:streamId" component={StreamView} />
         <Route path="/emergency-stream/:streamId" component={EmergencyStreamPage} />
-        <Route path="/auth" component={Landing} />
         <Route component={NotFound} />
       </Switch>
       

@@ -9,6 +9,7 @@ import FixedVoiceDetector from "./fixed-voice-detector";
 import { DeviceSmsService } from "@/lib/deviceSmsService";
 import { sendEmergencyAlert, sendLiveLocationAlert, sendToMultipleContacts } from "@/lib/deviceMessaging";
 import { MobileMessaging } from "@/lib/mobileMessaging";
+import MobileEmergencyInterface from "@/components/mobile-emergency-interface";
 
 interface EmergencyAlert {
   triggerType: string;
