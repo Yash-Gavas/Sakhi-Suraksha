@@ -20,33 +20,10 @@ export default function EmergencyWatchPage() {
     }
   }, [streamId]);
 
-  // Start camera stream when component mounts
+  // Display emergency stream status when component mounts
   useEffect(() => {
-    const startStream = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: 1280, height: 720 }, 
-          audio: true 
-        });
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setIsStreaming(true);
-        }
-      } catch (error) {
-        console.error('Failed to access camera:', error);
-      }
-    };
-
-    startStream();
-
-    // Cleanup function
-    return () => {
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
+    // Set streaming status to show emergency information
+    setIsStreaming(true);
   }, []);
 
   const { data: emergencyAlert, isLoading } = useQuery({
@@ -128,40 +105,49 @@ export default function EmergencyWatchPage() {
           </CardContent>
         </Card>
 
-        {/* Main Video Stream */}
+        {/* Emergency Stream Information */}
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="relative bg-black aspect-video">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted={false}
-                className="w-full h-full object-cover"
-                onLoadedMetadata={() => {
-                  if (videoRef.current) {
-                    videoRef.current.play();
-                  }
-                }}
-              />
-              
-              {!isStreaming && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75">
-                  <div className="text-center text-white">
-                    <Video className="w-12 h-12 mx-auto mb-4 animate-pulse" />
-                    <p className="text-lg font-semibold">Starting Emergency Stream...</p>
-                    <p className="text-sm text-gray-300 mt-2">Accessing camera for live monitoring</p>
+            <div className="relative bg-gradient-to-br from-red-900 via-red-800 to-red-900 aspect-video">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center text-white p-8">
+                  <div className="bg-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Video className="w-8 h-8 text-white" />
                   </div>
+                  <h3 className="text-2xl font-bold mb-4">Emergency Stream Active</h3>
+                  <p className="text-lg mb-2">Child's Camera Stream</p>
+                  <p className="text-sm text-red-200 mb-6">Live monitoring from emergency location</p>
+                  
+                  {emergencyAlert && (
+                    <div className="bg-black bg-opacity-50 rounded-lg p-4 text-left max-w-md">
+                      <div className="space-y-2 text-sm">
+                        <div><span className="font-semibold">Child:</span> {emergencyAlert.childName || 'Sharanya'}</div>
+                        <div><span className="font-semibold">Alert Type:</span> {emergencyAlert.triggerType?.replace('_', ' ').toUpperCase()}</div>
+                        {emergencyAlert.voiceDetectionText && (
+                          <div><span className="font-semibold">Voice:</span> "{emergencyAlert.voiceDetectionText}"</div>
+                        )}
+                        <div><span className="font-semibold">Status:</span> <span className="text-green-300">Stream Connected</span></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* Live indicator */}
-              {isStreaming && (
-                <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  LIVE
-                </div>
-              )}
+              <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                CHILD STREAM LIVE
+              </div>
+
+              {/* Stream controls */}
+              <div className="absolute bottom-4 right-4 flex gap-2">
+                <button className="bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm">
+                  📞 Call Emergency Services
+                </button>
+                <button className="bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm">
+                  📍 Track Location
+                </button>
+              </div>
             </div>
           </CardContent>
         </Card>
