@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { generateOTP, sendWhatsAppOTP, sendEmailOTP, sendWhatsAppEmergency, sendEmailAlert } from "./whatsappService";
+import { sendSMS, sendSMSOTP, sendSMSEmergency, sendSMSLiveLocation } from "./smsService";
 import { WebSocketServer } from 'ws';
 import { 
   insertEmergencyContactSchema, 
@@ -1039,6 +1040,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (type === 'phone') {
+        // Try WhatsApp first, then SMS as backup
         const whatsappSuccess = await sendWhatsAppOTP(identifier, otp);
         
         if (whatsappSuccess) {
@@ -1048,14 +1050,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             success: true
           });
         } else {
-          console.log(`Manual OTP for ${identifier}: ${otp}`);
-          return res.json({ 
-            message: "WhatsApp delivery pending. Use manual OTP verification",
-            deliveryMethod: 'manual',
-            manualOtp: otp,
-            success: true,
-            note: "Add your phone number to WhatsApp Business recipient list for automatic delivery"
-          });
+          // Try SMS as backup
+          const smsSuccess = await sendSMSOTP(identifier, otp);
+          
+          if (smsSuccess) {
+            return res.json({ 
+              message: "OTP sent successfully via SMS",
+              deliveryMethod: 'sms',
+              success: true
+            });
+          } else {
+            console.log(`Manual OTP for ${identifier}: ${otp}`);
+            return res.json({ 
+              message: "OTP delivery pending. Use manual verification",
+              deliveryMethod: 'manual',
+              manualOtp: otp,
+              success: true,
+              note: "Check server logs for OTP code"
+            });
+          }
         }
       } else if (type === 'email') {
         const emailSuccess = await sendEmailOTP(identifier, otp);
@@ -1219,13 +1232,44 @@ Please contact immediately or call emergency services: 100, 101, 102, 108`;
       let whatsappSuccess = false;
       let emailSuccess = false;
       
-      // Send WhatsApp emergency alert if phone number exists
+      // Get user profile for WhatsApp number and live location
+      const user = await storage.getUser('demo-user');
+      const userWhatsApp = user?.whatsappNumber || user?.phoneNumber;
+      
+      // Create live location link
+      const locationUrl = `https://www.google.com/maps?q=${emergencyData.location.lat},${emergencyData.location.lng}`;
+      
+      // Enhanced emergency message with WhatsApp contact and live location
+      const enhancedMessage = `🚨 EMERGENCY ALERT 🚨
+
+${message}
+
+📍 LIVE LOCATION: ${locationUrl}
+
+${userWhatsApp ? `📱 Contact via WhatsApp: ${userWhatsApp}` : ''}
+
+Emergency Resources:
+• Police: 100
+• Ambulance: 108
+• Women Helpline: 1091
+
+This is an automated emergency alert from Sakhi Suraksha safety app.
+Please respond immediately if you can assist.`;
+
+      // Send via both WhatsApp and SMS for reliability
       if (phoneNumber) {
         try {
-          smsSuccess = await sendWhatsAppEmergency(phoneNumber, message);
-          console.log(`WhatsApp to ${phoneNumber}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
+          // Try WhatsApp first
+          const whatsappResult = await sendWhatsAppEmergency(phoneNumber, enhancedMessage);
+          console.log(`WhatsApp to ${phoneNumber}: ${whatsappResult ? 'SUCCESS' : 'FAILED'}`);
+          
+          // Send SMS as backup
+          const smsResult = await sendSMSEmergency(phoneNumber, emergencyData.location.address, userWhatsApp);
+          console.log(`SMS to ${phoneNumber}: ${smsResult ? 'SUCCESS' : 'FAILED'}`);
+          
+          smsSuccess = whatsappResult || smsResult;
         } catch (error) {
-          console.error(`WhatsApp error for ${phoneNumber}:`, error);
+          console.error(`Emergency alert error for ${phoneNumber}:`, error);
         }
       }
       
@@ -1348,34 +1392,53 @@ Please contact immediately or call emergency services: 100, 101, 102, 108`;
       // If emergency mode, automatically share with contacts
       if (isEmergency) {
         const contacts = await storage.getEmergencyContacts('demo-user');
+        const user = await storage.getUser('demo-user');
+        const userWhatsApp = user?.whatsappNumber || user?.phoneNumber;
         
-        const emergencyMessage = `🔴 EMERGENCY LIVE STREAM
-Watch live: ${shareableLink}
-This is an active emergency situation. Please monitor or contact immediately.
-Time: ${new Date().toLocaleString()}
+        const emergencyMessage = `🔴 EMERGENCY LIVE STREAM ALERT 🔴
 
-This message was sent automatically by Sakhi Suraksha app.`;
+URGENT: Someone needs help immediately!
 
-        // Send stream link to all emergency contacts
-        contacts.forEach(async (contact) => {
+🎥 Watch Live Stream: ${shareableLink}
+📍 Location: Active emergency situation
+⏰ Started: ${new Date().toLocaleString()}
+
+${userWhatsApp ? `📱 Contact via WhatsApp: ${userWhatsApp}` : ''}
+
+This is an active emergency. Please monitor the stream and contact authorities if needed.
+
+Emergency Resources:
+• Police: 100
+• Ambulance: 108
+• Women Helpline: 1091
+
+Automated alert from Sakhi Suraksha safety app.`;
+
+        // Send stream link to all emergency contacts via multiple channels
+        for (const contact of contacts) {
           if (contact.phoneNumber) {
             try {
-              await sendWhatsAppEmergency(contact.phoneNumber, emergencyMessage);
-              console.log(`Emergency stream SMS sent to ${contact.name}: SUCCESS`);
+              // Try WhatsApp first
+              const whatsappResult = await sendWhatsAppEmergency(contact.phoneNumber, emergencyMessage);
+              console.log(`Emergency stream WhatsApp to ${contact.name}: ${whatsappResult ? 'SUCCESS' : 'FAILED'}`);
+              
+              // Send SMS as backup with live location
+              const smsResult = await sendSMSLiveLocation(contact.phoneNumber, shareableLink, shareableLink, userWhatsApp);
+              console.log(`Emergency stream SMS to ${contact.name}: ${smsResult ? 'SUCCESS' : 'FAILED'}`);
             } catch (error) {
-              console.error(`Emergency stream SMS error for ${contact.name}:`, error);
+              console.error(`Emergency stream alert error for ${contact.name}:`, error);
             }
           }
           
           if (contact.email) {
             try {
-              await sendEmailOTP(contact.email, emergencyMessage);
-              console.log(`Emergency stream Email sent to ${contact.name}: SUCCESS`);
+              await sendEmailAlert(contact.email, emergencyMessage);
+              console.log(`Emergency stream Email to ${contact.name}: SUCCESS`);
             } catch (error) {
               console.error(`Emergency stream Email error for ${contact.name}:`, error);
             }
           }
-        });
+        }
       }
       
       res.json({

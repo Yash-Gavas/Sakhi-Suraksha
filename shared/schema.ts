@@ -21,6 +21,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   phoneNumber: text("phone_number"),
+  whatsappNumber: text("whatsapp_number"),
   emergencyMessage: text("emergency_message").default("Emergency! I need help. This is an automated message from Sakhi Suraksha."),
   isLocationSharingActive: boolean("is_location_sharing_active").default(false),
   theme: text("theme").default("light"),
