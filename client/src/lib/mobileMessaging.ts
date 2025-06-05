@@ -154,7 +154,7 @@ Emergency contact if needed: 100 (Police) | 108 (Ambulance)`;
 
     contacts.forEach((contact, index) => {
       setTimeout(() => {
-        this.openWhatsAppMobile(contact.phoneNumber, locationMessage);
+        this.openWhatsAppWithFallbacks(contact.phoneNumber, locationMessage);
         this.openNativeSMS(contact.phoneNumber, locationMessage);
       }, index * 1000);
     });

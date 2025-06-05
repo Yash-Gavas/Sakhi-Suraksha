@@ -1489,6 +1489,11 @@ Please respond immediately if you can assist.`;
     res.sendFile(path.join(__dirname, '../dist/index.html'));
   });
 
+  app.get('/emergency-stream/:streamId', (req, res) => {
+    // Serve the main React app for emergency stream viewing
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+
   // Live streaming endpoints
   app.post('/api/live-stream/start', async (req, res) => {
     try {
