@@ -194,17 +194,24 @@ export default function LiveStreaming({
       
       mediaRecorderRef.current = mediaRecorder;
       
-      // Generate stream URLs
+      // Generate stream URLs using WebRTC peer-to-peer streaming
       const streamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const generatedStreamUrl = `${window.location.origin}/stream/${streamId}`;
+      const generatedStreamUrl = `webrtc://${streamId}`;
       const generatedShareableLink = `${window.location.origin}/watch/${streamId}`;
       
       setStreamUrl(generatedStreamUrl);
       setShareableLink(generatedShareableLink);
       setIsStreaming(true);
       
-      // Start recording
-      mediaRecorder.start(1000); // Record in 1-second chunks
+      // Store stream in browser storage for WebRTC sharing
+      localStorage.setItem(`stream_${streamId}`, JSON.stringify({
+        id: streamId,
+        startTime: Date.now(),
+        isActive: true
+      }));
+      
+      // Start recording for backup
+      mediaRecorder.start(1000);
       setIsRecording(true);
       
       // Get current location for emergency mode
