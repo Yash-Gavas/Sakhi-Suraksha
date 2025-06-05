@@ -45,6 +45,7 @@ function Router() {
           <Route path="/auth" component={Landing} />
           <Route path="/emergency-stream/:streamId" component={EmergencyStreamPage} />
           <Route path="/watch/:streamId" component={WatchStream} />
+          <Route path="/emergency-watch/:streamId" component={EmergencyWatchPage} />
           <Route path="/parent-dashboard" component={SimpleParentDashboard} />
           <Route component={Login} />
         </Switch>

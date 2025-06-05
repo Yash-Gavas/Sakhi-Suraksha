@@ -1279,6 +1279,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get individual emergency alert by ID
+  app.get("/api/emergency-alerts/:id", async (req, res) => {
+    try {
+      const alertId = parseInt(req.params.id);
+      const alerts = await storage.getEmergencyAlerts('demo-user');
+      const alert = alerts.find(a => a.id === alertId);
+      
+      if (!alert) {
+        return res.status(404).json({ message: "Emergency alert not found" });
+      }
+
+      const user = await storage.getUser('demo-user');
+      const formattedAlert = {
+        id: alert.id,
+        childName: user?.firstName || "Sharanya",
+        triggerType: alert.triggerType,
+        location: alert.latitude && alert.longitude ? {
+          lat: parseFloat(alert.latitude.toString()),
+          lng: parseFloat(alert.longitude.toString()),
+          address: alert.address || `${alert.latitude}, ${alert.longitude}`
+        } : null,
+        createdAt: alert.createdAt,
+        status: alert.isResolved ? 'resolved' : 'active',
+        voiceDetectionText: alert.audioRecordingUrl ? 
+          JSON.parse(alert.audioRecordingUrl).detectedText || "Emergency detected" : 
+          null
+      };
+
+      res.json(formattedAlert);
+    } catch (error) {
+      console.error("Error fetching emergency alert:", error);
+      res.status(500).json({ message: "Failed to fetch emergency alert" });
+    }
+  });
+
   app.get("/api/parent/emergency-alerts", async (req, res) => {
     try {
       // For demo purposes, directly fetch alerts from demo-user since parent-child connection is simulated

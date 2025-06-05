@@ -251,9 +251,9 @@ export default function SimpleParentDashboard() {
                       variant="outline"
                       className="text-blue-600 border-blue-300 hover:bg-blue-50"
                       onClick={() => {
-                        // Generate WebRTC stream link for emergency viewing
-                        const streamId = `emergency_${alert.id}_${Date.now()}`;
-                        const watchUrl = `${window.location.origin}/watch/${streamId}`;
+                        // Open emergency watch page for this specific alert
+                        const streamId = `emergency_${alert.id}`;
+                        const watchUrl = `${window.location.origin}/emergency-watch/${streamId}`;
                         window.open(watchUrl, '_blank');
                       }}
                     >
