@@ -1279,7 +1279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get individual emergency alert by ID
+  // Get individual emergency alert by ID (no auth required for emergency viewing)
   app.get("/api/emergency-alerts/:id", async (req, res) => {
     try {
       const alertId = parseInt(req.params.id);

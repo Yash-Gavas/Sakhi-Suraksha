@@ -46,11 +46,15 @@ export default function WebRTCStreamer({ emergencyMode = false, onStreamStart, o
         videoRef.current.play();
       }
 
-      // Generate unique stream ID
-      const newStreamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Generate emergency-specific stream ID
+      const newStreamId = emergencyMode ? 
+        `emergency_${Date.now()}_${Math.random().toString(36).substr(2, 6)}` :
+        `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       setStreamId(newStreamId);
       
-      const newShareLink = `${window.location.origin}/watch/${newStreamId}`;
+      const newShareLink = emergencyMode ? 
+        `${window.location.origin}/emergency-watch/${newStreamId}` :
+        `${window.location.origin}/watch/${newStreamId}`;
       setShareLink(newShareLink);
 
       // Store stream data in localStorage for peer discovery
