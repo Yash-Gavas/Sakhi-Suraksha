@@ -1760,10 +1760,23 @@ Please respond immediately if you can assist.`;
   });
 
   // Get live stream by ID for viewing with user details
-  app.get('/api/live-stream/:id', async (req, res) => {
+  app.get('/api/live-stream/:streamId', async (req, res) => {
     try {
-      const streamId = parseInt(req.params.id);
-      const stream = await storage.getLiveStreamById(streamId);
+      const streamParam = req.params.streamId;
+      let stream;
+      
+      // Handle both numeric IDs and stream identifiers
+      if (streamParam.startsWith('stream_')) {
+        // For generated stream IDs, find by shareLink containing the streamId
+        const streams = await storage.getLiveStreams('demo-user');
+        stream = streams.find(s => s.shareLink?.includes(streamParam));
+      } else {
+        // For numeric IDs
+        const streamId = parseInt(streamParam);
+        if (!isNaN(streamId)) {
+          stream = await storage.getLiveStreamById(streamId);
+        }
+      }
       
       if (!stream) {
         return res.status(404).json({ message: 'Stream not found' });
@@ -1774,7 +1787,8 @@ Please respond immediately if you can assist.`;
       const streamWithUserDetails = {
         ...stream,
         userName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User' : 'User',
-        userEmail: user?.email || 'user@example.com'
+        userEmail: user?.email || 'user@example.com',
+        startedAt: stream.createdAt?.toISOString() || new Date().toISOString()
       };
 
       res.json(streamWithUserDetails);
