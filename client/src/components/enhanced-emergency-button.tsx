@@ -72,9 +72,22 @@ export default function EnhancedEmergencyButton() {
           // Send emergency messages to all contacts via device messaging
           await sendEmergencyMessages(emergencyData);
           
-          // Trigger mobile native messaging
+          // Trigger direct iPhone messaging interface
           const contacts = emergencyContacts.filter(contact => contact.isActive && contact.phoneNumber);
-          MobileMessaging.sendEmergencyMessages(contacts, emergencyData);
+          if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iOS')) {
+            console.log('iPhone detected - triggering direct messaging interface');
+            setEmergencyMessageText(`🚨 EMERGENCY ALERT 🚨
+I need immediate help! This is an automated SOS from Sakhi Suraksha app.
+
+📍 LOCATION: ${emergencyData.location.address}
+⏰ TIME: ${emergencyData.timestamp.toLocaleString()}
+📹 LIVE STREAM: ${emergencyData.streamUrl || 'Starting...'}
+
+Please contact me immediately or call emergency services.`);
+            setShowDirectMessaging(true);
+          } else {
+            MobileMessaging.sendEmergencyMessages(contacts, emergencyData);
+          }
           
           // Show native notification
           MobileMessaging.showNativeNotification(
