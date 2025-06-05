@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { generateOTP, sendWhatsAppOTP, sendEmailOTP, sendWhatsAppEmergency, sendEmailAlert } from "./whatsappService";
@@ -1391,6 +1392,17 @@ Please respond immediately if you can assist.`;
       console.error('Error fetching stream:', error);
       res.status(500).json({ message: 'Failed to fetch stream' });
     }
+  });
+
+  // Stream watching page route
+  app.get('/watch/:streamId', (req, res) => {
+    // Serve the main React app - it will handle the routing
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+
+  app.get('/emergency/:alertId', (req, res) => {
+    // Serve the main React app - it will handle the routing  
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
   });
 
   // Live streaming endpoints

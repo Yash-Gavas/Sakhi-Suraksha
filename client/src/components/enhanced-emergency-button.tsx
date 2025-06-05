@@ -8,7 +8,7 @@ import LiveStreaming from "./live-streaming";
 import FixedVoiceDetector from "./fixed-voice-detector";
 import { DeviceSmsService } from "@/lib/deviceSmsService";
 import { sendEmergencyAlert, sendLiveLocationAlert, sendToMultipleContacts } from "@/lib/deviceMessaging";
-import { WindowsMessaging } from "@/lib/windowsMessaging";
+import { MobileMessaging } from "@/lib/mobileMessaging";
 
 interface EmergencyAlert {
   triggerType: string;
@@ -64,12 +64,12 @@ export default function EnhancedEmergencyButton() {
           // Send emergency messages to all contacts via device messaging
           await sendEmergencyMessages(emergencyData);
           
-          // Trigger Windows native messaging
+          // Trigger mobile native messaging
           const contacts = emergencyContacts.filter(contact => contact.isActive && contact.phoneNumber);
-          WindowsMessaging.sendEmergencyMessages(contacts, emergencyData);
+          MobileMessaging.sendEmergencyMessages(contacts, emergencyData);
           
           // Show native notification
-          WindowsMessaging.showNativeNotification(
+          MobileMessaging.showNativeNotification(
             "Emergency Alert Activated",
             `Messaging ${contacts.length} emergency contacts with live location`
           );
