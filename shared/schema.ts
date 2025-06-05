@@ -304,3 +304,75 @@ export type StressAnalysis = typeof stressAnalysis.$inferSelect;
 export type InsertStressAnalysis = z.infer<typeof insertStressAnalysisSchema>;
 export type IotEmergencyTrigger = typeof iotEmergencyTriggers.$inferSelect;
 export type InsertIotEmergencyTrigger = z.infer<typeof insertIotEmergencyTriggerSchema>;
+
+// Family connections between parents and children
+export const familyConnections = pgTable("family_connections", {
+  id: serial("id").primaryKey(),
+  parentUserId: varchar("parent_user_id").notNull(),
+  childUserId: varchar("child_user_id").notNull(),
+  relationshipType: varchar("relationship_type").notNull(), // 'parent', 'guardian', 'family'
+  status: varchar("status").notNull().default("pending"), // 'pending', 'accepted', 'blocked'
+  permissions: jsonb("permissions").default({}), // What parent can access
+  inviteCode: varchar("invite_code").unique(),
+  inviteExpiry: timestamp("invite_expiry"),
+  createdAt: timestamp("created_at").defaultNow(),
+  acceptedAt: timestamp("accepted_at"),
+});
+
+// Parent notifications for child activities
+export const parentNotifications = pgTable("parent_notifications", {
+  id: serial("id").primaryKey(),
+  parentUserId: varchar("parent_user_id").notNull(),
+  childUserId: varchar("child_user_id").notNull(),
+  type: varchar("type").notNull(), // 'emergency', 'location_update', 'safe_arrival', 'app_usage'
+  title: varchar("title").notNull(),
+  message: text("message").notNull(),
+  data: jsonb("data"), // Additional structured data
+  isRead: boolean("is_read").default(false),
+  priority: varchar("priority").notNull().default("normal"), // 'low', 'normal', 'high', 'critical'
+  createdAt: timestamp("created_at").defaultNow(),
+  readAt: timestamp("read_at"),
+});
+
+// Family safety settings
+export const familySettings = pgTable("family_settings", {
+  id: serial("id").primaryKey(),
+  familyId: varchar("family_id").notNull(), // Shared family identifier
+  parentUserId: varchar("parent_user_id").notNull(),
+  childUserId: varchar("child_user_id").notNull(),
+  autoLocationSharing: boolean("auto_location_sharing").default(true),
+  emergencyAutoNotify: boolean("emergency_auto_notify").default(true),
+  safeZoneNotifications: boolean("safe_zone_notifications").default(true),
+  allowLiveTracking: boolean("allow_live_tracking").default(false),
+  allowEmergencyOverride: boolean("allow_emergency_override").default(true),
+  quietHours: jsonb("quiet_hours"), // { start: "22:00", end: "07:00" }
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Schema validations for family connections
+export const insertFamilyConnectionSchema = createInsertSchema(familyConnections).omit({
+  id: true,
+  createdAt: true,
+  acceptedAt: true,
+});
+
+export const insertParentNotificationSchema = createInsertSchema(parentNotifications).omit({
+  id: true,
+  createdAt: true,
+  readAt: true,
+});
+
+export const insertFamilySettingsSchema = createInsertSchema(familySettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types for family connections
+export type FamilyConnection = typeof familyConnections.$inferSelect;
+export type InsertFamilyConnection = z.infer<typeof insertFamilyConnectionSchema>;
+export type ParentNotification = typeof parentNotifications.$inferSelect;
+export type InsertParentNotification = z.infer<typeof insertParentNotificationSchema>;
+export type FamilySettings = typeof familySettings.$inferSelect;
+export type InsertFamilySettings = z.infer<typeof insertFamilySettingsSchema>;
