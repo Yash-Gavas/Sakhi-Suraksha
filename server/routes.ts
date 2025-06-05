@@ -1125,6 +1125,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Parent Dashboard API Routes
+  app.get("/api/parent/children", async (req, res) => {
+    try {
+      // For demo purposes, return empty array since no children are connected yet
+      // In production, this would fetch connected children from family connections
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching parent children:', error);
+      res.status(500).json({ message: "Failed to fetch children" });
+    }
+  });
+
+  app.get("/api/parent/emergency-alerts", async (req, res) => {
+    try {
+      // For demo purposes, return empty array since no children are connected
+      // In production, this would fetch emergency alerts from connected children
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching parent emergency alerts:', error);
+      res.status(500).json({ message: "Failed to fetch emergency alerts" });
+    }
+  });
+
+  app.post("/api/parent/connect-child", async (req, res) => {
+    try {
+      const { connectionCode } = req.body;
+      
+      if (!connectionCode) {
+        return res.status(400).json({ message: "Connection code is required" });
+      }
+      
+      // Validate connection code format
+      if (!connectionCode.startsWith('SK') || connectionCode.length < 10) {
+        return res.status(400).json({ message: "Invalid connection code format" });
+      }
+      
+      // For demo purposes, simulate successful connection
+      // In production, this would:
+      // 1. Find the family connection with this invite code
+      // 2. Verify it's not expired
+      // 3. Update the connection with parent information
+      // 4. Return child information
+      
+      console.log(`Parent connecting to child with code: ${connectionCode}`);
+      
+      res.json({
+        success: true,
+        message: "Child connected successfully",
+        childInfo: {
+          id: `child_${Date.now()}`,
+          name: "Demo Child",
+          connectionCode: connectionCode,
+          connectedAt: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Error connecting child:', error);
+      res.status(500).json({ message: "Failed to connect child" });
+    }
+  });
+
+  app.post("/api/parent/emergency-alerts/:id/resolve", async (req, res) => {
+    try {
+      const alertId = parseInt(req.params.id);
+      
+      // For demo purposes, simulate successful resolution
+      // In production, this would update the alert status in the database
+      
+      res.json({
+        success: true,
+        message: "Alert resolved successfully"
+      });
+    } catch (error) {
+      console.error('Error resolving alert:', error);
+      res.status(500).json({ message: "Failed to resolve alert" });
+    }
+  });
+
   // OTP Verification Routes
   app.post('/api/otp/send', async (req, res) => {
     const { identifier, type } = req.body;
