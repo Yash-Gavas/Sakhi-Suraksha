@@ -1090,6 +1090,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     path: '/ws'
   });
 
+  // Store active connections and streams for WebRTC
+  const activeConnections = new Map();
+  const streamingSessions = new Map();
+
   wss.on('connection', (ws, req) => {
     console.log('New WebSocket connection');
     
@@ -1099,6 +1103,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Handle different message types
         switch (data.type) {
+          case 'child_stream_offer':
+            // Child device is offering to stream
+            console.log('Child stream offer received for stream:', data.streamId);
+            streamingSessions.set(data.streamId, {
+              childSocket: ws,
+              offer: data.offer,
+              streamId: data.streamId,
+              emergencyAlertId: data.emergencyAlertId
+            });
+            
+            // Notify all parent connections waiting for this stream
+            activeConnections.forEach((connection, socket) => {
+              if (connection.role === 'parent' && connection.streamId === data.streamId) {
+                socket.send(JSON.stringify({
+                  type: 'child_stream_offer',
+                  offer: data.offer,
+                  streamId: data.streamId
+                }));
+              }
+            });
+            break;
+            
+          case 'request_child_stream':
+            // Parent requesting to view child stream
+            console.log('Parent requesting child stream:', data.streamId);
+            activeConnections.set(ws, {
+              role: 'parent',
+              streamId: data.streamId,
+              emergencyAlertId: data.emergencyAlertId
+            });
+            
+            // Check if child stream is already available
+            const session = streamingSessions.get(data.streamId);
+            if (session && session.offer) {
+              ws.send(JSON.stringify({
+                type: 'child_stream_offer',
+                offer: session.offer,
+                streamId: data.streamId
+              }));
+            }
+            break;
+            
+          case 'parent_stream_answer':
+            // Parent answering child's offer
+            console.log('Parent stream answer received for:', data.streamId);
+            const childSession = streamingSessions.get(data.streamId);
+            if (childSession && childSession.childSocket) {
+              childSession.childSocket.send(JSON.stringify({
+                type: 'parent_stream_answer',
+                answer: data.answer,
+                streamId: data.streamId
+              }));
+            }
+            break;
+            
+          case 'ice_candidate':
+            // Forward ICE candidates between child and parent
+            const targetStreamId = data.streamId;
+            const senderRole = activeConnections.get(ws)?.role;
+            
+            if (senderRole === 'parent') {
+              const targetSession = streamingSessions.get(targetStreamId);
+              if (targetSession && targetSession.childSocket) {
+                targetSession.childSocket.send(JSON.stringify({
+                  type: 'ice_candidate',
+                  candidate: data.candidate,
+                  from: 'parent'
+                }));
+              }
+            } else if (senderRole === 'child') {
+              activeConnections.forEach((connection, socket) => {
+                if (connection.role === 'parent' && connection.streamId === targetStreamId) {
+                  socket.send(JSON.stringify({
+                    type: 'ice_candidate',
+                    candidate: data.candidate,
+                    from: 'child'
+                  }));
+                }
+              });
+            }
+            break;
+
           case 'start_emergency_stream':
             // Notify all connected clients about new emergency stream
             wss.clients.forEach(client => {
@@ -1191,6 +1277,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     ws.on('close', () => {
       console.log('WebSocket connection closed');
+      activeConnections.delete(ws);
+      
+      // Clean up streaming sessions where this was the child socket
+      streamingSessions.forEach((session, streamId) => {
+        if (session.childSocket === ws) {
+          streamingSessions.delete(streamId);
+        }
+      });
     });
 
     ws.on('error', (error) => {
