@@ -65,6 +65,11 @@ function Router() {
         <EmergencyAlerts />
       </Route>
       
+      {/* Emergency watch page for live streaming */}
+      <Route path="/emergency-watch/:streamId">
+        <EmergencyWatchPage />
+      </Route>
+      
       {/* Main app routes with navigation */}
       <Route>
         <div className="max-w-mobile mx-auto bg-gradient-to-br from-pink-50 to-purple-50 min-h-screen relative">
