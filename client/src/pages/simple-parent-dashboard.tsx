@@ -237,19 +237,13 @@ export default function SimpleParentDashboard() {
                         size="sm"
                         variant="outline"
                         className="text-green-600 border-green-300 hover:bg-green-50"
-                        onClick={async () => {
-                          try {
-                            const response = await fetch(`/api/parent/live-location/${alert.childId}`);
-                            const locationData = await response.json();
-                            const googleMapsUrl = `https://maps.google.com/?q=${locationData.lat},${locationData.lng}&z=16`;
+                        onClick={() => {
+                          if (alert.location) {
+                            const googleMapsUrl = `https://maps.google.com/?q=${alert.location.lat},${alert.location.lng}&z=18&t=h`;
+                            console.log('Opening Google Maps:', googleMapsUrl);
                             window.open(googleMapsUrl, '_blank');
-                          } catch (error) {
-                            console.error('Failed to get live location:', error);
-                            // Fallback to alert location if available
-                            if (alert.location) {
-                              const googleMapsUrl = `https://maps.google.com/?q=${alert.location.lat},${alert.location.lng}&z=16`;
-                              window.open(googleMapsUrl, '_blank');
-                            }
+                          } else {
+                            console.error('No location data available for this alert');
                           }
                         }}
                       >

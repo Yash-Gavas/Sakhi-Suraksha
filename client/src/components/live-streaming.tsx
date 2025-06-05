@@ -52,6 +52,8 @@ export default function LiveStreaming({
       longitude?: number;
       address?: string;
       triggerType?: string;
+      scenario?: string;
+      detectedText?: string;
     }) => {
       const response = await fetch('/api/live-stream/start', {
         method: 'POST',
