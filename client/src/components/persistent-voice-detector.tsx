@@ -23,6 +23,8 @@ export default function PersistentVoiceDetector({
   const recognitionRef = useRef<any>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const cleanupIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastEmergencyTriggerRef = useRef<number>(0);
+  const emergencyDebounceTimeRef = useRef<number>(10000); // 10 second debounce
 
   const distressKeywords = [
     'help', 'emergency', 'danger', 'fire', 'police', 'ambulance',
@@ -170,10 +172,20 @@ export default function PersistentVoiceDetector({
     const lowercaseText = text.toLowerCase().trim();
     console.log('Checking text for keywords:', lowercaseText);
     
+    // Check for debounce - prevent multiple alerts within 10 seconds
+    const now = Date.now();
+    if (now - lastEmergencyTriggerRef.current < emergencyDebounceTimeRef.current) {
+      console.log('Emergency debounced - ignoring detection within cooldown period');
+      return;
+    }
+    
     for (const keyword of distressKeywords) {
       const keywordLower = keyword.toLowerCase();
       if (lowercaseText.includes(keywordLower)) {
         console.log(`🚨 DISTRESS KEYWORD DETECTED: "${keyword}" in text: "${text}"`);
+        
+        // Update debounce timestamp
+        lastEmergencyTriggerRef.current = now;
         
         toast({
           title: "🚨 Emergency Keyword Detected!",

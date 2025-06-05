@@ -427,8 +427,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requestData = {
         ...req.body,
         userId: 'demo-user', // Always use demo-user for current session
-        latitude: req.body.latitude ? Number(req.body.latitude) : undefined,
-        longitude: req.body.longitude ? Number(req.body.longitude) : undefined,
+        latitude: req.body.location?.lat || req.body.latitude || 12.9716, // Default to Bangalore coordinates
+        longitude: req.body.location?.lng || req.body.longitude || 77.5946,
+        address: req.body.location?.address || req.body.address || 'Emergency Location - Coordinates tracked',
         triggerType: req.body.triggerType || 'manual_button'
       };
       
