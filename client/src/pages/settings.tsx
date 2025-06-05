@@ -409,55 +409,60 @@ export default function Settings() {
           
           <div>
             <Label htmlFor="phone">Phone Number</Label>
-            <div className="flex gap-2">
-              <Select 
-                value={selectedCountryCode} 
-                onValueChange={setSelectedCountryCode}
-              >
-                <SelectTrigger className="w-24">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="+1">🇺🇸 +1</SelectItem>
-                  <SelectItem value="+91">🇮🇳 +91</SelectItem>
-                  <SelectItem value="+44">🇬🇧 +44</SelectItem>
-                  <SelectItem value="+86">🇨🇳 +86</SelectItem>
-                  <SelectItem value="+81">🇯🇵 +81</SelectItem>
-                  <SelectItem value="+49">🇩🇪 +49</SelectItem>
-                  <SelectItem value="+33">🇫🇷 +33</SelectItem>
-                  <SelectItem value="+61">🇦🇺 +61</SelectItem>
-                  <SelectItem value="+55">🇧🇷 +55</SelectItem>
-                  <SelectItem value="+7">🇷🇺 +7</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                id="phone"
-                type="tel"
-                value={phoneNumber.replace(selectedCountryCode, '')}
-                onChange={(e) => {
-                  const cleanNumber = e.target.value.replace(/\D/g, '');
-                  setPhoneNumber(selectedCountryCode + cleanNumber);
-                }}
-                placeholder="9876543210"
-                className="flex-1"
-              />
-              <div className="flex items-center gap-2">
-                {phoneVerified ? (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    <Check className="w-3 h-3 mr-1" />
-                    Verified
-                  </Badge>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => sendPhoneOtpMutation.mutate()}
-                    disabled={sendPhoneOtpMutation.isPending}
-                  >
-                    <MessageCircle className="w-3 h-3 mr-1" />
-                    {sendPhoneOtpMutation.isPending ? "Sending..." : "Verify via WhatsApp"}
-                  </Button>
-                )}
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Select 
+                  value={selectedCountryCode} 
+                  onValueChange={setSelectedCountryCode}
+                >
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                    <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                    <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                    <SelectItem value="+86">🇨🇳 +86</SelectItem>
+                    <SelectItem value="+81">🇯🇵 +81</SelectItem>
+                    <SelectItem value="+49">🇩🇪 +49</SelectItem>
+                    <SelectItem value="+33">🇫🇷 +33</SelectItem>
+                    <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                    <SelectItem value="+55">🇧🇷 +55</SelectItem>
+                    <SelectItem value="+7">🇷🇺 +7</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phoneNumber.startsWith(selectedCountryCode) ? phoneNumber.substring(selectedCountryCode.length) : phoneNumber}
+                  onChange={(e) => {
+                    const cleanNumber = e.target.value.replace(/\D/g, '');
+                    setPhoneNumber(selectedCountryCode + cleanNumber);
+                  }}
+                  placeholder="7892937490"
+                  className="flex-1 min-w-[200px]"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 font-mono">{phoneNumber}</span>
+                <div className="flex items-center gap-2">
+                  {phoneVerified ? (
+                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                      <Check className="w-3 h-3 mr-1" />
+                      Verified
+                    </Badge>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => sendPhoneOtpMutation.mutate()}
+                      disabled={sendPhoneOtpMutation.isPending}
+                    >
+                      <MessageCircle className="w-3 h-3 mr-1" />
+                      {sendPhoneOtpMutation.isPending ? "Sending..." : "Verify via WhatsApp"}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
