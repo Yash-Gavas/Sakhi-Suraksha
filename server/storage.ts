@@ -111,6 +111,14 @@ export interface IStorage {
   getIotEmergencyTriggers(userId: string): Promise<IotEmergencyTrigger[]>;
   createIotEmergencyTrigger(trigger: InsertIotEmergencyTrigger): Promise<IotEmergencyTrigger>;
   resolveIotEmergencyTrigger(id: number): Promise<boolean>;
+
+  // Family Connections operations
+  getFamilyConnections(userId: string): Promise<FamilyConnection[]>;
+  createFamilyConnection(connection: InsertFamilyConnection): Promise<FamilyConnection>;
+  updateFamilyConnection(id: number, updates: Partial<InsertFamilyConnection>): Promise<FamilyConnection | undefined>;
+  getFamilyConnectionByInviteCode(inviteCode: string): Promise<FamilyConnection | undefined>;
+  getConnectedChildren(parentUserId: string): Promise<FamilyConnection[]>;
+  getConnectedParents(childUserId: string): Promise<FamilyConnection[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -530,6 +538,65 @@ export class DatabaseStorage implements IStorage {
       .where(eq(iotEmergencyTriggers.id, id))
       .returning();
     return !!trigger;
+  }
+
+  // Family Connections operations
+  async getFamilyConnections(userId: string): Promise<FamilyConnection[]> {
+    return await db
+      .select()
+      .from(familyConnections)
+      .where(or(
+        eq(familyConnections.childUserId, userId),
+        eq(familyConnections.parentUserId, userId)
+      ));
+  }
+
+  async createFamilyConnection(connection: InsertFamilyConnection): Promise<FamilyConnection> {
+    const [created] = await db
+      .insert(familyConnections)
+      .values(connection)
+      .returning();
+    return created;
+  }
+
+  async updateFamilyConnection(id: number, updates: Partial<InsertFamilyConnection>): Promise<FamilyConnection | undefined> {
+    const [updated] = await db
+      .update(familyConnections)
+      .set(updates)
+      .where(eq(familyConnections.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getFamilyConnectionByInviteCode(inviteCode: string): Promise<FamilyConnection | undefined> {
+    const [connection] = await db
+      .select()
+      .from(familyConnections)
+      .where(and(
+        eq(familyConnections.inviteCode, inviteCode),
+        eq(familyConnections.status, 'pending')
+      ));
+    return connection;
+  }
+
+  async getConnectedChildren(parentUserId: string): Promise<FamilyConnection[]> {
+    return await db
+      .select()
+      .from(familyConnections)
+      .where(and(
+        eq(familyConnections.parentUserId, parentUserId),
+        eq(familyConnections.status, 'accepted')
+      ));
+  }
+
+  async getConnectedParents(childUserId: string): Promise<FamilyConnection[]> {
+    return await db
+      .select()
+      .from(familyConnections)
+      .where(and(
+        eq(familyConnections.childUserId, childUserId),
+        eq(familyConnections.status, 'accepted')
+      ));
   }
 
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

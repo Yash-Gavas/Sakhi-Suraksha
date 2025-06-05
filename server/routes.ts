@@ -1125,14 +1125,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Store connected children temporarily (in production this would be in database)
-  const connectedChildren = new Map();
-
-  // Parent Dashboard API Routes
+  // Parent Dashboard API Routes - Using persistent database storage
   app.get("/api/parent/children", async (req, res) => {
     try {
-      // Return connected children from temporary storage
-      const children = Array.from(connectedChildren.values());
+      // For demo, use demo-user as parent. In production, get from authenticated session
+      const parentUserId = 'demo-parent'; 
+      
+      // Get connected children from database
+      const connections = await storage.getConnectedChildren(parentUserId);
+      
+      // Get real user data for each connected child
+      const children = await Promise.all(connections.map(async (connection: any) => {
+        const user = await storage.getUser(connection.childUserId);
+        const homeLocation = await storage.getHomeLocation(connection.childUserId);
+        const latestHealth = await storage.getLatestHealthMetrics(connection.childUserId);
+        
+        return {
+          id: connection.id,
+          name: user?.firstName || user?.email?.split('@')[0] || 'Child',
+          email: user?.email || 'child@example.com',
+          phone: user?.phoneNumber || 'Not provided',
+          lastSeen: new Date().toISOString(),
+          status: latestHealth ? 'safe' : 'offline',
+          connectionCode: connection.inviteCode,
+          connectedAt: connection.acceptedAt || connection.createdAt,
+          currentLocation: homeLocation ? {
+            lat: parseFloat(homeLocation.latitude),
+            lng: parseFloat(homeLocation.longitude),
+            address: homeLocation.address,
+            timestamp: new Date().toISOString()
+          } : null,
+          profileImage: user?.profileImageUrl
+        };
+      }));
+      
       res.json(children);
     } catch (error) {
       console.error('Error fetching parent children:', error);
@@ -1142,9 +1168,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/parent/emergency-alerts", async (req, res) => {
     try {
-      // For demo purposes, return empty array since no children are connected
-      // In production, this would fetch emergency alerts from connected children
-      res.json([]);
+      // Fetch actual emergency alerts from connected children
+      const connectedChildIds = Array.from(connectedChildren.keys());
+      if (connectedChildIds.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get recent emergency alerts for all connected children
+      const alerts = await storage.getEmergencyAlerts('demo-user');
+      
+      // Format alerts for parent dashboard
+      const parentAlerts = alerts.map(alert => ({
+        id: alert.id,
+        childId: 'demo-user',
+        childName: 'Child',
+        type: alert.triggerType,
+        message: alert.message || 'Emergency alert triggered',
+        location: {
+          lat: parseFloat(alert.latitude),
+          lng: parseFloat(alert.longitude),
+          address: alert.address
+        },
+        timestamp: alert.createdAt,
+        status: alert.status,
+        streamUrl: alert.liveStreamUrl
+      }));
+      
+      res.json(parentAlerts);
     } catch (error) {
       console.error('Error fetching parent emergency alerts:', error);
       res.status(500).json({ message: "Failed to fetch emergency alerts" });
@@ -1166,22 +1216,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Parent connecting to child with code: ${connectionCode}`);
       
-      // Create child profile and store in connected children
+      // Get actual user data for the child
+      const childUserId = 'demo-user'; // In production, extract from connection code
+      const user = await storage.getUser(childUserId);
+      const homeLocation = await storage.getHomeLocation(childUserId);
+      
+      // Create child profile with real data
       const childProfile = {
         id: `child_${Date.now()}`,
-        name: "Connected Child",
-        email: "child@example.com",
-        phone: "+1234567890",
+        userId: childUserId,
+        name: user?.firstName || user?.email?.split('@')[0] || 'Connected Child',
+        email: user?.email || 'child@example.com',
+        phone: user?.phoneNumber || '+1234567890',
         lastSeen: new Date().toISOString(),
         status: 'safe' as const,
         connectionCode: connectionCode,
         connectedAt: new Date().toISOString(),
-        currentLocation: {
-          lat: 13.0347,
-          lng: 77.5624,
-          address: "Bangalore, India",
+        currentLocation: homeLocation ? {
+          lat: parseFloat(homeLocation.latitude),
+          lng: parseFloat(homeLocation.longitude),
+          address: homeLocation.address,
           timestamp: new Date().toISOString()
-        }
+        } : null,
+        profileImage: user?.profileImageUrl
       };
       
       // Store in temporary map
