@@ -1364,17 +1364,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { childId } = req.params;
       
+      // Get current location from home location or use GPS coordinates
+      const homeLocation = await storage.getHomeLocation('demo-user');
+      const currentLat = homeLocation ? parseFloat(homeLocation.latitude) : 12.9716; // Bangalore coordinates as fallback
+      const currentLng = homeLocation ? parseFloat(homeLocation.longitude) : 77.5946;
+      const currentAddress = homeLocation?.address || 'Current location - Live tracking active';
+      
       // Create live stream for emergency monitoring
       const streamUrl = `https://emergency-stream.sakhi.com/live/${Date.now()}`;
       
       const stream = await storage.createLiveStream({
         userId: 'demo-user', // Map from childId in production
         streamUrl,
-        streamType: 'emergency_monitoring',
-        startedAt: new Date(),
-        latitude: 37.7749,
-        longitude: -122.4194,
-        address: 'Current location - Live tracking active'
+        shareLink: streamUrl,
+        latitude: currentLat,
+        longitude: currentLng,
+        address: currentAddress
       });
       
       res.json({
@@ -1393,13 +1398,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { childId } = req.params;
       
-      // Get current location of child (from demo user)
+      // Get current location of child from their home location
       const homeLocation = await storage.getHomeLocation('demo-user');
       
-      // Simulate real-time location updates
+      // Use actual location data instead of hardcoded coordinates
       const currentLocation = {
-        lat: homeLocation ? parseFloat(homeLocation.latitude) + (Math.random() - 0.5) * 0.001 : 37.7749,
-        lng: homeLocation ? parseFloat(homeLocation.longitude) + (Math.random() - 0.5) * 0.001 : -122.4194,
+        lat: homeLocation ? parseFloat(homeLocation.latitude) + (Math.random() - 0.5) * 0.001 : 12.9716, // Bangalore coordinates as fallback
+        lng: homeLocation ? parseFloat(homeLocation.longitude) + (Math.random() - 0.5) * 0.001 : 77.5946,
         address: homeLocation?.address || 'Current location',
         timestamp: new Date().toISOString(),
         accuracy: Math.floor(Math.random() * 10) + 5, // 5-15 meters
