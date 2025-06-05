@@ -1261,7 +1261,7 @@ This message was sent automatically by Sakhi Suraksha app.`;
         contacts.forEach(async (contact) => {
           if (contact.phoneNumber) {
             try {
-              await sendSMSOTP(contact.phoneNumber, emergencyMessage);
+              await sendWhatsAppEmergency(contact.phoneNumber, emergencyMessage);
               console.log(`Emergency stream SMS sent to ${contact.name}: SUCCESS`);
             } catch (error) {
               console.error(`Emergency stream SMS error for ${contact.name}:`, error);

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User, Bell, Shield, Phone, Save, Palette, Moon, Sun, LogOut, Mic, Camera, Volume2, MapPin, Check, X, Mail, Watch, Bluetooth } from "lucide-react";
+import { User, Bell, Shield, Phone, Save, Palette, Moon, Sun, LogOut, Mic, Camera, Volume2, MapPin, Check, X, Mail, Watch, Bluetooth, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVoiceRecognition } from "@/hooks/use-voice-recognition";
 import { useLocation } from "@/hooks/use-location";
@@ -454,8 +454,8 @@ export default function Settings() {
                     onClick={() => sendPhoneOtpMutation.mutate()}
                     disabled={sendPhoneOtpMutation.isPending}
                   >
-                    <Phone className="w-3 h-3 mr-1" />
-                    {sendPhoneOtpMutation.isPending ? "Sending..." : "Verify"}
+                    <MessageCircle className="w-3 h-3 mr-1" />
+                    {sendPhoneOtpMutation.isPending ? "Sending..." : "Verify via WhatsApp"}
                   </Button>
                 )}
               </div>

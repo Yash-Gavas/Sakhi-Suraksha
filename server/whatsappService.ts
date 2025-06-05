@@ -22,6 +22,12 @@ export async function sendWhatsAppOTP(phoneNumber: string, otp: string): Promise
   try {
     console.log(`Sending WhatsApp OTP to ${phoneNumber}`);
     
+    // Check if WhatsApp credentials are configured
+    if (!process.env.WHATSAPP_ACCESS_TOKEN || !process.env.WHATSAPP_PHONE_NUMBER_ID) {
+      console.log('WhatsApp credentials not configured, falling back to email notification');
+      return false;
+    }
+    
     // Format phone number for WhatsApp (remove + and ensure country code)
     const formattedNumber = phoneNumber.replace(/\+/g, '');
     
