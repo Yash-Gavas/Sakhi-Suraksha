@@ -335,11 +335,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Emergency alerts routes (no authentication required for emergency situations)
   app.post("/api/emergency-alerts", async (req, res) => {
     try {
-      // Ensure latitude and longitude are properly converted to numbers
+      // Ensure all data types are properly converted
       const requestData = {
         ...req.body,
+        userId: req.body.userId ? String(req.body.userId) : 'demo-user',
         latitude: req.body.latitude ? Number(req.body.latitude) : undefined,
-        longitude: req.body.longitude ? Number(req.body.longitude) : undefined
+        longitude: req.body.longitude ? Number(req.body.longitude) : undefined,
+        triggerType: req.body.triggerType || 'manual_button'
       };
       
       const validatedData = insertEmergencyAlertSchema.parse(requestData);
