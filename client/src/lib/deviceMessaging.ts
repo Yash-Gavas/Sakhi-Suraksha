@@ -15,10 +15,16 @@ export function sendDeviceSMS(phoneNumber: string, message: string): boolean {
       return true;
     }
     
-    // For macOS - try to open Messages app
+    // For macOS - open Messages app directly
     if (navigator.userAgent.match(/Mac OS X/i)) {
-      const smsUrl = `sms:${phoneNumber}&body=${encodeURIComponent(message)}`;
-      window.location.href = smsUrl;
+      const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
+      window.open(smsUrl, '_blank');
+      
+      // Also try imessage URL scheme
+      setTimeout(() => {
+        const imessageUrl = `imessage:${phoneNumber}?body=${encodeURIComponent(message)}`;
+        window.open(imessageUrl, '_blank');
+      }, 500);
       return true;
     }
     
@@ -51,11 +57,16 @@ export function sendDeviceWhatsApp(phoneNumber: string, message: string): boolea
     // Format phone number for WhatsApp (remove spaces and special characters)
     const formattedNumber = phoneNumber.replace(/\D/g, '');
     
-    // WhatsApp URL scheme
-    const whatsappUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
+    // Try WhatsApp desktop app first (for macOS)
+    const whatsappDesktopUrl = `whatsapp://send?phone=${formattedNumber}&text=${encodeURIComponent(message)}`;
+    window.location.href = whatsappDesktopUrl;
     
-    // Try to open WhatsApp
-    window.open(whatsappUrl, '_blank');
+    // Fallback to WhatsApp Web after a short delay
+    setTimeout(() => {
+      const whatsappWebUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappWebUrl, '_blank');
+    }, 1000);
+    
     return true;
   } catch (error) {
     console.error('Failed to send WhatsApp message:', error);

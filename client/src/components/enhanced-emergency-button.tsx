@@ -8,6 +8,7 @@ import LiveStreaming from "./live-streaming";
 import FixedVoiceDetector from "./fixed-voice-detector";
 import { DeviceSmsService } from "@/lib/deviceSmsService";
 import { sendEmergencyAlert, sendLiveLocationAlert, sendToMultipleContacts } from "@/lib/deviceMessaging";
+import { MacOSMessaging } from "@/lib/macOSMessaging";
 
 interface EmergencyAlert {
   triggerType: string;
@@ -60,8 +61,18 @@ export default function EnhancedEmergencyButton() {
           const streamUrl = `${window.location.origin}/emergency-stream/${Date.now()}`;
           emergencyData.streamUrl = streamUrl;
 
-          // Send emergency messages to all contacts
+          // Send emergency messages to all contacts via device messaging
           await sendEmergencyMessages(emergencyData);
+          
+          // Trigger macOS native messaging
+          const contacts = emergencyContacts.filter(contact => contact.isActive && contact.phoneNumber);
+          MacOSMessaging.sendEmergencyMessages(contacts, emergencyData);
+          
+          // Show native notification
+          MacOSMessaging.showNativeNotification(
+            "Emergency Alert Activated",
+            `Messaging ${contacts.length} emergency contacts with live location`
+          );
 
           // Show success notification
           toast({
