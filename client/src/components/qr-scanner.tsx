@@ -83,9 +83,9 @@ export default function QRScanner({ onScanResult, onClose }: QRScannerProps) {
       // Get image data for QR code detection
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
       
-      // Use jsQR to detect QR code
+      // Use jsQR to detect QR code with better detection options
       const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: "dontInvert",
+        inversionAttempts: "attemptBoth",
       });
       
       if (code) {

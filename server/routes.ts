@@ -1125,12 +1125,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Store connected children temporarily (in production this would be in database)
+  const connectedChildren = new Map();
+
   // Parent Dashboard API Routes
   app.get("/api/parent/children", async (req, res) => {
     try {
-      // For demo purposes, return empty array since no children are connected yet
-      // In production, this would fetch connected children from family connections
-      res.json([]);
+      // Return connected children from temporary storage
+      const children = Array.from(connectedChildren.values());
+      res.json(children);
     } catch (error) {
       console.error('Error fetching parent children:', error);
       res.status(500).json({ message: "Failed to fetch children" });
@@ -1161,24 +1164,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid connection code format" });
       }
       
-      // For demo purposes, simulate successful connection
-      // In production, this would:
-      // 1. Find the family connection with this invite code
-      // 2. Verify it's not expired
-      // 3. Update the connection with parent information
-      // 4. Return child information
-      
       console.log(`Parent connecting to child with code: ${connectionCode}`);
+      
+      // Create child profile and store in connected children
+      const childProfile = {
+        id: `child_${Date.now()}`,
+        name: "Connected Child",
+        email: "child@example.com",
+        phone: "+1234567890",
+        lastSeen: new Date().toISOString(),
+        status: 'safe' as const,
+        connectionCode: connectionCode,
+        connectedAt: new Date().toISOString(),
+        currentLocation: {
+          lat: 13.0347,
+          lng: 77.5624,
+          address: "Bangalore, India",
+          timestamp: new Date().toISOString()
+        }
+      };
+      
+      // Store in temporary map
+      connectedChildren.set(childProfile.id, childProfile);
       
       res.json({
         success: true,
         message: "Child connected successfully",
-        childInfo: {
-          id: `child_${Date.now()}`,
-          name: "Demo Child",
-          connectionCode: connectionCode,
-          connectedAt: new Date().toISOString()
-        }
+        childInfo: childProfile
       });
     } catch (error) {
       console.error('Error connecting child:', error);
