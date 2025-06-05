@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import EmergencyButton from "@/components/emergency-button";
-import SimpleVoiceDetector from "@/components/simple-voice-detector";
+import PersistentVoiceDetector from "@/components/persistent-voice-detector";
 import LiveStreaming from "@/components/live-streaming";
 import PermissionManager from "@/components/permission-manager";
 import { useQuery } from "@tanstack/react-query";
@@ -20,6 +20,7 @@ export default function Home() {
   const { location, isLocationSharingActive } = useLocation();
   const { isListening, isSupported } = useVoiceRecognition();
   const [autoStartStream, setAutoStartStream] = useState(false);
+  const [isVoiceDetectionActive, setIsVoiceDetectionActive] = useState(false);
   
   const { data: user } = useQuery<UserType>({
     queryKey: ["/api/user/profile"],

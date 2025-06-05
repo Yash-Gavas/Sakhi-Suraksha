@@ -182,31 +182,22 @@ This is an automated safety alert. Please respond urgently.`;
       }));
 
       // Send emergency alerts via device apps (opens SMS and WhatsApp)
-      for (const contact of contacts) {
-        // Send emergency alert through device WhatsApp and SMS
-        sendEmergencyAlert(
-          contact.phoneNumber,
-          emergencyData.location,
-          '+917892937490' // Your WhatsApp number
-        );
-      }
-
-      // Also use existing device SMS service
-      const deviceSmsMessage = DeviceSmsService.formatEmergencyMessage(
-        emergencyData.triggerType,
-        emergencyData.location,
-        `📹 Live video stream: ${emergencyData.streamUrl || 'Starting...'}`
+      console.log('Sending emergency messages to contacts:', contacts);
+      
+      // Use MobileMessaging class to open native apps
+      MobileMessaging.sendEmergencyMessages(contacts, emergencyData);
+      
+      // Show notification about message sending
+      MobileMessaging.showNativeNotification(
+        "Emergency Alert Triggered", 
+        `Opening messaging apps for ${contacts.length} contacts`
       );
 
-      if (DeviceSmsService.isSupported()) {
-        const smsResult = await DeviceSmsService.sendEmergencyBroadcast(contacts, deviceSmsMessage);
-        
-        toast({
-          title: "Emergency Alerts Sending",
-          description: `Opening SMS and WhatsApp for ${contacts.length} contacts`,
-          variant: "default",
-        });
-      }
+      toast({
+        title: "Emergency Alerts Sending",
+        description: `Opening SMS and WhatsApp for ${contacts.length} contacts`,
+        variant: "default",
+      });
     } catch (error) {
       console.error('Device messaging error:', error);
     }
