@@ -93,6 +93,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
+  // New authentication routes for login system
+  app.post('/api/auth/send-otp', async (req, res) => {
+    try {
+      const { phoneNumber, email } = req.body;
+      
+      // Generate OTP
+      const otp = generateOTP();
+      
+      // Store OTP verification record
+      await storage.createOtpVerification({
+        identifier: phoneNumber,
+        type: 'phone',
+        otp,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+      });
+      
+      await storage.createOtpVerification({
+        identifier: email,
+        type: 'email',
+        otp,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+      });
+      
+      // Send OTP via SMS and Email
+      const smsResult = await sendSMSOTP(phoneNumber, otp);
+      const emailResult = await sendEmailOTP(email, otp);
+      
+      res.json({
+        success: smsResult || emailResult,
+        message: 'OTP sent successfully'
+      });
+      
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      res.status(500).json({ message: 'Failed to send OTP' });
+    }
+  });
+
+  app.post('/api/auth/verify-otp', async (req, res) => {
+    try {
+      const { phoneNumber, email, otp } = req.body;
+      
+      // Verify OTP for both phone and email
+      const phoneVerified = await storage.verifyOtp(phoneNumber, 'phone', otp);
+      const emailVerified = await storage.verifyOtp(email, 'email', otp);
+      
+      if (phoneVerified && emailVerified) {
+        res.json({ success: true, message: 'OTP verified successfully' });
+      } else {
+        res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+      }
+      
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      res.status(500).json({ message: 'Failed to verify OTP' });
+    }
+  });
+
+  app.post('/api/auth/create-profile', async (req, res) => {
+    try {
+      const { phoneNumber, email, firstName, lastName, password } = req.body;
+      
+      // Create user profile
+      const user = await storage.upsertUser({
+        id: `user_${Date.now()}`,
+        email,
+        phoneNumber,
+        firstName,
+        lastName,
+        password // In production, hash this password
+      });
+      
+      res.json({
+        success: true,
+        user,
+        message: 'Profile created successfully'
+      });
+      
+    } catch (error) {
+      console.error('Create profile error:', error);
+      res.status(500).json({ message: 'Failed to create profile' });
+    }
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {

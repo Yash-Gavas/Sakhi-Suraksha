@@ -4,6 +4,14 @@ export class MobileMessaging {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   }
 
+  private static isAndroid(): boolean {
+    return /Android/i.test(navigator.userAgent);
+  }
+
+  private static isIOS(): boolean {
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
   // Automatically send emergency messages via mobile native apps
   static async sendEmergencyMessages(contacts: Array<{name: string; phoneNumber: string}>, emergencyData: any): Promise<void> {
     const locationUrl = `https://www.google.com/maps?q=${emergencyData.location.lat},${emergencyData.location.lng}`;
@@ -25,14 +33,29 @@ Emergency Services:
 
 This is an automated safety alert from Sakhi Suraksha app.`;
 
-      // Send via SMS first
-      this.openNativeSMS(contact.phoneNumber, message);
-      
-      // Then WhatsApp after delay
-      setTimeout(() => {
-        this.openWhatsAppMobile(contact.phoneNumber, message);
-      }, 2000);
+      // Send messages immediately with multiple methods
+      this.sendMultiChannelAlert(contact, message);
     }
+  }
+
+  // Enhanced multi-channel alert system
+  private static sendMultiChannelAlert(contact: {name: string; phoneNumber: string}, message: string): void {
+    // Method 1: Direct SMS (works on both platforms)
+    this.openNativeSMS(contact.phoneNumber, message);
+    
+    // Method 2: WhatsApp with multiple fallbacks
+    setTimeout(() => {
+      this.openWhatsAppWithFallbacks(contact.phoneNumber, message);
+    }, 1000);
+    
+    // Method 3: Additional platform-specific methods
+    setTimeout(() => {
+      if (this.isAndroid()) {
+        this.openAndroidSpecificApps(contact.phoneNumber, message);
+      } else if (this.isIOS()) {
+        this.openIOSSpecificApps(contact.phoneNumber, message);
+      }
+    }, 2000);
   }
 
   // Open native SMS app with pre-filled message
@@ -55,20 +78,65 @@ This is an automated safety alert from Sakhi Suraksha app.`;
     }
   }
 
-  // Open WhatsApp mobile app
-  private static openWhatsAppMobile(phoneNumber: string, message: string): void {
+  // Enhanced WhatsApp opening with multiple fallback methods
+  private static openWhatsAppWithFallbacks(phoneNumber: string, message: string): void {
+    const formattedNumber = phoneNumber.replace(/\D/g, '');
+    
     try {
-      const formattedNumber = phoneNumber.replace(/\D/g, '');
+      // Method 1: WhatsApp app URL scheme (works on both platforms)
+      const whatsappApp = `whatsapp://send?phone=${formattedNumber}&text=${encodeURIComponent(message)}`;
+      window.location.href = whatsappApp;
       
-      // Mobile WhatsApp URL scheme
-      const whatsappUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
-      
-      // Open in new tab/app
-      window.open(whatsappUrl, '_blank');
+      // Method 2: WhatsApp Web fallback
+      setTimeout(() => {
+        const whatsappWeb = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappWeb, '_blank');
+      }, 1000);
       
       console.log(`WhatsApp opened for ${phoneNumber}`);
     } catch (error) {
       console.error('Failed to open WhatsApp:', error);
+      // Final fallback: Direct web URL
+      const fallbackUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
+      window.open(fallbackUrl, '_blank');
+    }
+  }
+
+  // Android-specific messaging apps
+  private static openAndroidSpecificApps(phoneNumber: string, message: string): void {
+    try {
+      // Google Messages intent
+      const googleMessages = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
+      const link = document.createElement('a');
+      link.href = googleMessages;
+      link.click();
+      
+      // Telegram fallback
+      setTimeout(() => {
+        const telegramUrl = `https://t.me/+${phoneNumber.replace(/\D/g, '')}`;
+        window.open(telegramUrl, '_blank');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Android messaging error:', error);
+    }
+  }
+
+  // iOS-specific messaging apps
+  private static openIOSSpecificApps(phoneNumber: string, message: string): void {
+    try {
+      // iMessage intent
+      const imessage = `sms:${phoneNumber}&body=${encodeURIComponent(message)}`;
+      window.location.href = imessage;
+      
+      // Alternative SMS format for iOS
+      setTimeout(() => {
+        const iosSms = `sms://${phoneNumber}?&body=${encodeURIComponent(message)}`;
+        window.location.href = iosSms;
+      }, 1000);
+      
+    } catch (error) {
+      console.error('iOS messaging error:', error);
     }
   }
 
