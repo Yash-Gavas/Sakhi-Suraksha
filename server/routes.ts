@@ -466,6 +466,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         address: req.body.address || 'Emergency location'
       });
       
+      // Trigger emergency protocol to send messages to contacts
+      await triggerEmergencyProtocol(alert);
+      
       res.status(201).json(alert);
     } catch (error) {
       console.error('Manual SOS error:', error);
@@ -1037,10 +1040,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Track sent messages to prevent duplicates
-  const sentMessages = new Map<string, number>();
-  
   // Emergency protocol trigger with live streaming
+  // Debounce mechanism for preventing duplicate messages
+  const sentMessages = new Set<string>();
+  
   async function triggerEmergencyProtocol(alert: any) {
     try {
       console.log(`Triggering emergency protocol for alert ${alert.id}`);
@@ -1048,6 +1051,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user and emergency contacts
       const user = await storage.getUser(alert.userId);
       if (!user) return;
+
+      const contacts = await storage.getEmergencyContacts(alert.userId);
+      
+      if (contacts.length === 0) {
+        console.log('No emergency contacts configured');
+        return;
+      }
 
       // Create live stream session
       const streamUrl = `wss://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}/ws/stream/${alert.id}`;
@@ -1060,6 +1070,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shareLink,
         isActive: true
       });
+
+      // Generate emergency message
+      const locationText = alert.address || `${alert.latitude}, ${alert.longitude}`;
+      const currentTime = new Date().toLocaleString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      });
+      
+      let message = `🚨 EMERGENCY ALERT 🚨\n\n`;
+      
+      if (alert.triggerType === 'voice_detection') {
+        message += `VOICE DISTRESS DETECTED\n`;
+        if (alert.audioRecordingUrl) {
+          try {
+            const parsedAudio = JSON.parse(alert.audioRecordingUrl);
+            if (parsedAudio.detectedText) {
+              message += `Detected Words: "${parsedAudio.detectedText}"\n`;
+            }
+          } catch (e) {
+            // Handle as regular text
+          }
+        }
+      } else {
+        message += `SOS BUTTON ACTIVATED\n`;
+      }
+      
+      message += `\nChild: Sharanya\n`;
+      message += `Time: ${currentTime}\n`;
+      message += `Location: ${locationText}\n`;
+      message += `📹 Room ID: emergency_${alert.id}\n\n`;
+      message += `⚠️ IMMEDIATE ATTENTION REQUIRED ⚠️\n`;
+      message += `Please check on Sharanya's safety immediately.`;
+
+      // Send messages to all contacts with debouncing
+      const alertKey = `${alert.id}_${alert.triggerType}`;
+      if (!sentMessages.has(alertKey)) {
+        sentMessages.add(alertKey);
+        
+        for (const contact of contacts) {
+          try {
+            let smsSuccess = false;
+            let emailSuccess = false;
+            
+            if (contact.phoneNumber) {
+              smsSuccess = await sendWhatsAppEmergency(contact.phoneNumber, message);
+              console.log(`WhatsApp to ${contact.name}: ${smsSuccess ? 'SUCCESS' : 'FAILED'}`);
+            }
+            
+            if (contact.email) {
+              emailSuccess = await sendEmailAlert(contact.email, message);
+              console.log(`Email to ${contact.name}: ${emailSuccess ? 'SUCCESS' : 'FAILED'}`);
+            }
+          } catch (error) {
+            console.error(`Failed to send alerts to ${contact.name}:`, error);
+          }
+        }
+        
+        // Clear sent messages after 5 minutes to allow new alerts
+        setTimeout(() => {
+          sentMessages.delete(alertKey);
+        }, 5 * 60 * 1000);
+      } else {
+        console.log(`Duplicate alert prevented for ${alertKey}`);
+      }
 
       // Update user location sharing status
       await storage.updateUser(alert.userId, { isLocationSharingActive: true });
@@ -1074,7 +1149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      console.log(`Emergency protocol completed for alert ${alert.id} - live stream created (no duplicate messaging)`);
+      console.log(`Emergency protocol completed for alert ${alert.id} - messages sent to ${contacts.length} contacts`);
       
     } catch (error) {
       console.error("Failed to trigger emergency protocol:", error);
@@ -1945,17 +2020,14 @@ Please respond immediately if you can assist.`;
         }
       }
       
-      // Mark message as sent to prevent duplicates
-      sentMessages.set(messageKey, Date.now());
+      // Mark message as sent to prevent duplicates (using Set instead of Map)
+      const alertKey = `${emergencyData.triggerType}_${Date.now()}_${phoneNumber || email}`;
+      sentMessages.add(alertKey);
       
-      // Clean up old entries (older than 1 hour)
+      // Clean up old entries after 1 hour
       setTimeout(() => {
-        sentMessages.forEach((timestamp, key) => {
-          if (Date.now() - timestamp > 3600000) {
-            sentMessages.delete(key);
-          }
-        });
-      }, 60000);
+        sentMessages.delete(alertKey);
+      }, 3600000);
       
       const success = smsSuccess || whatsappSuccess || emailSuccess;
       res.json({
