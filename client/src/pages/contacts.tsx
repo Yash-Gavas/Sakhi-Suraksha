@@ -14,7 +14,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertEmergencyContactSchema, type EmergencyContact, type InsertEmergencyContact } from "@shared/schema";
 import { useState } from "react";
-import FamilyConnectionQR from "@/components/family-connection-qr";
+import SimpleFamilyQR from "@/components/simple-family-qr";
 
 export default function Contacts() {
   const { toast } = useToast();
@@ -239,7 +239,7 @@ export default function Contacts() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <FamilyConnectionQR />
+            <SimpleFamilyQR />
           </CardContent>
         </Card>
 
