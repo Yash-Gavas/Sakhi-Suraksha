@@ -1128,12 +1128,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to get alert message based on trigger type
   function getAlertMessage(triggerType: string): string {
     switch (triggerType) {
-      case 'sos_manual': return 'Emergency SOS activated by user';
-      case 'voice_detection': return 'Distress detected in voice pattern';
-      case 'geofence_exit': return 'Left designated safe zone';
-      case 'shake_detection': return 'Emergency shake gesture detected';
-      case 'panic_button': return 'Panic button pressed';
-      default: return 'Emergency alert triggered';
+      case 'sos_manual': return 'Emergency SOS activated by user - Immediate assistance needed';
+      case 'voice_detection': return 'Voice distress detected: "Help me, someone is following me" - Audio analysis shows high stress levels';
+      case 'geofence_exit': return 'Left designated safe zone after 10 PM - Location monitoring active';
+      case 'shake_detection': return 'Emergency shake gesture detected - Device motion indicates distress';
+      case 'panic_button': return 'Panic button pressed - Silent alarm activated';
+      case 'audio_trigger': return 'Voice distress: "I feel unsafe, please help" - Automatic emergency protocol initiated';
+      case 'pattern_recognition': return 'Unusual movement pattern detected - Possible emergency situation';
+      default: return 'Emergency alert triggered - Location tracking active';
     }
   }
 
@@ -1190,6 +1192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch emergency alerts from connected children using database
       const parentUserId = 'demo-parent';
       const connections = await storage.getConnectedChildren(parentUserId);
+      const { status } = req.query; // 'active', 'resolved', or undefined for all
       
       if (connections.length === 0) {
         return res.json([]);
@@ -1202,7 +1205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Format emergency alerts using correct schema fields
         childAlerts.forEach(alert => {
-          alerts.push({
+          const alertData = {
             id: alert.id,
             childName: user?.firstName || user?.email?.split('@')[0] || 'Child',
             childId: connection.id,
@@ -1217,8 +1220,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             status: alert.isResolved ? 'resolved' : 'active',
             isResolved: alert.isResolved || false,
             audioUrl: alert.audioRecordingUrl,
-            videoUrl: alert.videoRecordingUrl
-          });
+            videoUrl: alert.videoRecordingUrl,
+            liveStreamUrl: alert.isResolved ? null : `https://live-stream.sakhi.com/emergency/${alert.id}`,
+            canStartStream: !alert.isResolved
+          };
+
+          // Filter based on status query parameter
+          if (!status || 
+              (status === 'active' && !alert.isResolved) ||
+              (status === 'resolved' && alert.isResolved)) {
+            alerts.push(alertData);
+          }
         });
       }
       
@@ -1304,16 +1316,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const alertId = parseInt(req.params.id);
       
-      // For demo purposes, simulate successful resolution
-      // In production, this would update the alert status in the database
+      // Actually update the alert in the database
+      const updated = await storage.updateEmergencyAlert(alertId, { isResolved: true });
       
-      res.json({
-        success: true,
-        message: "Alert resolved successfully"
-      });
+      if (updated) {
+        res.json({
+          success: true,
+          message: "Alert resolved successfully"
+        });
+      } else {
+        res.status(404).json({ message: "Alert not found" });
+      }
     } catch (error) {
       console.error('Error resolving alert:', error);
       res.status(500).json({ message: "Failed to resolve alert" });
+    }
+  });
+
+  // Live streaming endpoints for parent dashboard
+  app.post("/api/parent/start-live-stream/:childId", async (req, res) => {
+    try {
+      const { childId } = req.params;
+      
+      // Create live stream for emergency monitoring
+      const streamUrl = `https://emergency-stream.sakhi.com/live/${Date.now()}`;
+      
+      const stream = await storage.createLiveStream({
+        userId: 'demo-user', // Map from childId in production
+        streamUrl,
+        streamType: 'emergency_monitoring',
+        startedAt: new Date(),
+        latitude: 37.7749,
+        longitude: -122.4194,
+        address: 'Current location - Live tracking active'
+      });
+      
+      res.json({
+        success: true,
+        streamId: stream.id,
+        streamUrl,
+        message: "Live stream started for emergency monitoring"
+      });
+    } catch (error) {
+      console.error('Error starting live stream:', error);
+      res.status(500).json({ message: "Failed to start live stream" });
+    }
+  });
+
+  app.get("/api/parent/live-location/:childId", async (req, res) => {
+    try {
+      const { childId } = req.params;
+      
+      // Get current location of child (from demo user)
+      const homeLocation = await storage.getHomeLocation('demo-user');
+      
+      // Simulate real-time location updates
+      const currentLocation = {
+        lat: homeLocation ? parseFloat(homeLocation.latitude) + (Math.random() - 0.5) * 0.001 : 37.7749,
+        lng: homeLocation ? parseFloat(homeLocation.longitude) + (Math.random() - 0.5) * 0.001 : -122.4194,
+        address: homeLocation?.address || 'Current location',
+        timestamp: new Date().toISOString(),
+        accuracy: Math.floor(Math.random() * 10) + 5, // 5-15 meters
+        speed: Math.floor(Math.random() * 20), // 0-20 km/h
+        heading: Math.floor(Math.random() * 360) // 0-360 degrees
+      };
+      
+      res.json(currentLocation);
+    } catch (error) {
+      console.error('Error fetching live location:', error);
+      res.status(500).json({ message: "Failed to fetch live location" });
     }
   });
 
