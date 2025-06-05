@@ -11,7 +11,7 @@ import { sendEmergencyAlert, sendLiveLocationAlert, sendToMultipleContacts } fro
 import { MobileMessaging } from "@/lib/mobileMessaging";
 import MobileEmergencyInterface from "@/components/mobile-emergency-interface";
 import AutoSOSSender from "@/components/auto-sos-sender";
-import iPhoneDirectMessaging from "@/components/iphone-direct-messaging";
+import IPhoneDirectMessaging from "@/components/iphone-direct-messaging";
 
 interface EmergencyAlert {
   triggerType: string;
@@ -529,7 +529,7 @@ This is an automated safety alert. Please respond urgently.`;
 
       {/* Direct iPhone Messaging */}
       {showDirectMessaging && (
-        <iPhoneDirectMessaging
+        <IPhoneDirectMessaging
           contacts={emergencyContacts.filter(contact => contact.isActive).map(contact => ({
             name: contact.name,
             phoneNumber: contact.phoneNumber!

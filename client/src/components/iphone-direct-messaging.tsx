@@ -7,54 +7,76 @@ interface iPhoneDirectMessagingProps {
   onComplete: () => void;
 }
 
-export default function iPhoneDirectMessaging({ 
+export default function IPhoneDirectMessaging({ 
   contacts, 
   emergencyMessage, 
   onComplete 
 }: iPhoneDirectMessagingProps) {
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Direct Messages app opening for iPhone 13 Pro Max
-    const sendDirectMessages = async () => {
-      if (contacts.length === 0) {
-        onComplete();
-        return;
-      }
-
-      // Send to first contact immediately
-      const firstContact = contacts[0];
-      const cleanNumber = firstContact.phoneNumber.replace(/\D/g, '');
-      const messageBody = encodeURIComponent(emergencyMessage);
+  const openMessagesApp = (contact: {name: string; phoneNumber: string}) => {
+    const cleanNumber = contact.phoneNumber.replace(/\D/g, '');
+    const messageBody = encodeURIComponent(emergencyMessage);
+    
+    // Create button element that user must tap (required for iOS security)
+    const button = document.createElement('button');
+    button.style.position = 'fixed';
+    button.style.top = '50%';
+    button.style.left = '50%';
+    button.style.transform = 'translate(-50%, -50%)';
+    button.style.zIndex = '10000';
+    button.style.padding = '20px 40px';
+    button.style.fontSize = '18px';
+    button.style.backgroundColor = '#007AFF';
+    button.style.color = 'white';
+    button.style.border = 'none';
+    button.style.borderRadius = '12px';
+    button.style.fontWeight = 'bold';
+    button.textContent = `Tap to Message ${contact.name}`;
+    
+    button.onclick = () => {
+      // Multiple URL schemes for iPhone Messages
       const messagesUrl = `sms:${cleanNumber}?body=${messageBody}`;
+      const messagesAlt = `sms://${cleanNumber}?body=${messageBody}`;
       
-      // Direct navigation to Messages app
+      // Try primary method
       window.location.href = messagesUrl;
       
+      // Fallback method
+      setTimeout(() => {
+        window.open(messagesAlt, '_self');
+      }, 200);
+      
+      // Remove button after tap
+      document.body.removeChild(button);
+      
       toast({
-        title: "Messages App Opening",
-        description: `Opening for ${firstContact.name}`,
+        title: "Messages Opening",
+        description: `Opening Messages for ${contact.name}`,
         duration: 2000,
       });
-
-      // If multiple contacts, show instructions
-      if (contacts.length > 1) {
-        setTimeout(() => {
-          toast({
-            title: "Multiple Contacts",
-            description: `${contacts.length - 1} more contacts to message`,
-            duration: 3000,
-          });
-        }, 2000);
-      }
-
-      // Auto-complete after 5 seconds
-      setTimeout(() => {
-        onComplete();
-      }, 5000);
+      
+      // Complete after short delay
+      setTimeout(onComplete, 3000);
     };
+    
+    document.body.appendChild(button);
+    
+    // Auto-remove button after 10 seconds
+    setTimeout(() => {
+      if (document.body.contains(button)) {
+        document.body.removeChild(button);
+        onComplete();
+      }
+    }, 10000);
+  };
 
-    sendDirectMessages();
+  useEffect(() => {
+    if (contacts.length > 0) {
+      openMessagesApp(contacts[0]);
+    } else {
+      onComplete();
+    }
   }, [contacts, emergencyMessage, onComplete, toast]);
 
   // Show minimal loading state
