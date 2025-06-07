@@ -2199,6 +2199,39 @@ Please respond immediately if you can assist.`;
     res.sendFile(path.join(__dirname, '../dist/index.html'));
   });
 
+  // Permanent alert history and persistent connections API endpoints
+  app.get("/api/alert-history/:userId", async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const history = await storage.getAlertHistory(userId);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching alert history:", error);
+      res.status(500).json({ message: "Failed to fetch alert history" });
+    }
+  });
+
+  app.get("/api/family-connections/:userId", async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const connections = await storage.getFamilyConnections(userId);
+      res.json(connections);
+    } catch (error) {
+      console.error("Error fetching family connections:", error);
+      res.status(500).json({ message: "Failed to fetch family connections" });
+    }
+  });
+
+  app.post("/api/family-connections", async (req, res) => {
+    try {
+      const connection = await storage.createFamilyConnection(req.body);
+      res.json(connection);
+    } catch (error) {
+      console.error("Error creating family connection:", error);
+      res.status(500).json({ message: "Failed to create family connection" });
+    }
+  });
+
   app.get('/emergency/:alertId', (req, res) => {
     // Serve the main React app - it will handle the routing  
     res.sendFile(path.join(__dirname, '../dist/index.html'));

@@ -319,13 +319,13 @@ export default function SimpleParentDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <User className="w-5 h-5 mr-2" />
-            Connected Children ({(children as ChildProfile[]).length})
+            Connected Children ({allChildren.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {childrenLoading ? (
             <div className="text-center py-4">Loading children...</div>
-          ) : (children as ChildProfile[]).length === 0 ? (
+          ) : allChildren.length === 0 ? (
             <div className="text-center py-4 text-gray-600">
               <p className="mb-4">No children connected yet</p>
               <Button
@@ -338,7 +338,7 @@ export default function SimpleParentDashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              {(children as ChildProfile[]).map((child) => (
+              {allChildren.map((child) => (
                 <div key={child.id} className="p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>

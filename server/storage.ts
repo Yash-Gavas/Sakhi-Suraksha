@@ -915,7 +915,8 @@ class MemoryStorage implements IStorage {
 
   // Enhanced alert resolution with permanent history storage
   async archiveResolvedAlert(alertId: number, resolvedBy: string): Promise<void> {
-    const alert = await this.getEmergencyAlert(alertId);
+    const alerts = await this.getEmergencyAlerts("demo-user");
+    const alert = alerts.find(a => a.id === alertId);
     if (alert) {
       // Create history entry
       const historyEntry = {
