@@ -504,20 +504,31 @@ export default function SimpleParentDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-3 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                <Shield className="w-6 h-6 text-white" />
+            <div className="flex items-center space-x-2 min-w-0 flex-1">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <Shield className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Parent Dashboard</h1>
-                <p className="text-sm text-gray-600">Monitor your child's safety</p>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg font-bold text-gray-900 truncate">Parent Dashboard</h1>
+                <p className="text-xs text-gray-600 truncate">Monitor your child's safety</p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Bell className="w-5 h-5 text-gray-600" />
-              <Heart className="w-5 h-5 text-red-500" />
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative p-2"
+                onClick={() => window.location.href = '/emergency-alerts'}
+              >
+                <Bell className="w-4 h-4 text-gray-600" />
+                {activeAlertsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {activeAlertsCount}
+                  </span>
+                )}
+              </Button>
             </div>
           </div>
         </div>
