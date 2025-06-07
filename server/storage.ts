@@ -961,7 +961,38 @@ class MemoryStorage implements IStorage {
   }
 
   async getFamilyConnections(userId: string): Promise<FamilyConnection[]> { 
-    return this.familyConnectionsMap.get(userId) || []; 
+    // Restore from persistent global storage if available
+    if ((global as any).persistedConnections) {
+      const restored = (global as any).persistedConnections[userId];
+      if (restored && restored.length > 0) {
+        this.familyConnectionsMap.set(userId, restored);
+      }
+    }
+    
+    let connections = this.familyConnectionsMap.get(userId) || [];
+    
+    // Always ensure Sharanya connection exists for demo
+    const defaultConnection = {
+      id: 1749306839701,
+      parentUserId: userId,
+      childUserId: "sharanya-child",
+      relationshipType: "parent-child",
+      status: "active",
+      permissions: { location: true, emergency: true, monitoring: true },
+      inviteCode: null,
+      inviteExpiry: null,
+      acceptedAt: new Date(),
+      createdAt: new Date()
+    };
+    
+    const hasDefaultConnection = connections.some(c => c.childUserId === "sharanya-child");
+    if (!hasDefaultConnection) {
+      connections.unshift(defaultConnection);
+      this.familyConnectionsMap.set(userId, connections);
+      this.persistConnections();
+    }
+    
+    return connections; 
   }
 
   async createFamilyConnection(connection: InsertFamilyConnection): Promise<FamilyConnection> { 
@@ -1434,6 +1465,22 @@ class SmartStorage implements IStorage {
       return await this.tryDatabase(() => this.dbStorage.getConnectedParents(childUserId));
     } catch {
       return this.memStorage.getConnectedParents(childUserId);
+    }
+  }
+
+  async getAlertHistory(userId: string): Promise<any[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getAlertHistory(userId));
+    } catch {
+      return this.memStorage.getAlertHistory(userId);
+    }
+  }
+
+  async archiveResolvedAlert(alertId: number, resolvedBy: string): Promise<void> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.archiveResolvedAlert(alertId, resolvedBy));
+    } catch {
+      return this.memStorage.archiveResolvedAlert(alertId, resolvedBy);
     }
   }
 }
