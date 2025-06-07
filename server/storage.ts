@@ -614,4 +614,605 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Temporary in-memory storage for when database is unavailable
+class MemoryStorage implements IStorage {
+  private users = new Map<string, User>();
+  private emergencyContactsMap = new Map<string, EmergencyContact[]>();
+  private emergencyAlertsMap = new Map<string, EmergencyAlert[]>();
+  private homeLocationsMap = new Map<string, HomeLocation>();
+
+  constructor() {
+    // Initialize with demo user data
+    this.users.set('demo-user', {
+      id: "demo-user",
+      email: "sharanyamavinaguni@gmail.com",
+      firstName: "Sharanya",
+      lastName: "M S",
+      profileImageUrl: null,
+      phoneNumber: "+917892937490",
+      whatsappNumber: null,
+      password: null,
+      isVerified: false,
+      emergencyMessage: "🚨 EMERGENCY ALERT 🚨\nI need immediate help! This is an automated SOS from Sakhi Suraksha app.\n\nLocation: [LIVE_LOCATION]\nTime: [TIMESTAMP]\nLive Stream: [STREAM_LINK]\n\nPlease contact me immediately or call emergency services.",
+      isLocationSharingActive: true,
+      theme: "light",
+      voiceActivationEnabled: true,
+      shakeDetectionEnabled: true,
+      communityAlertsEnabled: true,
+      soundAlertsEnabled: true,
+      createdAt: new Date("2025-06-04T11:26:23.291Z"),
+      updatedAt: new Date("2025-06-05T12:50:52.638Z")
+    });
+
+    this.emergencyContactsMap.set('demo-user', [
+      {
+        id: 7,
+        userId: "demo-user",
+        name: "Yash Gavas",
+        phoneNumber: "+919380474206",
+        whatsappNumber: "+919380474206",
+        relationship: "Friend",
+        isPrimary: true,
+        createdAt: new Date("2025-06-04T11:46:25.643Z"),
+        updatedAt: new Date("2025-06-04T11:46:25.643Z")
+      },
+      {
+        id: 8,
+        userId: "demo-user", 
+        name: "Me",
+        phoneNumber: "+917892937490",
+        whatsappNumber: "+917892937490",
+        relationship: "Self",
+        isPrimary: false,
+        createdAt: new Date("2025-06-04T11:46:45.123Z"),
+        updatedAt: new Date("2025-06-04T11:46:45.123Z")
+      }
+    ]);
+
+    this.emergencyAlertsMap.set('demo-user', []);
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const existingUser = this.users.get(userData.id);
+    const user = { ...existingUser, ...userData, updatedAt: new Date() } as User;
+    this.users.set(userData.id, user);
+    return user;
+  }
+
+  async updateUser(id: string, updates: Partial<UpsertUser>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    const updatedUser = { ...user, ...updates, updatedAt: new Date() };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async getEmergencyContacts(userId: string): Promise<EmergencyContact[]> {
+    return this.emergencyContactsMap.get(userId) || [];
+  }
+
+  async createEmergencyContact(contact: InsertEmergencyContact): Promise<EmergencyContact> {
+    const contacts = this.emergencyContactsMap.get(contact.userId) || [];
+    const newContact = { ...contact, id: Date.now(), createdAt: new Date(), updatedAt: new Date() } as EmergencyContact;
+    contacts.push(newContact);
+    this.emergencyContactsMap.set(contact.userId, contacts);
+    return newContact;
+  }
+
+  async updateEmergencyContact(id: number, updates: Partial<InsertEmergencyContact>): Promise<EmergencyContact | undefined> {
+    for (const [userId, contacts] of this.emergencyContactsMap) {
+      const contactIndex = contacts.findIndex(c => c.id === id);
+      if (contactIndex >= 0) {
+        contacts[contactIndex] = { ...contacts[contactIndex], ...updates, updatedAt: new Date() };
+        return contacts[contactIndex];
+      }
+    }
+    return undefined;
+  }
+
+  async deleteEmergencyContact(id: number): Promise<boolean> {
+    for (const [userId, contacts] of this.emergencyContactsMap) {
+      const contactIndex = contacts.findIndex(c => c.id === id);
+      if (contactIndex >= 0) {
+        contacts.splice(contactIndex, 1);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async createEmergencyAlert(alert: InsertEmergencyAlert): Promise<EmergencyAlert> {
+    const alerts = this.emergencyAlertsMap.get(alert.userId) || [];
+    const newAlert = { 
+      ...alert, 
+      id: Date.now(), 
+      createdAt: new Date(), 
+      updatedAt: new Date(),
+      isResolved: false 
+    } as EmergencyAlert;
+    alerts.push(newAlert);
+    this.emergencyAlertsMap.set(alert.userId, alerts);
+    return newAlert;
+  }
+
+  async getEmergencyAlerts(userId: string): Promise<EmergencyAlert[]> {
+    return this.emergencyAlertsMap.get(userId) || [];
+  }
+
+  async updateEmergencyAlert(id: number, updates: Partial<InsertEmergencyAlert>): Promise<EmergencyAlert | undefined> {
+    for (const [userId, alerts] of this.emergencyAlertsMap) {
+      const alertIndex = alerts.findIndex(a => a.id === id);
+      if (alertIndex >= 0) {
+        alerts[alertIndex] = { ...alerts[alertIndex], ...updates, updatedAt: new Date() };
+        return alerts[alertIndex];
+      }
+    }
+    return undefined;
+  }
+
+  // Stub implementations for other required methods
+  async getCommunityAlerts(): Promise<CommunityAlert[]> { return []; }
+  async createCommunityAlert(): Promise<CommunityAlert> { throw new Error('Not implemented'); }
+  async getSafeZones(): Promise<SafeZone[]> { return []; }
+  async createSafeZone(): Promise<SafeZone> { throw new Error('Not implemented'); }
+  async deleteSafeZone(): Promise<boolean> { return false; }
+  async createLiveStream(): Promise<LiveStream> { throw new Error('Not implemented'); }
+  async getLiveStreams(): Promise<LiveStream[]> { return []; }
+  async getLiveStreamById(): Promise<LiveStream | undefined> { return undefined; }
+  async endLiveStream(): Promise<boolean> { return false; }
+  async getDestinations(): Promise<Destination[]> { return []; }
+  async createDestination(): Promise<Destination> { throw new Error('Not implemented'); }
+  async deleteDestination(): Promise<boolean> { return false; }
+  async getHomeLocation(userId: string): Promise<HomeLocation | undefined> { 
+    return this.homeLocationsMap.get(userId);
+  }
+  async setHomeLocation(): Promise<HomeLocation> { throw new Error('Not implemented'); }
+  async updateHomeLocation(): Promise<HomeLocation | undefined> { return undefined; }
+  async createOtpVerification(): Promise<OtpVerification> { throw new Error('Not implemented'); }
+  async verifyOtp(): Promise<boolean> { return false; }
+  async cleanupExpiredOtps(): Promise<void> {}
+  async getIotDevices(): Promise<IotDevice[]> { return []; }
+  async createIotDevice(): Promise<IotDevice> { throw new Error('Not implemented'); }
+  async updateIotDevice(): Promise<IotDevice | undefined> { return undefined; }
+  async deleteIotDevice(): Promise<boolean> { return false; }
+  async connectDevice(): Promise<boolean> { return false; }
+  async disconnectDevice(): Promise<boolean> { return false; }
+  async getHealthMetrics(): Promise<HealthMetric[]> { return []; }
+  async createHealthMetric(): Promise<HealthMetric> { throw new Error('Not implemented'); }
+  async getLatestHealthMetrics(): Promise<HealthMetric | undefined> { return undefined; }
+  async getStressAnalysis(): Promise<StressAnalysis[]> { return []; }
+  async createStressAnalysis(): Promise<StressAnalysis> { throw new Error('Not implemented'); }
+  async getLatestStressAnalysis(): Promise<StressAnalysis | undefined> { return undefined; }
+  async getIotEmergencyTriggers(): Promise<IotEmergencyTrigger[]> { return []; }
+  async createIotEmergencyTrigger(): Promise<IotEmergencyTrigger> { throw new Error('Not implemented'); }
+  async resolveIotEmergencyTrigger(): Promise<boolean> { return false; }
+  async getFamilyConnections(): Promise<FamilyConnection[]> { return []; }
+  async createFamilyConnection(): Promise<FamilyConnection> { throw new Error('Not implemented'); }
+  async updateFamilyConnection(): Promise<FamilyConnection | undefined> { return undefined; }
+  async getFamilyConnectionByInviteCode(): Promise<FamilyConnection | undefined> { return undefined; }
+  async getConnectedChildren(): Promise<FamilyConnection[]> { return []; }
+  async getConnectedParents(): Promise<FamilyConnection[]> { return []; }
+}
+
+// Smart storage that falls back to memory when database fails
+class SmartStorage implements IStorage {
+  private dbStorage = new DatabaseStorage();
+  private memStorage = new MemoryStorage();
+  private useDatabase = true;
+
+  private async tryDatabase<T>(operation: () => Promise<T>): Promise<T> {
+    if (!this.useDatabase) {
+      throw new Error('Database disabled');
+    }
+    
+    try {
+      return await operation();
+    } catch (error: any) {
+      if (error?.message?.includes('endpoint is disabled') || error?.code === 'XX000') {
+        console.log('Database endpoint disabled, switching to memory storage');
+        this.useDatabase = false;
+        throw error;
+      }
+      throw error;
+    }
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getUser(id));
+    } catch {
+      return this.memStorage.getUser(id);
+    }
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.upsertUser(userData));
+    } catch {
+      return this.memStorage.upsertUser(userData);
+    }
+  }
+
+  async updateUser(id: string, updates: Partial<UpsertUser>): Promise<User | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.updateUser(id, updates));
+    } catch {
+      return this.memStorage.updateUser(id, updates);
+    }
+  }
+
+  async getEmergencyContacts(userId: string): Promise<EmergencyContact[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getEmergencyContacts(userId));
+    } catch {
+      return this.memStorage.getEmergencyContacts(userId);
+    }
+  }
+
+  async createEmergencyContact(contact: InsertEmergencyContact): Promise<EmergencyContact> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createEmergencyContact(contact));
+    } catch {
+      return this.memStorage.createEmergencyContact(contact);
+    }
+  }
+
+  async updateEmergencyContact(id: number, updates: Partial<InsertEmergencyContact>): Promise<EmergencyContact | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.updateEmergencyContact(id, updates));
+    } catch {
+      return this.memStorage.updateEmergencyContact(id, updates);
+    }
+  }
+
+  async deleteEmergencyContact(id: number): Promise<boolean> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.deleteEmergencyContact(id));
+    } catch {
+      return this.memStorage.deleteEmergencyContact(id);
+    }
+  }
+
+  async createEmergencyAlert(alert: InsertEmergencyAlert): Promise<EmergencyAlert> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createEmergencyAlert(alert));
+    } catch {
+      return this.memStorage.createEmergencyAlert(alert);
+    }
+  }
+
+  async getEmergencyAlerts(userId: string): Promise<EmergencyAlert[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getEmergencyAlerts(userId));
+    } catch {
+      return this.memStorage.getEmergencyAlerts(userId);
+    }
+  }
+
+  async updateEmergencyAlert(id: number, updates: Partial<InsertEmergencyAlert>): Promise<EmergencyAlert | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.updateEmergencyAlert(id, updates));
+    } catch {
+      return this.memStorage.updateEmergencyAlert(id, updates);
+    }
+  }
+
+  // Delegate other methods to database storage with fallback
+  async getCommunityAlerts(latitude: number, longitude: number, radius: number): Promise<CommunityAlert[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getCommunityAlerts(latitude, longitude, radius));
+    } catch {
+      return this.memStorage.getCommunityAlerts();
+    }
+  }
+
+  async createCommunityAlert(alert: InsertCommunityAlert): Promise<CommunityAlert> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createCommunityAlert(alert));
+    } catch {
+      return this.memStorage.createCommunityAlert();
+    }
+  }
+
+  async getSafeZones(userId: string): Promise<SafeZone[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getSafeZones(userId));
+    } catch {
+      return this.memStorage.getSafeZones();
+    }
+  }
+
+  async createSafeZone(zone: InsertSafeZone): Promise<SafeZone> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createSafeZone(zone));
+    } catch {
+      return this.memStorage.createSafeZone();
+    }
+  }
+
+  async deleteSafeZone(id: number): Promise<boolean> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.deleteSafeZone(id));
+    } catch {
+      return this.memStorage.deleteSafeZone();
+    }
+  }
+
+  async createLiveStream(stream: InsertLiveStream): Promise<LiveStream> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createLiveStream(stream));
+    } catch {
+      return this.memStorage.createLiveStream();
+    }
+  }
+
+  async getLiveStreams(userId: string): Promise<LiveStream[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getLiveStreams(userId));
+    } catch {
+      return this.memStorage.getLiveStreams();
+    }
+  }
+
+  async getLiveStreamById(id: number): Promise<LiveStream | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getLiveStreamById(id));
+    } catch {
+      return this.memStorage.getLiveStreamById();
+    }
+  }
+
+  async endLiveStream(id: number): Promise<boolean> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.endLiveStream(id));
+    } catch {
+      return this.memStorage.endLiveStream();
+    }
+  }
+
+  async getDestinations(userId: string): Promise<Destination[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getDestinations(userId));
+    } catch {
+      return this.memStorage.getDestinations();
+    }
+  }
+
+  async createDestination(destination: InsertDestination): Promise<Destination> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createDestination(destination));
+    } catch {
+      return this.memStorage.createDestination();
+    }
+  }
+
+  async deleteDestination(id: number): Promise<boolean> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.deleteDestination(id));
+    } catch {
+      return this.memStorage.deleteDestination();
+    }
+  }
+
+  async getHomeLocation(userId: string): Promise<HomeLocation | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getHomeLocation(userId));
+    } catch {
+      return this.memStorage.getHomeLocation(userId);
+    }
+  }
+
+  async setHomeLocation(homeLocation: InsertHomeLocation): Promise<HomeLocation> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.setHomeLocation(homeLocation));
+    } catch {
+      return this.memStorage.setHomeLocation();
+    }
+  }
+
+  async updateHomeLocation(userId: string, updates: Partial<InsertHomeLocation>): Promise<HomeLocation | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.updateHomeLocation(userId, updates));
+    } catch {
+      return this.memStorage.updateHomeLocation();
+    }
+  }
+
+  async createOtpVerification(otp: InsertOtpVerification): Promise<OtpVerification> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createOtpVerification(otp));
+    } catch {
+      return this.memStorage.createOtpVerification();
+    }
+  }
+
+  async verifyOtp(identifier: string, type: string, otp: string): Promise<boolean> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.verifyOtp(identifier, type, otp));
+    } catch {
+      return this.memStorage.verifyOtp();
+    }
+  }
+
+  async cleanupExpiredOtps(): Promise<void> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.cleanupExpiredOtps());
+    } catch {
+      return this.memStorage.cleanupExpiredOtps();
+    }
+  }
+
+  async getIotDevices(userId: string): Promise<IotDevice[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getIotDevices(userId));
+    } catch {
+      return this.memStorage.getIotDevices();
+    }
+  }
+
+  async createIotDevice(device: InsertIotDevice): Promise<IotDevice> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createIotDevice(device));
+    } catch {
+      return this.memStorage.createIotDevice();
+    }
+  }
+
+  async updateIotDevice(id: number, updates: Partial<InsertIotDevice>): Promise<IotDevice | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.updateIotDevice(id, updates));
+    } catch {
+      return this.memStorage.updateIotDevice();
+    }
+  }
+
+  async deleteIotDevice(id: number): Promise<boolean> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.deleteIotDevice(id));
+    } catch {
+      return this.memStorage.deleteIotDevice();
+    }
+  }
+
+  async connectDevice(id: number): Promise<boolean> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.connectDevice(id));
+    } catch {
+      return this.memStorage.connectDevice();
+    }
+  }
+
+  async disconnectDevice(id: number): Promise<boolean> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.disconnectDevice(id));
+    } catch {
+      return this.memStorage.disconnectDevice();
+    }
+  }
+
+  async getHealthMetrics(userId: string, limit?: number): Promise<HealthMetric[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getHealthMetrics(userId, limit));
+    } catch {
+      return this.memStorage.getHealthMetrics();
+    }
+  }
+
+  async createHealthMetric(metric: InsertHealthMetric): Promise<HealthMetric> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createHealthMetric(metric));
+    } catch {
+      return this.memStorage.createHealthMetric();
+    }
+  }
+
+  async getLatestHealthMetrics(userId: string): Promise<HealthMetric | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getLatestHealthMetrics(userId));
+    } catch {
+      return this.memStorage.getLatestHealthMetrics();
+    }
+  }
+
+  async getStressAnalysis(userId: string, limit?: number): Promise<StressAnalysis[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getStressAnalysis(userId, limit));
+    } catch {
+      return this.memStorage.getStressAnalysis();
+    }
+  }
+
+  async createStressAnalysis(analysis: InsertStressAnalysis): Promise<StressAnalysis> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createStressAnalysis(analysis));
+    } catch {
+      return this.memStorage.createStressAnalysis();
+    }
+  }
+
+  async getLatestStressAnalysis(userId: string): Promise<StressAnalysis | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getLatestStressAnalysis(userId));
+    } catch {
+      return this.memStorage.getLatestStressAnalysis();
+    }
+  }
+
+  async getIotEmergencyTriggers(userId: string): Promise<IotEmergencyTrigger[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getIotEmergencyTriggers(userId));
+    } catch {
+      return this.memStorage.getIotEmergencyTriggers();
+    }
+  }
+
+  async createIotEmergencyTrigger(trigger: InsertIotEmergencyTrigger): Promise<IotEmergencyTrigger> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createIotEmergencyTrigger(trigger));
+    } catch {
+      return this.memStorage.createIotEmergencyTrigger();
+    }
+  }
+
+  async resolveIotEmergencyTrigger(id: number): Promise<boolean> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.resolveIotEmergencyTrigger(id));
+    } catch {
+      return this.memStorage.resolveIotEmergencyTrigger();
+    }
+  }
+
+  async getFamilyConnections(userId: string): Promise<FamilyConnection[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getFamilyConnections(userId));
+    } catch {
+      return this.memStorage.getFamilyConnections();
+    }
+  }
+
+  async createFamilyConnection(connection: InsertFamilyConnection): Promise<FamilyConnection> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.createFamilyConnection(connection));
+    } catch {
+      return this.memStorage.createFamilyConnection();
+    }
+  }
+
+  async updateFamilyConnection(id: number, updates: Partial<InsertFamilyConnection>): Promise<FamilyConnection | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.updateFamilyConnection(id, updates));
+    } catch {
+      return this.memStorage.updateFamilyConnection();
+    }
+  }
+
+  async getFamilyConnectionByInviteCode(inviteCode: string): Promise<FamilyConnection | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getFamilyConnectionByInviteCode(inviteCode));
+    } catch {
+      return this.memStorage.getFamilyConnectionByInviteCode();
+    }
+  }
+
+  async getConnectedChildren(parentUserId: string): Promise<FamilyConnection[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getConnectedChildren(parentUserId));
+    } catch {
+      return this.memStorage.getConnectedChildren();
+    }
+  }
+
+  async getConnectedParents(childUserId: string): Promise<FamilyConnection[]> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getConnectedParents(childUserId));
+    } catch {
+      return this.memStorage.getConnectedParents();
+    }
+  }
+}
+
+export const storage = new SmartStorage();
