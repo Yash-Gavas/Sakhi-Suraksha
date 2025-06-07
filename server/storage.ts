@@ -760,10 +760,42 @@ class MemoryStorage implements IStorage {
   async getSafeZones(): Promise<SafeZone[]> { return []; }
   async createSafeZone(): Promise<SafeZone> { throw new Error('Not implemented'); }
   async deleteSafeZone(): Promise<boolean> { return false; }
-  async createLiveStream(): Promise<LiveStream> { throw new Error('Not implemented'); }
-  async getLiveStreams(): Promise<LiveStream[]> { return []; }
-  async getLiveStreamById(): Promise<LiveStream | undefined> { return undefined; }
-  async endLiveStream(): Promise<boolean> { return false; }
+  private liveStreamsMap = new Map<string, LiveStream[]>();
+  private liveStreamById = new Map<number, LiveStream>();
+
+  async createLiveStream(stream: InsertLiveStream): Promise<LiveStream> {
+    const newStream = {
+      ...stream,
+      id: Date.now(),
+      createdAt: new Date(),
+      isActive: true
+    } as LiveStream;
+
+    const userStreams = this.liveStreamsMap.get(stream.userId) || [];
+    userStreams.push(newStream);
+    this.liveStreamsMap.set(stream.userId, userStreams);
+    this.liveStreamById.set(newStream.id, newStream);
+
+    return newStream;
+  }
+
+  async getLiveStreams(userId: string): Promise<LiveStream[]> {
+    return this.liveStreamsMap.get(userId) || [];
+  }
+
+  async getLiveStreamById(id: number): Promise<LiveStream | undefined> {
+    return this.liveStreamById.get(id);
+  }
+
+  async endLiveStream(id: number): Promise<boolean> {
+    const stream = this.liveStreamById.get(id);
+    if (stream) {
+      stream.isActive = false;
+      stream.endedAt = new Date();
+      return true;
+    }
+    return false;
+  }
   async getDestinations(): Promise<Destination[]> { return []; }
   async createDestination(): Promise<Destination> { throw new Error('Not implemented'); }
   async deleteDestination(): Promise<boolean> { return false; }
@@ -772,9 +804,41 @@ class MemoryStorage implements IStorage {
   }
   async setHomeLocation(): Promise<HomeLocation> { throw new Error('Not implemented'); }
   async updateHomeLocation(): Promise<HomeLocation | undefined> { return undefined; }
-  async createOtpVerification(): Promise<OtpVerification> { throw new Error('Not implemented'); }
-  async verifyOtp(): Promise<boolean> { return false; }
-  async cleanupExpiredOtps(): Promise<void> {}
+  private otpMap = new Map<string, OtpVerification>();
+
+  async createOtpVerification(otp: InsertOtpVerification): Promise<OtpVerification> {
+    const newOtp = {
+      ...otp,
+      id: Date.now(),
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+    } as OtpVerification;
+
+    const key = `${otp.identifier}-${otp.type}`;
+    this.otpMap.set(key, newOtp);
+    return newOtp;
+  }
+
+  async verifyOtp(identifier: string, type: string, otp: string): Promise<boolean> {
+    const key = `${identifier}-${type}`;
+    const storedOtp = this.otpMap.get(key);
+    
+    if (!storedOtp || storedOtp.otp !== otp || new Date() > storedOtp.expiresAt) {
+      return false;
+    }
+    
+    this.otpMap.delete(key);
+    return true;
+  }
+
+  async cleanupExpiredOtps(): Promise<void> {
+    const now = new Date();
+    for (const [key, otp] of this.otpMap.entries()) {
+      if (now > otp.expiresAt) {
+        this.otpMap.delete(key);
+      }
+    }
+  }
   async getIotDevices(): Promise<IotDevice[]> { return []; }
   async createIotDevice(): Promise<IotDevice> { throw new Error('Not implemented'); }
   async updateIotDevice(): Promise<IotDevice | undefined> { return undefined; }
@@ -790,12 +854,61 @@ class MemoryStorage implements IStorage {
   async getIotEmergencyTriggers(): Promise<IotEmergencyTrigger[]> { return []; }
   async createIotEmergencyTrigger(): Promise<IotEmergencyTrigger> { throw new Error('Not implemented'); }
   async resolveIotEmergencyTrigger(): Promise<boolean> { return false; }
-  async getFamilyConnections(): Promise<FamilyConnection[]> { return []; }
-  async createFamilyConnection(): Promise<FamilyConnection> { throw new Error('Not implemented'); }
-  async updateFamilyConnection(): Promise<FamilyConnection | undefined> { return undefined; }
-  async getFamilyConnectionByInviteCode(): Promise<FamilyConnection | undefined> { return undefined; }
-  async getConnectedChildren(): Promise<FamilyConnection[]> { return []; }
-  async getConnectedParents(): Promise<FamilyConnection[]> { return []; }
+  private familyConnectionsMap = new Map<string, FamilyConnection[]>();
+  private familyConnectionsByCode = new Map<string, FamilyConnection>();
+
+  async getFamilyConnections(userId: string): Promise<FamilyConnection[]> { 
+    return this.familyConnectionsMap.get(userId) || []; 
+  }
+
+  async createFamilyConnection(connection: InsertFamilyConnection): Promise<FamilyConnection> { 
+    const newConnection = {
+      ...connection,
+      id: Date.now(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true
+    } as FamilyConnection;
+
+    // Store by user ID
+    const userConnections = this.familyConnectionsMap.get(connection.parentUserId) || [];
+    userConnections.push(newConnection);
+    this.familyConnectionsMap.set(connection.parentUserId, userConnections);
+
+    // Store by invite code for lookup
+    if (connection.inviteCode) {
+      this.familyConnectionsByCode.set(connection.inviteCode, newConnection);
+    }
+
+    return newConnection;
+  }
+
+  async updateFamilyConnection(id: number, updates: Partial<InsertFamilyConnection>): Promise<FamilyConnection | undefined> { 
+    for (const [userId, connections] of this.familyConnectionsMap) {
+      const connectionIndex = connections.findIndex(c => c.id === id);
+      if (connectionIndex >= 0) {
+        connections[connectionIndex] = { ...connections[connectionIndex], ...updates, updatedAt: new Date() };
+        return connections[connectionIndex];
+      }
+    }
+    return undefined;
+  }
+
+  async getFamilyConnectionByInviteCode(inviteCode: string): Promise<FamilyConnection | undefined> { 
+    return this.familyConnectionsByCode.get(inviteCode);
+  }
+
+  async getConnectedChildren(parentUserId: string): Promise<FamilyConnection[]> { 
+    return this.familyConnectionsMap.get(parentUserId) || [];
+  }
+
+  async getConnectedParents(childUserId: string): Promise<FamilyConnection[]> { 
+    const allConnections: FamilyConnection[] = [];
+    for (const connections of this.familyConnectionsMap.values()) {
+      allConnections.push(...connections.filter(c => c.childUserId === childUserId));
+    }
+    return allConnections;
+  }
 }
 
 // Smart storage that falls back to memory when database fails

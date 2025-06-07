@@ -32,11 +32,20 @@ export default function QRScanner({ onScanResult, onClose }: QRScannerProps) {
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        videoRef.current.play();
+        
+        // Wait for video to actually start playing before scanning
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play();
+            setIsScanning(true);
+            // Delay scanning start to ensure video is rendering
+            setTimeout(() => {
+              startQRScanning();
+            }, 500);
+          }
+        };
       }
       setStream(mediaStream);
-      setIsScanning(true);
-      startQRScanning();
       
     } catch (err) {
       setError("Camera access denied. Please enable camera permissions and try again.");
@@ -66,32 +75,39 @@ export default function QRScanner({ onScanResult, onClose }: QRScannerProps) {
     const canvas = canvasRef.current;
     
     if (!video || !canvas || !isScanning) return;
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
 
     const context = canvas.getContext('2d');
     if (!context) return;
 
     // Set canvas size to video size
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    const { videoWidth, videoHeight } = video;
+    if (videoWidth === 0 || videoHeight === 0) return;
 
-    if (canvas.width === 0 || canvas.height === 0) return;
+    canvas.width = videoWidth;
+    canvas.height = videoHeight;
 
     // Draw video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    context.drawImage(video, 0, 0, videoWidth, videoHeight);
 
     try {
       // Get image data for QR code detection
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const imageData = context.getImageData(0, 0, videoWidth, videoHeight);
       
-      // Use jsQR to detect QR code with better detection options
+      // Use jsQR to detect QR code with enhanced detection options
       const code = jsQR(imageData.data, imageData.width, imageData.height, {
         inversionAttempts: "attemptBoth",
       });
       
-      if (code) {
+      if (code && code.data) {
         console.log('QR Code detected:', code.data);
-        onScanResult(code.data);
-        stopCamera();
+        // Validate that it looks like a connection code
+        if (code.data.startsWith('SK') && code.data.length > 10) {
+          onScanResult(code.data);
+          stopCamera();
+        } else {
+          console.log('Invalid QR code format, continuing scan...');
+        }
       }
     } catch (err) {
       console.error("QR scan error:", err);
