@@ -1048,6 +1048,19 @@ class MemoryStorage implements IStorage {
     }
   }
 
+  async getChildProfile(childUserId: string): Promise<any> {
+    // Load persisted data from file
+    await this.loadPersistentData();
+    
+    try {
+      const fs = require('fs');
+      const data = JSON.parse(fs.readFileSync(this.persistentDataPath, 'utf8'));
+      return data.childProfiles?.[childUserId] || null;
+    } catch {
+      return null;
+    }
+  }
+
   // Get permanent alert history for a user
   async getAlertHistory(userId: string): Promise<any[]> {
     return this.alertHistoryMap.get(userId) || [];
@@ -1620,6 +1633,14 @@ class SmartStorage implements IStorage {
       return await this.tryDatabase(() => this.dbStorage.archiveResolvedAlert(alertId, resolvedBy));
     } catch {
       return this.memStorage.archiveResolvedAlert(alertId, resolvedBy);
+    }
+  }
+
+  async getChildProfile(childUserId: string): Promise<any> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getChildProfile(childUserId));
+    } catch {
+      return this.memStorage.getChildProfile(childUserId);
     }
   }
 }

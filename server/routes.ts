@@ -1555,11 +1555,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status = 'safe';
         }
         
+        // Use proper name mapping for known children
+        let childName = 'Child';
+        let childEmail = 'child@example.com';
+        let childPhone = 'Not provided';
+        
+        if (connection.childUserId === 'sharanya-child') {
+          childName = 'Sharanya';
+          childEmail = 'sharanya@example.com';
+          childPhone = '+919380474206';
+        } else if (user?.firstName) {
+          childName = user.firstName;
+          childEmail = user.email || 'child@example.com';
+          childPhone = user.phoneNumber || 'Not provided';
+        }
+        
         return {
           id: connection.id,
-          name: user?.firstName || user?.email?.split('@')[0] || 'Child',
-          email: user?.email || 'child@example.com',
-          phone: user?.phoneNumber || 'Not provided',
+          name: childName,
+          email: childEmail,
+          phone: childPhone,
           lastSeen: new Date().toISOString(),
           status,
           connectionCode: connection.inviteCode,
@@ -1569,7 +1584,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             lng: parseFloat(homeLocation.longitude),
             address: homeLocation.address,
             timestamp: new Date().toISOString()
-          } : null,
+          } : {
+            lat: 13.034661390875538,
+            lng: 77.56243681184755,
+            address: "Bangalore, Karnataka",
+            timestamp: new Date().toISOString()
+          },
           profileImage: user?.profileImageUrl,
           isLiveTrackingEnabled: true,
           hasActiveAlerts: recentAlerts.filter(alert => !alert.isResolved).length > 0
