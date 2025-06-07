@@ -723,6 +723,13 @@ class MemoryStorage implements IStorage {
           }
         }
         
+        // Load destinations
+        if (data.destinations) {
+          for (const [userId, userDestinations] of Object.entries(data.destinations)) {
+            this.destinationsMap.set(userId, userDestinations as Destination[]);
+          }
+        }
+        
         console.log('Persistent data loaded successfully from file');
       } else {
         this.initializeDefaultData();
@@ -765,6 +772,7 @@ class MemoryStorage implements IStorage {
         familyConnections: Object.fromEntries(this.familyConnectionsMap),
         alertHistory: Object.fromEntries(this.alertHistoryMap),
         communityAlerts: Array.from(this.communityAlertsMap.values()),
+        destinations: Object.fromEntries(this.destinationsMap),
         timestamp: new Date().toISOString()
       };
       
@@ -854,6 +862,32 @@ class MemoryStorage implements IStorage {
       }
     }
     return undefined;
+  }
+
+  // Destinations/Home Location operations
+  private destinationsMap = new Map<string, Destination[]>();
+
+  async getDestinations(userId: string): Promise<Destination[]> {
+    return this.destinationsMap.get(userId) || [];
+  }
+
+  async createDestination(destination: InsertDestination): Promise<Destination> {
+    const newDestination: Destination = {
+      id: Date.now(),
+      userId: destination.userId,
+      name: destination.name,
+      latitude: destination.latitude,
+      longitude: destination.longitude,
+      address: destination.address,
+      isFavorite: destination.isFavorite || false,
+      createdAt: new Date()
+    };
+
+    const userDestinations = this.destinationsMap.get(destination.userId) || [];
+    userDestinations.push(newDestination);
+    this.destinationsMap.set(destination.userId, userDestinations);
+    await this.savePersistentData();
+    return newDestination;
   }
 
   // Stub implementations for safe zones (not yet implemented)
@@ -1235,6 +1269,7 @@ class MemoryStorage implements IStorage {
     };
     
     this.communityAlertsMap.set(newAlert.id, newAlert);
+    await this.savePersistentData(); // Save to persistent storage
     return newAlert;
   }
 
