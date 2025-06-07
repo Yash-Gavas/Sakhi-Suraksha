@@ -1,0 +1,41 @@
+{
+  "familyConnections": {
+    "demo-user": [
+      {
+        "id": 1749306839701,
+        "parentUserId": "demo-user",
+        "childUserId": "sharanya-child",
+        "relationshipType": "parent-child",
+        "status": "active",
+        "permissions": {
+          "location": true,
+          "emergency": true,
+          "monitoring": true
+        },
+        "inviteCode": null,
+        "inviteExpiry": null,
+        "acceptedAt": "2024-06-07T14:35:00.000Z",
+        "createdAt": "2024-06-07T14:35:00.000Z"
+      }
+    ]
+  },
+  "alertHistory": {
+    "demo-user": []
+  },
+  "childProfiles": {
+    "sharanya-child": {
+      "id": "sharanya-child",
+      "name": "Sharanya",
+      "email": "sharanya@example.com",
+      "phone": "+919380474206",
+      "lastSeen": "2024-06-07T14:35:00.000Z",
+      "status": "safe",
+      "currentLocation": {
+        "lat": 13.034661390875538,
+        "lng": 77.56243681184755,
+        "address": "Bangalore, Karnataka",
+        "timestamp": "2024-06-07T14:35:00.000Z"
+      }
+    }
+  }
+}

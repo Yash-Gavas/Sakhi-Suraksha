@@ -620,8 +620,13 @@ class MemoryStorage implements IStorage {
   private emergencyContactsMap = new Map<string, EmergencyContact[]>();
   private emergencyAlertsMap = new Map<string, EmergencyAlert[]>();
   private homeLocationsMap = new Map<string, HomeLocation>();
+  private familyConnectionsMap = new Map<string, FamilyConnection[]>();
+  private alertHistoryMap = new Map<string, any[]>();
 
   constructor() {
+    // Load persistent data from file
+    this.loadPersistentData();
+    
     // Initialize with demo user data
     this.users.set('demo-user', {
       id: "demo-user",
@@ -670,6 +675,81 @@ class MemoryStorage implements IStorage {
     ]);
 
     this.emergencyAlertsMap.set('demo-user', []);
+  }
+
+  private async loadPersistentData() {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const { fileURLToPath } = await import('url');
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      const dataPath = path.join(__dirname, 'persistent-data.json');
+      
+      if (fs.existsSync(dataPath)) {
+        const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+        
+        // Load family connections
+        if (data.familyConnections) {
+          for (const [userId, connections] of Object.entries(data.familyConnections)) {
+            this.familyConnectionsMap.set(userId, connections as FamilyConnection[]);
+          }
+        }
+        
+        // Load alert history
+        if (data.alertHistory) {
+          for (const [userId, history] of Object.entries(data.alertHistory)) {
+            this.alertHistoryMap.set(userId, history as any[]);
+          }
+        }
+        
+        console.log('Persistent data loaded successfully from file');
+      } else {
+        this.initializeDefaultData();
+      }
+    } catch (error) {
+      console.log('Failed to load persistent data, initializing defaults');
+      this.initializeDefaultData();
+    }
+  }
+
+  private initializeDefaultData() {
+    const defaultConnection = {
+      id: Date.now(),
+      parentUserId: "demo-user",
+      childUserId: "sharanya-child",
+      relationshipType: "parent-child",
+      status: "active",
+      permissions: { location: true, emergency: true, monitoring: true },
+      inviteCode: null,
+      inviteExpiry: null,
+      acceptedAt: new Date(),
+      createdAt: new Date()
+    };
+    
+    this.familyConnectionsMap.set("demo-user", [defaultConnection]);
+    this.alertHistoryMap.set("demo-user", []);
+    this.savePersistentData();
+    console.log('Default Sharanya connection initialized');
+  }
+
+  private async savePersistentData() {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const { fileURLToPath } = await import('url');
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      const dataPath = path.join(__dirname, 'persistent-data.json');
+      
+      const data = {
+        familyConnections: Object.fromEntries(this.familyConnectionsMap),
+        alertHistory: Object.fromEntries(this.alertHistoryMap),
+        timestamp: new Date().toISOString()
+      };
+      
+      fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+    } catch (error) {
+      console.error('Failed to save persistent data:', error);
+    }
   }
 
   async getUser(id: string): Promise<User | undefined> {
