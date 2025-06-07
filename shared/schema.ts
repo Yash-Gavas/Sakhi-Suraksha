@@ -199,6 +199,44 @@ export const iotEmergencyTriggers = pgTable("iot_emergency_triggers", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
+// Persistent parent-child connections
+export const familyConnections = pgTable("family_connections", {
+  id: serial("id").primaryKey(),
+  parentUserId: varchar("parent_user_id").notNull().references(() => users.id),
+  childUserId: varchar("child_user_id").notNull().references(() => users.id),
+  relationshipType: text("relationship_type").notNull().default("parent-child"), // 'parent-child', 'guardian-ward', 'caregiver-patient'
+  status: text("status").notNull().default("active"), // 'active', 'pending', 'inactive', 'blocked'
+  permissions: jsonb("permissions").default('{"location": true, "emergency": true, "monitoring": true}'),
+  inviteCode: varchar("invite_code").unique(),
+  inviteExpiry: timestamp("invite_expiry"),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Enhanced emergency alerts with permanent storage
+export const alertHistory = pgTable("alert_history", {
+  id: serial("id").primaryKey(),
+  originalAlertId: integer("original_alert_id").references(() => emergencyAlerts.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  parentUserId: varchar("parent_user_id").references(() => users.id),
+  triggerType: text("trigger_type").notNull(),
+  message: text("message"),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  address: text("address"),
+  status: text("status").notNull(), // 'active', 'resolved', 'responded'
+  resolvedAt: timestamp("resolved_at"),
+  resolvedBy: varchar("resolved_by").references(() => users.id),
+  responseTime: integer("response_time"), // seconds from trigger to resolution
+  audioRecordingUrl: text("audio_recording_url"),
+  videoRecordingUrl: text("video_recording_url"),
+  liveStreamUrl: text("live_stream_url"),
+  emergencyContactsNotified: jsonb("emergency_contacts_notified"),
+  isArchived: boolean("is_archived").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  archivedAt: timestamp("archived_at")
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   updatedAt: true
@@ -248,6 +286,17 @@ export const insertHomeLocationSchema = createInsertSchema(homeLocations).omit({
   id: true,
   createdAt: true,
   updatedAt: true
+});
+
+export const insertFamilyConnectionSchema = createInsertSchema(familyConnections).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertAlertHistorySchema = createInsertSchema(alertHistory).omit({
+  id: true,
+  createdAt: true,
+  archivedAt: true
 });
 
 export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({
@@ -307,19 +356,6 @@ export type InsertStressAnalysis = z.infer<typeof insertStressAnalysisSchema>;
 export type IotEmergencyTrigger = typeof iotEmergencyTriggers.$inferSelect;
 export type InsertIotEmergencyTrigger = z.infer<typeof insertIotEmergencyTriggerSchema>;
 
-// Family connections between parents and children
-export const familyConnections = pgTable("family_connections", {
-  id: serial("id").primaryKey(),
-  parentUserId: varchar("parent_user_id").notNull(),
-  childUserId: varchar("child_user_id").notNull(),
-  relationshipType: varchar("relationship_type").notNull(), // 'parent', 'guardian', 'family'
-  status: varchar("status").notNull().default("pending"), // 'pending', 'accepted', 'blocked'
-  permissions: jsonb("permissions").default({}), // What parent can access
-  inviteCode: varchar("invite_code").unique(),
-  inviteExpiry: timestamp("invite_expiry"),
-  createdAt: timestamp("created_at").defaultNow(),
-  acceptedAt: timestamp("accepted_at"),
-});
 
 // Parent notifications for child activities
 export const parentNotifications = pgTable("parent_notifications", {

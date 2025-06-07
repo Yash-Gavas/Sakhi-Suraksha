@@ -13,6 +13,7 @@ interface EmergencyAlert {
   childName: string;
   childId: number;
   type: string;
+  triggerType: string;
   message: string;
   location: {
     lat: number;
@@ -185,7 +186,7 @@ export default function EmergencyAlerts() {
         <p className="text-gray-700 mb-3">{alert.message}</p>
         
         {/* Voice Detection Details */}
-        {alert.triggerType === 'voice_detection' && alert.audioUrl && (
+        {alert.type === 'voice_detection' && alert.audioUrl && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
             <div className="flex items-center space-x-2 mb-2">
               <span className="text-red-600 font-semibold text-sm">🎤 Voice Detection Details:</span>
@@ -265,7 +266,7 @@ export default function EmergencyAlerts() {
           </div>
         </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="active">
             Active Alerts ({activeAlerts.length})
@@ -336,7 +337,8 @@ export default function EmergencyAlerts() {
             </div>
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   );
 }
