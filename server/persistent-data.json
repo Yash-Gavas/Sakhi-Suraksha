@@ -22,7 +22,20 @@
   "alertHistory": {
     "demo-user": []
   },
-  "communityAlerts": [],
+  "communityAlerts": [
+    {
+      "id": 1749315609711,
+      "userId": null,
+      "type": "Poor Street Lighting",
+      "description": "Street lights are broken in this area making it unsafe at night",
+      "latitude": 13.035661,
+      "longitude": 77.563437,
+      "severity": "high",
+      "verified": false,
+      "reportedBy": "anonymous",
+      "createdAt": "2025-06-07T17:00:09.711Z"
+    }
+  ],
   "destinations": {
     "demo-user": [
       {
@@ -37,5 +50,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-07T16:58:40.947Z"
+  "timestamp": "2025-06-07T17:00:09.715Z"
 }
