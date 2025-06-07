@@ -155,15 +155,16 @@ export default function EmergencyAlerts() {
             </div>
           </div>
           {alert.status === 'active' && (
-            <div className="flex space-x-2">
+            <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2">
               {alert.canStartStream && (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => startLiveStreamMutation.mutate(alert.childId)}
                   disabled={startLiveStreamMutation.isPending}
+                  className="w-full sm:w-auto text-xs"
                 >
-                  <Video className="h-4 w-4 mr-2" />
+                  <Video className="h-3 w-3 mr-1" />
                   Live Stream
                 </Button>
               )}
@@ -171,9 +172,10 @@ export default function EmergencyAlerts() {
                 size="sm"
                 onClick={() => resolveAlertMutation.mutate(alert.id)}
                 disabled={resolveAlertMutation.isPending}
+                className="w-full sm:w-auto text-xs"
               >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Mark Resolved
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Resolve
               </Button>
             </div>
           )}
@@ -238,29 +240,30 @@ export default function EmergencyAlerts() {
   );
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.location.href = '/parent-dashboard'}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Dashboard</span>
-          </Button>
-          <h1 className="text-3xl font-bold">Emergency Alerts</h1>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-3 py-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.href = '/parent-dashboard'}
+              className="flex items-center space-x-2 text-xs"
+            >
+              <ArrowLeft className="w-3 h-3" />
+              <span>Back to Dashboard</span>
+            </Button>
+            <h1 className="text-xl sm:text-3xl font-bold truncate">Emergency Alerts</h1>
+          </div>
+          <div className="flex space-x-2 flex-shrink-0">
+            <Badge variant="destructive" className="text-xs">
+              {activeAlerts.length} Active
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              {resolvedAlerts.length} Resolved
+            </Badge>
+          </div>
         </div>
-        <div className="flex space-x-4">
-          <Badge variant="destructive" className="text-sm">
-            {activeAlerts.length} Active
-          </Badge>
-          <Badge variant="secondary" className="text-sm">
-            {resolvedAlerts.length} Resolved
-          </Badge>
-        </div>
-      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">

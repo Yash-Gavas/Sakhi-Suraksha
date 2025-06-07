@@ -72,6 +72,9 @@ export default function SimpleParentDashboard() {
     refetchInterval: 5000,
   });
 
+  // Calculate active alerts count
+  const activeAlertsCount = (emergencyAlerts as EmergencyAlert[]).filter(alert => alert.status === 'active').length;
+
   const connectChildMutation = useMutation({
     mutationFn: async (code: string) => {
       const response = await fetch("/api/parent/connect-child", {
@@ -245,11 +248,11 @@ export default function SimpleParentDashboard() {
                     </div>
                   )}
                   
-                  <div className="flex space-x-2 mt-3">
+                  <div className="flex flex-col sm:flex-row gap-2 mt-3">
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                      className="text-blue-600 border-blue-300 hover:bg-blue-50 w-full sm:w-auto text-xs"
                       onClick={() => {
                         // Open emergency watch page for this specific alert
                         const streamId = `emergency_${alert.id}`;
@@ -257,12 +260,12 @@ export default function SimpleParentDashboard() {
                         window.open(watchUrl, '_blank');
                       }}
                     >
-                      🔴 View Live Stream
+                      🔴 Live Stream
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-green-600 border-green-300 hover:bg-green-50"
+                      className="text-green-600 border-green-300 hover:bg-green-50 w-full sm:w-auto text-xs"
                       onClick={() => {
                         if (alert.location) {
                           const googleMapsUrl = `https://www.google.com/maps?q=${alert.location.lat},${alert.location.lng}&z=18&t=h`;
@@ -270,7 +273,7 @@ export default function SimpleParentDashboard() {
                         }
                       }}
                     >
-                      📍 View on Google Maps
+                      📍 Google Maps
                     </Button>
                   </div>
                 </div>
@@ -523,9 +526,9 @@ export default function SimpleParentDashboard() {
                 onClick={() => window.location.href = '/emergency-alerts'}
               >
                 <Bell className="w-4 h-4 text-gray-600" />
-                {activeAlertsCount > 0 && (
+                {(emergencyAlerts as EmergencyAlert[]).filter(alert => alert.status === 'active').length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    {activeAlertsCount}
+                    {(emergencyAlerts as EmergencyAlert[]).filter(alert => alert.status === 'active').length}
                   </span>
                 )}
               </Button>
