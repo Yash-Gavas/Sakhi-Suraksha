@@ -799,6 +799,9 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* Smartwatch Integration */}
+      <SmartwatchIntegration onSosTriggered={handleSmartwatchSOS} />
+
       {/* Notification Settings */}
       <Card>
         <CardHeader>
