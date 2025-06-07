@@ -16,6 +16,7 @@ import { useVoiceRecognition } from "@/hooks/use-voice-recognition";
 import { useLocation } from "@/hooks/use-location";
 import { queryClient } from "@/lib/queryClient";
 import { userSession } from "@/lib/userSession";
+import SmartwatchIntegration from "@/components/smartwatch-integration";
 
 export default function Settings() {
   const [theme, setTheme] = useState("light");
@@ -46,6 +47,51 @@ export default function Settings() {
   const { toast } = useToast();
   const { isListening, startListening, stopListening, isSupported } = useVoiceRecognition();
   const { location } = useLocation();
+
+  // Handle smartwatch SOS triggers
+  const handleSmartwatchSOS = async (source: string, deviceInfo: any) => {
+    try {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          const emergencyData = {
+            triggerType: `smartwatch-${deviceInfo.type}`,
+            latitude,
+            longitude,
+            audioRecordingUrl: null,
+            videoRecordingUrl: null,
+            metadata: {
+              deviceName: deviceInfo.name,
+              deviceType: deviceInfo.type,
+              batteryLevel: deviceInfo.batteryLevel,
+              lastSync: deviceInfo.lastSync
+            }
+          };
+
+          const response = await fetch('/api/emergency-alerts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(emergencyData)
+          });
+
+          if (response.ok) {
+            toast({
+              title: "SOS Alert Sent",
+              description: `Emergency alert triggered from ${deviceInfo.name}`,
+              variant: "destructive",
+            });
+          }
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "SOS Failed",
+        description: "Could not send smartwatch emergency alert",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Load user profile data
   const { data: userProfile } = useQuery({

@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { EmergencyContact } from "@shared/schema";
 import LiveStreaming from "./live-streaming";
 import FixedVoiceDetector from "./fixed-voice-detector";
+import SmartwatchIntegration from "./smartwatch-integration";
 import { DeviceSmsService } from "@/lib/deviceSmsService";
 import { sendEmergencyAlert, sendLiveLocationAlert, sendToMultipleContacts } from "@/lib/deviceMessaging";
 import { MobileMessaging } from "@/lib/mobileMessaging";
@@ -40,7 +41,16 @@ export default function EnhancedEmergencyButton() {
     queryKey: ["/api/emergency-contacts"]
   });
 
-  const triggerEmergencyProtocol = async (triggerType: string) => {
+  const handleSmartwatchSOS = async (source: string, deviceInfo: any) => {
+    const triggerType = `smartwatch-${deviceInfo.type}`;
+    await triggerEmergencyProtocol(triggerType, {
+      deviceName: deviceInfo.name,
+      batteryLevel: deviceInfo.batteryLevel,
+      lastSync: deviceInfo.lastSync
+    });
+  };
+
+  const triggerEmergencyProtocol = async (triggerType: string, additionalData?: any) => {
     setIsTriggering(true);
     setEmergencyActive(true);
 
