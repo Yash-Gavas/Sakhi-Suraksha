@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { MapPin, Navigation, Clock, Shield, AlertTriangle, Route, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "@/hooks/use-location";
+import { useQuery } from "@tanstack/react-query";
 
 interface SafeRouteProps {
   onRouteFound?: (route: any) => void;
@@ -32,65 +33,68 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
     return R * c;
   };
 
-  const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([]);
-  const [homeLocation, setHomeLocation] = useState<any>(null);
+  // Create a stable location key for caching
+  const locationKey = useMemo(() => {
+    if (!location) return null;
+    // Round to 3 decimal places (~100m precision) to prevent excessive cache misses
+    return `${location.latitude.toFixed(3)},${location.longitude.toFixed(3)}`;
+  }, [location]);
 
-  // Fetch user's home location and nearby places
-  useEffect(() => {
-    const fetchLocationData = async () => {
-      if (!location) return;
+  // Fetch home location with caching
+  const { data: homeLocation } = useQuery({
+    queryKey: ["/api/user/home-location"],
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+  });
 
-      try {
-        // Fetch home location from database
-        const homeResponse = await fetch('/api/user/home-location');
-        if (homeResponse.ok) {
-          const home = await homeResponse.json();
-          setHomeLocation(home);
-        }
+  // Fetch nearby places with proper caching
+  const { data: nearbyPlaces = [] } = useQuery({
+    queryKey: ["/api/places/nearby", locationKey],
+    queryFn: async () => {
+      if (!location) return [];
 
-        // Fetch nearby safety points
-        const placesTypes = [
-          { type: 'police', query: 'police station' },
-          { type: 'hospital', query: 'hospital' },
-          { type: 'transport', query: 'metro station' }
-        ];
+      const placesTypes = [
+        { type: 'police', query: 'police station' },
+        { type: 'hospital', query: 'hospital' },
+        { type: 'transport', query: 'metro station' }
+      ];
 
-        const places = [];
-        for (const placeType of placesTypes) {
-          const response = await fetch(
-            `/api/places/nearby?lat=${location.latitude}&lng=${location.longitude}&type=${placeType.type}&radius=5000`
-          );
-          if (response.ok) {
-            const data = await response.json();
-            if (data.results && data.results.length > 0) {
-              const nearest = data.results[0];
-              const distance = calculateDistance(
-                location.latitude,
-                location.longitude,
-                nearest.geometry.location.lat,
-                nearest.geometry.location.lng
-              );
-              
-              places.push({
-                name: nearest.name,
-                address: nearest.vicinity || nearest.formatted_address || nearest.name,
-                coords: {
-                  lat: nearest.geometry.location.lat,
-                  lng: nearest.geometry.location.lng
-                },
-                distance: distance.toFixed(2)
-              });
-            }
+      const places = [];
+      for (const placeType of placesTypes) {
+        const response = await fetch(
+          `/api/places/nearby?lat=${location.latitude}&lng=${location.longitude}&type=${placeType.type}&radius=5000`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results && data.results.length > 0) {
+            const nearest = data.results[0];
+            const distance = calculateDistance(
+              location.latitude,
+              location.longitude,
+              nearest.geometry.location.lat,
+              nearest.geometry.location.lng
+            );
+            
+            places.push({
+              name: nearest.name,
+              address: nearest.vicinity || nearest.formatted_address || nearest.name,
+              coords: {
+                lat: nearest.geometry.location.lat,
+                lng: nearest.geometry.location.lng
+              },
+              distance: distance.toFixed(2)
+            });
           }
         }
-        setNearbyPlaces(places);
-      } catch (error) {
-        console.error('Error fetching location data:', error);
       }
-    };
-
-    fetchLocationData();
-  }, [location]);
+      return places;
+    },
+    enabled: !!locationKey,
+    staleTime: 5 * 60 * 1000, // 5 minutes before considering stale
+    gcTime: 15 * 60 * 1000, // 15 minutes cache time
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    refetchOnMount: false, // Don't refetch on component mount if we have cached data
+  });
 
   const getSafeDestinations = () => {
     const destinations = [];
