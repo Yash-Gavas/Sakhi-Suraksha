@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import QRScanner from "@/components/qr-scanner";
+import { usePersistentConnections } from "@/hooks/usePersistentConnections";
 import { 
   AlertTriangle, 
   MapPin, 
@@ -58,12 +59,26 @@ export default function SimpleParentDashboard() {
   const [connectionCode, setConnectionCode] = useState("");
   const [currentView, setCurrentView] = useState<'home' | 'children' | 'settings'>('home');
   const [showScanner, setShowScanner] = useState(false);
+  
+  // Persistent connections to prevent loss on refresh
+  const { 
+    connections, 
+    children: persistedChildren, 
+    persistConnection, 
+    updateChildStatus,
+    loadPersistedData 
+  } = usePersistentConnections();
 
-  // Fetch connected children
+  // Fetch connected children and merge with persisted data
   const { data: children = [], isLoading: childrenLoading } = useQuery({
     queryKey: ["/api/parent/children"],
     refetchInterval: 30000,
   });
+
+  // Combined children data (server + persisted)
+  const allChildren = [...(children as ChildProfile[]), ...persistedChildren].filter((child, index, arr) => 
+    index === arr.findIndex(c => c.id === child.id)
+  );
 
   // Fetch only active emergency alerts for home screen
   const { data: emergencyAlerts = [], isLoading: alertsLoading } = useQuery({
@@ -85,7 +100,23 @@ export default function SimpleParentDashboard() {
       if (!response.ok) throw new Error("Failed to connect child");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Persist the connection to prevent loss on refresh
+      const newConnection = {
+        id: Date.now(),
+        parentUserId: "demo-user",
+        childUserId: data.childUserId || connectionCode,
+        relationshipType: "parent-child",
+        status: "accepted",
+        permissions: {},
+        inviteCode: connectionCode,
+        inviteExpiry: null,
+        createdAt: new Date(),
+        acceptedAt: new Date()
+      };
+      
+      persistConnection(newConnection);
+      
       toast({
         title: "Child Connected",
         description: "Successfully connected to child's account",
