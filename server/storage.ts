@@ -862,15 +862,20 @@ class MemoryStorage implements IStorage {
   }
 
   async createFamilyConnection(connection: InsertFamilyConnection): Promise<FamilyConnection> { 
-    const newConnection = {
-      ...connection,
+    const newConnection: FamilyConnection = {
       id: Date.now(),
+      parentUserId: connection.parentUserId,
+      childUserId: connection.childUserId,
+      relationshipType: connection.relationshipType,
+      status: connection.status || 'pending',
+      permissions: connection.permissions || {},
+      inviteCode: connection.inviteCode || null,
+      inviteExpiry: connection.inviteExpiry || null,
       createdAt: new Date(),
-      updatedAt: new Date(),
-      isActive: true
-    } as FamilyConnection;
+      acceptedAt: connection.status === 'accepted' ? new Date() : null
+    };
 
-    // Store by user ID
+    // Store by parent user ID
     const userConnections = this.familyConnectionsMap.get(connection.parentUserId) || [];
     userConnections.push(newConnection);
     this.familyConnectionsMap.set(connection.parentUserId, userConnections);
@@ -1283,7 +1288,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.getFamilyConnections(userId));
     } catch {
-      return this.memStorage.getFamilyConnections();
+      return this.memStorage.getFamilyConnections(userId);
     }
   }
 
@@ -1291,7 +1296,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.createFamilyConnection(connection));
     } catch {
-      return this.memStorage.createFamilyConnection();
+      return this.memStorage.createFamilyConnection(connection);
     }
   }
 
@@ -1299,7 +1304,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.updateFamilyConnection(id, updates));
     } catch {
-      return this.memStorage.updateFamilyConnection();
+      return this.memStorage.updateFamilyConnection(id, updates);
     }
   }
 
@@ -1307,7 +1312,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.getFamilyConnectionByInviteCode(inviteCode));
     } catch {
-      return this.memStorage.getFamilyConnectionByInviteCode();
+      return this.memStorage.getFamilyConnectionByInviteCode(inviteCode);
     }
   }
 
@@ -1315,7 +1320,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.getConnectedChildren(parentUserId));
     } catch {
-      return this.memStorage.getConnectedChildren();
+      return this.memStorage.getConnectedChildren(parentUserId);
     }
   }
 
@@ -1323,7 +1328,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.getConnectedParents(childUserId));
     } catch {
-      return this.memStorage.getConnectedParents();
+      return this.memStorage.getConnectedParents(childUserId);
     }
   }
 }
