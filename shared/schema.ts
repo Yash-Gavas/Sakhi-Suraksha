@@ -288,16 +288,7 @@ export const insertHomeLocationSchema = createInsertSchema(homeLocations).omit({
   updatedAt: true
 });
 
-export const insertFamilyConnectionSchema = createInsertSchema(familyConnections).omit({
-  id: true,
-  createdAt: true
-});
 
-export const insertAlertHistorySchema = createInsertSchema(alertHistory).omit({
-  id: true,
-  createdAt: true,
-  archivedAt: true
-});
 
 export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({
   id: true,
@@ -389,7 +380,7 @@ export const familySettings = pgTable("family_settings", {
 });
 
 // Schema validations for family connections
-export const insertFamilyConnectionSchema = createInsertSchema(familyConnections).omit({
+export const insertFamilyConnectionSchemaV2 = createInsertSchema(familyConnections).omit({
   id: true,
   createdAt: true,
   acceptedAt: true,
@@ -409,7 +400,8 @@ export const insertFamilySettingsSchema = createInsertSchema(familySettings).omi
 
 // Types for family connections
 export type FamilyConnection = typeof familyConnections.$inferSelect;
-export type InsertFamilyConnection = z.infer<typeof insertFamilyConnectionSchema>;
+export type InsertFamilyConnection = z.infer<typeof insertFamilyConnectionSchemaV2>;
+export type AlertHistory = typeof alertHistory.$inferSelect;
 export type ParentNotification = typeof parentNotifications.$inferSelect;
 export type InsertParentNotification = z.infer<typeof insertParentNotificationSchema>;
 export type FamilySettings = typeof familySettings.$inferSelect;

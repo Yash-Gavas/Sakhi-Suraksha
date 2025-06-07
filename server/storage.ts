@@ -860,6 +860,104 @@ class MemoryStorage implements IStorage {
   async resolveIotEmergencyTrigger(): Promise<boolean> { return false; }
   private familyConnectionsMap = new Map<string, FamilyConnection[]>();
   private familyConnectionsByCode = new Map<string, FamilyConnection>();
+  private alertHistoryMap = new Map<string, any[]>();
+
+  // Initialize persistent storage on startup
+  private initializePersistentStorage() {
+    this.loadPersistedConnections();
+    this.loadPersistedAlertHistory();
+  }
+
+  private loadPersistedConnections() {
+    try {
+      // In production, this would load from localStorage or database
+      const storedConnections = this.getStoredConnectionsFromLocalStorage();
+      if (storedConnections) {
+        for (const [userId, connections] of Object.entries(storedConnections)) {
+          this.familyConnectionsMap.set(userId, connections as FamilyConnection[]);
+        }
+      }
+    } catch (error) {
+      console.log('No persisted connections found, starting fresh');
+    }
+  }
+
+  private loadPersistedAlertHistory() {
+    try {
+      const storedHistory = this.getStoredAlertHistoryFromLocalStorage();
+      if (storedHistory) {
+        for (const [userId, alerts] of Object.entries(storedHistory)) {
+          this.alertHistoryMap.set(userId, alerts as AlertHistory[]);
+        }
+      }
+    } catch (error) {
+      console.log('No persisted alert history found, starting fresh');
+    }
+  }
+
+  private getStoredConnectionsFromLocalStorage(): any {
+    // Simulated localStorage for server-side persistence
+    return (global as any).persistedConnections || {};
+  }
+
+  private getStoredAlertHistoryFromLocalStorage(): any {
+    return (global as any).persistedAlertHistory || {};
+  }
+
+  private persistConnections() {
+    // Persist to simulated global storage
+    (global as any).persistedConnections = Object.fromEntries(this.familyConnectionsMap);
+  }
+
+  private persistAlertHistory() {
+    (global as any).persistedAlertHistory = Object.fromEntries(this.alertHistoryMap);
+  }
+
+  // Enhanced alert resolution with permanent history storage
+  async archiveResolvedAlert(alertId: number, resolvedBy: string): Promise<void> {
+    const alert = await this.getEmergencyAlert(alertId);
+    if (alert) {
+      // Create history entry
+      const historyEntry = {
+        id: Date.now(),
+        originalAlertId: alertId,
+        userId: alert.userId,
+        parentUserId: resolvedBy,
+        triggerType: alert.triggerType,
+        message: `Emergency resolved by parent`,
+        latitude: alert.latitude,
+        longitude: alert.longitude,
+        address: alert.address,
+        status: 'resolved',
+        resolvedAt: new Date(),
+        resolvedBy: resolvedBy,
+        responseTime: Math.floor((Date.now() - new Date(alert.createdAt).getTime()) / 1000),
+        audioRecordingUrl: alert.audioRecordingUrl,
+        videoRecordingUrl: alert.videoRecordingUrl,
+        isArchived: false,
+        createdAt: alert.createdAt,
+        archivedAt: null
+      };
+
+      // Store in alert history for permanent storage
+      const userHistory = this.alertHistoryMap.get(alert.userId) || [];
+      userHistory.push(historyEntry);
+      this.alertHistoryMap.set(alert.userId, userHistory);
+
+      // Also store for parent access
+      const parentHistory = this.alertHistoryMap.get(resolvedBy) || [];
+      parentHistory.push(historyEntry);
+      this.alertHistoryMap.set(resolvedBy, parentHistory);
+
+      // Persist to prevent loss
+      this.persistAlertHistory();
+    }
+  }
+
+  // Get permanent alert history for a user
+  async getAlertHistory(userId: string): Promise<any[]> {
+    return this.alertHistoryMap.get(userId) || [];
+  }
 
   async getFamilyConnections(userId: string): Promise<FamilyConnection[]> { 
     return this.familyConnectionsMap.get(userId) || []; 
@@ -888,6 +986,9 @@ class MemoryStorage implements IStorage {
     if (connection.inviteCode) {
       this.familyConnectionsByCode.set(connection.inviteCode, newConnection);
     }
+
+    // Persist connections to prevent loss on refresh
+    this.persistConnections();
 
     return newConnection;
   }
