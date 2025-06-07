@@ -274,7 +274,7 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
         {/* Quick Destinations */}
         <div>
           <Label className="text-sm font-medium mb-2 block">Quick Safe Destinations</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2">
             {getSafeDestinations().slice(0, 4).map((dest, index) => (
               <Button
                 key={index}
@@ -282,23 +282,31 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
                 size="sm"
                 onClick={() => findSafeRoute(dest.name)}
                 disabled={isSearching}
-                className="h-20 p-2 flex flex-col items-center justify-center text-center w-full"
+                className="w-full h-14 p-3 flex items-center justify-between text-left hover:bg-blue-50"
               >
-                <MapPin className="w-3 h-3 mb-1 flex-shrink-0" />
-                <div className="text-xs font-medium leading-tight text-center w-full px-1 overflow-hidden">
-                  <div className="line-clamp-2 break-words">
-                    {dest.name && dest.name.trim() !== "" 
-                      ? (dest.name.length > 18 ? dest.name.substring(0, 18) + "..." : dest.name)
-                      : "Loading..."}
+                <div className="flex items-center flex-1 min-w-0">
+                  <MapPin className="w-4 h-4 mr-3 text-blue-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">
+                      {dest.name && dest.name.trim() !== "" 
+                        ? dest.name
+                        : "Loading..."}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Safe destination
+                    </div>
                   </div>
                 </div>
                 {dest.distance && (
-                  <span className="text-xs text-green-600 flex-shrink-0 mt-1">{dest.distance} km</span>
+                  <div className="text-right flex-shrink-0 ml-3">
+                    <div className="text-sm font-semibold text-green-600">{dest.distance} km</div>
+                    <div className="text-xs text-gray-400">away</div>
+                  </div>
                 )}
               </Button>
             ))}
             {getSafeDestinations().length === 0 && (
-              <div className="col-span-2 text-center text-gray-500 py-4">
+              <div className="text-center text-gray-500 py-4">
                 <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">Loading nearby safe locations...</p>
               </div>
