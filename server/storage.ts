@@ -622,6 +622,7 @@ class MemoryStorage implements IStorage {
   private homeLocationsMap = new Map<string, HomeLocation>();
   private familyConnectionsMap = new Map<string, FamilyConnection[]>();
   private alertHistoryMap = new Map<string, any[]>();
+  private communityAlertsMap = new Map<number, CommunityAlert>();
 
   constructor() {
     // Initialize with demo user data
@@ -847,9 +848,7 @@ class MemoryStorage implements IStorage {
     return undefined;
   }
 
-  // Stub implementations for other required methods
-  async getCommunityAlerts(): Promise<CommunityAlert[]> { return []; }
-  async createCommunityAlert(): Promise<CommunityAlert> { throw new Error('Not implemented'); }
+  // Stub implementations for safe zones (not yet implemented)
   async getSafeZones(): Promise<SafeZone[]> { return []; }
   async createSafeZone(): Promise<SafeZone> { throw new Error('Not implemented'); }
   async deleteSafeZone(): Promise<boolean> { return false; }
@@ -1203,6 +1202,44 @@ class MemoryStorage implements IStorage {
     });
     this.alertHistoryMap.set(resolvedBy, alertHistory);
   }
+
+  // Community alerts operations
+  async getCommunityAlerts(latitude: number, longitude: number, radius: number): Promise<CommunityAlert[]> {
+    const alerts = Array.from(this.communityAlertsMap.values());
+    return alerts.filter(alert => {
+      const distance = this.calculateDistance(latitude, longitude, alert.latitude, alert.longitude);
+      return distance <= radius;
+    });
+  }
+
+  async createCommunityAlert(alert: InsertCommunityAlert): Promise<CommunityAlert> {
+    const newAlert: CommunityAlert = {
+      id: Date.now(),
+      userId: alert.userId,
+      type: alert.type,
+      description: alert.description,
+      latitude: alert.latitude,
+      longitude: alert.longitude,
+      severity: alert.severity,
+      verified: alert.verified || false,
+      reportedBy: alert.reportedBy || 'anonymous',
+      createdAt: new Date()
+    };
+    
+    this.communityAlertsMap.set(newAlert.id, newAlert);
+    return newAlert;
+  }
+
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c * 1000; // Distance in meters
+  }
 }
 
 // Smart storage that falls back to memory when database fails
@@ -1312,7 +1349,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.getCommunityAlerts(latitude, longitude, radius));
     } catch {
-      return this.memStorage.getCommunityAlerts();
+      return this.memStorage.getCommunityAlerts(latitude, longitude, radius);
     }
   }
 
@@ -1320,7 +1357,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.createCommunityAlert(alert));
     } catch {
-      return this.memStorage.createCommunityAlert();
+      return this.memStorage.createCommunityAlert(alert);
     }
   }
 
