@@ -934,8 +934,6 @@ class MemoryStorage implements IStorage {
     }
     return false;
   }
-  async getDestinations(): Promise<Destination[]> { return []; }
-  async createDestination(): Promise<Destination> { throw new Error('Not implemented'); }
   async deleteDestination(): Promise<boolean> { return false; }
   async getHomeLocation(userId: string): Promise<HomeLocation | undefined> { 
     return this.homeLocationsMap.get(userId);
@@ -1472,7 +1470,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.createDestination(destination));
     } catch {
-      return this.memStorage.createDestination();
+      return this.memStorage.createDestination(destination);
     }
   }
 
