@@ -23,6 +23,11 @@ export default function Map() {
   const [selectedAlert, setSelectedAlert] = useState<CommunityAlert | null>(null);
   const { location: userLocation } = useLocation();
 
+  // Fetch emergency contacts
+  const { data: emergencyContacts = [] } = useQuery({
+    queryKey: ["/api/emergency-contacts"],
+  });
+
   // Fetch real community alerts from the database with minimal polling
   const { data: communityAlerts = [], isLoading: alertsLoading } = useQuery({
     queryKey: ["/api/community-alerts"],
@@ -142,37 +147,77 @@ export default function Map() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3">
-            <Button 
-              variant="outline" 
-              className="h-16 flex flex-col space-y-1"
-              onClick={() => window.location.href = "tel:100"}
-            >
-              <Phone className="w-4 h-4 text-red-600" />
-              <span className="text-xs font-medium">Police</span>
-              <span className="text-xs text-gray-500">100</span>
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="h-16 flex flex-col space-y-1"
-              onClick={() => window.location.href = "tel:1091"}
-            >
-              <Phone className="w-4 h-4 text-pink-600" />
-              <span className="text-xs font-medium">Women Help</span>
-              <span className="text-xs text-gray-500">1091</span>
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="h-16 flex flex-col space-y-1"
-              onClick={() => window.location.href = "tel:108"}
-            >
-              <Phone className="w-4 h-4 text-blue-600" />
-              <span className="text-xs font-medium">Medical</span>
-              <span className="text-xs text-gray-500">108</span>
-            </Button>
-          </div>
+          {emergencyContacts.length === 0 ? (
+            <div className="text-center py-6">
+              <Users className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+              <p className="text-gray-600 mb-2">No emergency contacts added</p>
+              <p className="text-sm text-gray-500">Add contacts in Settings to enable quick calling</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {emergencyContacts.filter(contact => contact.isActive).slice(0, 4).map((contact) => (
+                <div key={contact.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-medium text-gray-900">{contact.name}</p>
+                      {contact.isPrimary && (
+                        <Badge variant="default" className="text-xs bg-blue-100 text-blue-700">
+                          Primary
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">{contact.relationship}</p>
+                    <p className="text-xs text-gray-500">{contact.phoneNumber}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex items-center space-x-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => window.location.href = `tel:${contact.phoneNumber}`}
+                  >
+                    <Phone className="w-4 h-4" />
+                    <span className="text-xs">Call</span>
+                  </Button>
+                </div>
+              ))}
+              
+              {/* Government Emergency Numbers */}
+              <div className="border-t pt-3 mt-4">
+                <p className="text-sm font-medium text-gray-700 mb-3">Government Emergency Numbers</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="h-12 flex flex-col space-y-1 text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={() => window.location.href = "tel:100"}
+                  >
+                    <Phone className="w-3 h-3" />
+                    <span className="text-xs">Police 100</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="h-12 flex flex-col space-y-1 text-pink-600 border-pink-200 hover:bg-pink-50"
+                    onClick={() => window.location.href = "tel:1091"}
+                  >
+                    <Phone className="w-3 h-3" />
+                    <span className="text-xs">Women 1091</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="h-12 flex flex-col space-y-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => window.location.href = "tel:108"}
+                  >
+                    <Phone className="w-3 h-3" />
+                    <span className="text-xs">Medical 108</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

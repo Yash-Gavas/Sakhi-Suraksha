@@ -47,8 +47,28 @@
         "address": "Bangalore, Karnataka, India",
         "isFavorite": true,
         "createdAt": "2025-06-07T16:58:40.942Z"
+      },
+      {
+        "id": 1749316397942,
+        "userId": "demo-user",
+        "name": "Home",
+        "latitude": 13.034590623504656,
+        "longitude": 77.5624475379973,
+        "address": "Bangalore, Karnataka, India",
+        "isFavorite": true,
+        "createdAt": "2025-06-07T17:13:17.942Z"
+      },
+      {
+        "id": 1749316451306,
+        "userId": "demo-user",
+        "name": "Home",
+        "latitude": 13.034659659888272,
+        "longitude": 77.56243652153559,
+        "address": "Bangalore, Karnataka, India",
+        "isFavorite": true,
+        "createdAt": "2025-06-07T17:14:11.306Z"
       }
     ]
   },
-  "timestamp": "2025-06-07T17:00:09.715Z"
+  "timestamp": "2025-06-07T17:14:11.311Z"
 }
