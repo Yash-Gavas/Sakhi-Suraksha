@@ -1526,10 +1526,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/parent/children", async (req, res) => {
     try {
       // For demo, use demo-user as parent. In production, get from authenticated session
-      const parentUserId = 'demo-parent'; 
+      const parentUserId = 'demo-user'; 
       
-      // Get connected children from database
-      const connections = await storage.getConnectedChildren(parentUserId);
+      // Get connected children from database and filter duplicates
+      const allConnections = await storage.getFamilyConnections(parentUserId);
+      const connections = allConnections.filter((connection, index, arr) => {
+        // Keep only the first connection per childUserId to prevent duplicates
+        return index === arr.findIndex(c => c.childUserId === connection.childUserId);
+      });
       
       // Get real user data for each connected child
       const children = await Promise.all(connections.map(async (connection: any) => {
@@ -1682,24 +1686,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Parent connecting to child with code: ${connectionCode}`);
       
-      // For demo, create a new family connection directly
-      // In production, this would find an existing pending connection by invite code
-      const parentUserId = 'demo-parent';
-      const childUserId = 'demo-user';
+      const parentUserId = 'demo-user';
+      const childUserId = 'sharanya-child';
       
-      // Create persistent family connection in database using storage method
-      const connection = await storage.createFamilyConnection({
-        parentUserId,
-        childUserId,
-        relationshipType: 'parent',
-        status: 'accepted',
-        inviteCode: connectionCode,
-        permissions: {
-          emergencyAlerts: true,
-          locationSharing: true,
-          liveStreaming: true
-        }
-      });
+      // Check if connection already exists to prevent duplicates
+      const existingConnections = await storage.getFamilyConnections(parentUserId);
+      const existingConnection = existingConnections.find(conn => 
+        conn.childUserId === childUserId || conn.inviteCode === connectionCode
+      );
+      
+      let connection;
+      if (existingConnection) {
+        // Update existing connection instead of creating new one
+        connection = await storage.updateFamilyConnection(existingConnection.id, {
+          inviteCode: connectionCode,
+          status: 'accepted',
+          permissions: {
+            emergencyAlerts: true,
+            locationSharing: true,
+            liveStreaming: true
+          }
+        });
+        console.log('Updated existing connection instead of creating duplicate');
+      } else {
+        // Create new connection only if none exists
+        connection = await storage.createFamilyConnection({
+          parentUserId,
+          childUserId,
+          relationshipType: 'parent',
+          status: 'accepted',
+          inviteCode: connectionCode,
+          permissions: {
+            emergencyAlerts: true,
+            locationSharing: true,
+            liveStreaming: true
+          }
+        });
+      }
       
       // Get real user data for response
       const user = await storage.getUser(childUserId);
