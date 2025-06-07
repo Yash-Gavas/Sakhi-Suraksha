@@ -70,17 +70,7 @@ export default function Map() {
       <InteractiveMap />
 
       {/* Safe Route Finder */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Route className="w-5 h-5 mr-2" />
-            Safe Route Finder
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SafeRouteFinder />
-        </CardContent>
-      </Card>
+      <SafeRouteFinder />
 
       {/* Community Alerts */}
       <Card>

@@ -287,9 +287,9 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
                 <MapPin className="w-3 h-3 mb-1 flex-shrink-0" />
                 <div className="text-xs font-medium leading-tight text-center w-full px-1 overflow-hidden">
                   <div className="line-clamp-2 break-words">
-                    {dest.name && dest.name.length > 20 
-                      ? dest.name.substring(0, 20) + "..." 
-                      : dest.name || "Loading..."}
+                    {dest.name && dest.name.trim() !== "" 
+                      ? (dest.name.length > 18 ? dest.name.substring(0, 18) + "..." : dest.name)
+                      : "Loading..."}
                   </div>
                 </div>
                 {dest.distance && (
@@ -435,14 +435,14 @@ export default function SafeRouteFinder({ onRouteFound }: SafeRouteProps) {
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
-                <Button onClick={startNavigation} className="flex-1 bg-green-600 hover:bg-green-700 h-11">
-                  <Navigation className="w-4 h-4 mr-2" />
-                  Start Navigation
+              <div className="flex gap-2 pt-2">
+                <Button onClick={startNavigation} className="flex-1 bg-green-600 hover:bg-green-700 h-11 min-w-0">
+                  <Navigation className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">Start Navigation</span>
                 </Button>
-                <Button onClick={shareRoute} variant="outline" className="flex-1 h-11">
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share Route
+                <Button onClick={shareRoute} variant="outline" className="flex-1 h-11 min-w-0">
+                  <Share2 className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">Share Route</span>
                 </Button>
               </div>
             </CardContent>
