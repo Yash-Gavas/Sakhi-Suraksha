@@ -624,9 +624,6 @@ class MemoryStorage implements IStorage {
   private alertHistoryMap = new Map<string, any[]>();
 
   constructor() {
-    // Load persistent data from file
-    this.loadPersistentData();
-    
     // Initialize with demo user data
     this.users.set('demo-user', {
       id: "demo-user",
@@ -675,6 +672,22 @@ class MemoryStorage implements IStorage {
     ]);
 
     this.emergencyAlertsMap.set('demo-user', []);
+    
+    // Initialize default Sharanya connection
+    this.familyConnectionsMap.set("demo-user", [{
+      id: 1749306839701,
+      parentUserId: "demo-user",
+      childUserId: "sharanya-child",
+      relationshipType: "parent-child",
+      status: "active",
+      permissions: { location: true, emergency: true, monitoring: true },
+      inviteCode: null,
+      inviteExpiry: null,
+      acceptedAt: new Date(),
+      createdAt: new Date()
+    }]);
+    
+    this.alertHistoryMap.set("demo-user", []);
   }
 
   private async loadPersistentData() {
@@ -1130,6 +1143,52 @@ class MemoryStorage implements IStorage {
       allConnections.push(...connections.filter(c => c.childUserId === childUserId));
     }
     return allConnections;
+  }
+
+  async getFamilyConnections(userId: string): Promise<FamilyConnection[]> {
+    return this.familyConnectionsMap.get(userId) || [];
+  }
+
+  async createFamilyConnection(connection: InsertFamilyConnection): Promise<FamilyConnection> {
+    const newConnection = {
+      id: Date.now(),
+      ...connection,
+      createdAt: new Date()
+    };
+    
+    const userConnections = this.familyConnectionsMap.get(connection.parentUserId) || [];
+    userConnections.push(newConnection);
+    this.familyConnectionsMap.set(connection.parentUserId, userConnections);
+    
+    return newConnection;
+  }
+
+  async updateFamilyConnection(id: number, updates: Partial<InsertFamilyConnection>): Promise<FamilyConnection | undefined> {
+    for (const [userId, connections] of this.familyConnectionsMap.entries()) {
+      const connectionIndex = connections.findIndex(c => c.id === id);
+      if (connectionIndex !== -1) {
+        connections[connectionIndex] = { ...connections[connectionIndex], ...updates };
+        this.familyConnectionsMap.set(userId, connections);
+        return connections[connectionIndex];
+      }
+    }
+    return undefined;
+  }
+
+  async getAlertHistory(userId: string): Promise<any[]> {
+    return this.alertHistoryMap.get(userId) || [];
+  }
+
+  async archiveResolvedAlert(alertId: number, resolvedBy: string): Promise<void> {
+    const alertHistory = this.alertHistoryMap.get(resolvedBy) || [];
+    alertHistory.push({
+      id: Date.now(),
+      originalAlertId: alertId,
+      resolvedBy,
+      resolvedAt: new Date(),
+      status: 'resolved'
+    });
+    this.alertHistoryMap.set(resolvedBy, alertHistory);
   }
 }
 
