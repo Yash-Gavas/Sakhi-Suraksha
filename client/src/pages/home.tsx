@@ -108,8 +108,8 @@ export default function Home() {
               
               <div className="flex justify-between items-center">
                 <span className="text-gray-700 font-medium">Voice Recognition</span>
-                <Badge className={isListening ? "bg-green-100 text-green-700 border-green-300" : "bg-gray-100 text-gray-700 border-gray-300"}>
-                  {isListening ? "Active" : "Inactive"}
+                <Badge className={isVoiceDetectionActive ? "bg-green-100 text-green-700 border-green-300" : "bg-gray-100 text-gray-700 border-gray-300"}>
+                  {isVoiceDetectionActive ? "Active" : "Inactive"}
                 </Badge>
               </div>
               
