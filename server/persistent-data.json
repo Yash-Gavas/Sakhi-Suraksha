@@ -14,29 +14,28 @@
         },
         "inviteCode": null,
         "inviteExpiry": null,
-        "acceptedAt": "2024-06-07T14:35:00.000Z",
-        "createdAt": "2024-06-07T14:35:00.000Z"
+        "acceptedAt": "2025-06-07T16:58:19.916Z",
+        "createdAt": "2025-06-07T16:58:19.916Z"
       }
     ]
   },
   "alertHistory": {
     "demo-user": []
   },
-  "childProfiles": {
-    "sharanya-child": {
-      "id": "sharanya-child",
-      "name": "Sharanya",
-      "email": "sharanya@example.com",
-      "phone": "+919380474206",
-      "lastSeen": "2024-06-07T14:35:00.000Z",
-      "status": "safe",
-      "currentLocation": {
-        "lat": 13.034661390875538,
-        "lng": 77.56243681184755,
-        "address": "Bangalore, Karnataka",
-        "timestamp": "2024-06-07T14:35:00.000Z"
+  "communityAlerts": [],
+  "destinations": {
+    "demo-user": [
+      {
+        "id": 1749315520942,
+        "userId": "demo-user",
+        "name": "Home",
+        "latitude": 13.034661,
+        "longitude": 77.562437,
+        "address": "Bangalore, Karnataka, India",
+        "isFavorite": true,
+        "createdAt": "2025-06-07T16:58:40.942Z"
       }
-    }
+    ]
   },
-  "communityAlerts": []
+  "timestamp": "2025-06-07T16:58:40.947Z"
 }

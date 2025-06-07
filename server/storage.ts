@@ -689,6 +689,9 @@ class MemoryStorage implements IStorage {
     }]);
     
     this.alertHistoryMap.set("demo-user", []);
+    
+    // Load persistent data on initialization
+    this.loadPersistentData();
   }
 
   private async loadPersistentData() {
@@ -868,6 +871,8 @@ class MemoryStorage implements IStorage {
   private destinationsMap = new Map<string, Destination[]>();
 
   async getDestinations(userId: string): Promise<Destination[]> {
+    // Ensure persistent data is loaded before accessing destinations
+    await this.loadPersistentData();
     return this.destinationsMap.get(userId) || [];
   }
 
@@ -1462,7 +1467,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.getDestinations(userId));
     } catch {
-      return this.memStorage.getDestinations();
+      return this.memStorage.getDestinations(userId);
     }
   }
 
