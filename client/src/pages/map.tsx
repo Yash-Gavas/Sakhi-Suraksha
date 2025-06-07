@@ -157,26 +157,26 @@ export default function Map() {
             <div className="space-y-3">
               {emergencyContacts.filter(contact => contact.isActive).slice(0, 4).map((contact) => (
                 <div key={contact.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-medium text-gray-900">{contact.name}</p>
+                  <div className="flex-1 min-w-0 pr-3">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <p className="font-medium text-gray-900 truncate">{contact.name}</p>
                       {contact.isPrimary && (
-                        <Badge variant="default" className="text-xs bg-blue-100 text-blue-700">
+                        <Badge variant="default" className="text-xs bg-blue-100 text-blue-700 flex-shrink-0">
                           Primary
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600">{contact.relationship}</p>
-                    <p className="text-xs text-gray-500">{contact.phoneNumber}</p>
+                    <p className="text-sm text-gray-600 truncate">{contact.relationship}</p>
+                    <p className="text-xs text-gray-500 truncate">{contact.phoneNumber}</p>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex items-center space-x-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                    className="flex items-center space-x-1 text-blue-600 border-blue-200 hover:bg-blue-50 flex-shrink-0"
                     onClick={() => window.location.href = `tel:${contact.phoneNumber}`}
                   >
                     <Phone className="w-4 h-4" />
-                    <span className="text-xs">Call</span>
+                    <span className="text-xs hidden sm:inline">Call</span>
                   </Button>
                 </div>
               ))}
