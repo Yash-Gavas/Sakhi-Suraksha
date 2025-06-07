@@ -764,12 +764,16 @@ class MemoryStorage implements IStorage {
   private liveStreamById = new Map<number, LiveStream>();
 
   async createLiveStream(stream: InsertLiveStream): Promise<LiveStream> {
-    const newStream = {
-      ...stream,
+    const newStream: LiveStream = {
       id: Date.now(),
+      userId: stream.userId,
+      streamUrl: stream.streamUrl,
+      shareLink: stream.shareLink,
+      isActive: stream.isActive ?? true,
+      emergencyAlertId: stream.emergencyAlertId || null,
       createdAt: new Date(),
-      isActive: true
-    } as LiveStream;
+      endedAt: null
+    };
 
     const userStreams = this.liveStreamsMap.get(stream.userId) || [];
     userStreams.push(newStream);
@@ -933,7 +937,6 @@ class SmartStorage implements IStorage {
       if (error?.message?.includes('endpoint is disabled') || error?.code === 'XX000') {
         console.log('Database endpoint disabled, switching to memory storage');
         this.useDatabase = false;
-        throw error;
       }
       throw error;
     }
@@ -1064,7 +1067,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.createLiveStream(stream));
     } catch {
-      return this.memStorage.createLiveStream();
+      return this.memStorage.createLiveStream(stream);
     }
   }
 
@@ -1072,7 +1075,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.getLiveStreams(userId));
     } catch {
-      return this.memStorage.getLiveStreams();
+      return this.memStorage.getLiveStreams(userId);
     }
   }
 
@@ -1080,7 +1083,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.getLiveStreamById(id));
     } catch {
-      return this.memStorage.getLiveStreamById();
+      return this.memStorage.getLiveStreamById(id);
     }
   }
 
@@ -1088,7 +1091,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.endLiveStream(id));
     } catch {
-      return this.memStorage.endLiveStream();
+      return this.memStorage.endLiveStream(id);
     }
   }
 
