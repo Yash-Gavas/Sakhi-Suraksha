@@ -716,6 +716,13 @@ class MemoryStorage implements IStorage {
           }
         }
         
+        // Load community alerts
+        if (data.communityAlerts && Array.isArray(data.communityAlerts)) {
+          for (const alert of data.communityAlerts) {
+            this.communityAlertsMap.set(alert.id, alert);
+          }
+        }
+        
         console.log('Persistent data loaded successfully from file');
       } else {
         this.initializeDefaultData();
@@ -757,6 +764,7 @@ class MemoryStorage implements IStorage {
       const data = {
         familyConnections: Object.fromEntries(this.familyConnectionsMap),
         alertHistory: Object.fromEntries(this.alertHistoryMap),
+        communityAlerts: Array.from(this.communityAlertsMap.values()),
         timestamp: new Date().toISOString()
       };
       
