@@ -1,19 +1,24 @@
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, Phone, Camera, MapPin } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
-import type { EmergencyContact } from "@shared/schema";
-import LiveStreaming from "./live-streaming";
-import FixedVoiceDetector from "./fixed-voice-detector";
-import SmartwatchIntegration from "./smartwatch-integration";
-import { DeviceSmsService } from "@/lib/deviceSmsService";
-import { sendEmergencyAlert, sendLiveLocationAlert, sendToMultipleContacts } from "@/lib/deviceMessaging";
-import { MobileMessaging } from "@/lib/mobileMessaging";
-import MobileEmergencyInterface from "@/components/mobile-emergency-interface";
-import AutoSOSSender from "@/components/auto-sos-sender";
-import IPhoneDirectMessaging from "@/components/iphone-direct-messaging";
-import { PhotoCapture, uploadEmergencyPhoto } from "./photo-capture";
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, Phone, MapPin, Video, Camera, MessageCircle, Users, Shield, Clock, CheckCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import FixedVoiceDetector from './fixed-voice-detector';
+import LiveStreaming from './live-streaming';
+import PhotoCapture from './photo-capture';
+
+interface EmergencyContact {
+  id: number;
+  name: string;
+  phoneNumber: string;
+  email?: string;
+  relationship?: string;
+  isActive: boolean;
+  whatsappNumber?: string;
+}
 
 interface EmergencyAlert {
   triggerType: string;
@@ -26,8 +31,6 @@ interface EmergencyAlert {
 export default function EnhancedEmergencyButton() {
   const [isTriggering, setIsTriggering] = useState(false);
   const [showLiveStream, setShowLiveStream] = useState(false);
-  const [showMobileInterface, setShowMobileInterface] = useState(false);
-  const [showAutoSOS, setShowAutoSOS] = useState(false);
   const [showDirectMessaging, setShowDirectMessaging] = useState(false);
   const [emergencyMessageText, setEmergencyMessageText] = useState("");
   const [holdProgress, setHoldProgress] = useState(0);
@@ -42,90 +45,39 @@ export default function EnhancedEmergencyButton() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Fetch real emergency contacts from database
+  // Fetch emergency contacts
   const { data: emergencyContacts = [] } = useQuery<EmergencyContact[]>({
     queryKey: ["/api/emergency-contacts"]
   });
 
-  // WebSocket connection for emergency resolution signals
+  // WebSocket connection for emergency resolution
   useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
-    try {
-      wsRef.current = new WebSocket(wsUrl);
+    if (emergencyActive && !wsRef.current) {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const ws = new WebSocket(wsUrl);
       
-      wsRef.current.onopen = () => {
-        console.log('WebSocket connected for emergency signals');
+      ws.onopen = () => {
+        console.log('WebSocket connected for emergency monitoring');
       };
       
-      wsRef.current.onmessage = async (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.type === 'emergency_resolved' && data.alertId === currentAlertId) {
-            console.log(`Emergency ${data.alertId} resolved from parent dashboard - stopping video recording`);
-            
-            // Stop video recording and upload when emergency is resolved
-            if (videoRecorder && videoRecorder.state === 'recording') {
-              stopVideoRecording();
-              
-              // Wait for recording to complete and upload
-              setTimeout(async () => {
-                if (recordedVideoBlob && currentAlertId) {
-                  const videoUrl = await uploadVideoRecording(currentAlertId, recordedVideoBlob);
-                  console.log('Emergency resolved - video uploaded:', videoUrl);
-                  
-                  toast({
-                    title: "Emergency Resolved",
-                    description: "Video recording saved automatically",
-                    variant: "default",
-                  });
-                }
-              }, 2000);
-            }
-            
-            // Reset emergency state
-            setEmergencyActive(false);
-            setShowLiveStream(false);
-            setVideoRecorder(null);
-            setRecordedVideoBlob(null);
-            setCurrentAlertId(null);
-            
-            toast({
-              title: "Emergency Resolved by Parent",
-              description: "Your safety alert has been resolved",
-              variant: "default",
-            });
-          }
-        } catch (error) {
-          console.error('Error processing WebSocket message:', error);
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'emergencyResolved' && data.alertId === currentAlertId) {
+          handleEmergencyResolution();
         }
       };
       
-      wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-      
-    } catch (error) {
-      console.error('Failed to establish WebSocket connection:', error);
+      wsRef.current = ws;
     }
     
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
       }
     };
-  }, [currentAlertId, videoRecorder, recordedVideoBlob, toast]);
-
-  const handleSmartwatchSOS = async (source: string, deviceInfo: any) => {
-    const triggerType = `smartwatch-${deviceInfo.type}`;
-    await triggerEmergencyProtocol(triggerType, {
-      deviceName: deviceInfo.name,
-      batteryLevel: deviceInfo.batteryLevel,
-      lastSync: deviceInfo.lastSync
-    });
-  };
+  }, [emergencyActive, currentAlertId]);
 
   const startVideoRecording = async (): Promise<MediaRecorder | null> => {
     try {
@@ -168,7 +120,7 @@ export default function EnhancedEmergencyButton() {
   const stopVideoRecording = () => {
     if (videoRecorder && videoRecorder.state === 'recording') {
       videoRecorder.stop();
-      console.log('Video recording stopped');
+      setVideoRecorder(null);
     }
   };
 
@@ -177,9 +129,8 @@ export default function EnhancedEmergencyButton() {
       const formData = new FormData();
       formData.append('video', videoBlob, `emergency_${alertId}_${Date.now()}.webm`);
       formData.append('alertId', alertId.toString());
-      formData.append('timestamp', new Date().toISOString());
 
-      const response = await fetch('/api/emergency-video-upload', {
+      const response = await fetch('/api/upload/emergency-video', {
         method: 'POST',
         body: formData
       });
@@ -218,8 +169,6 @@ export default function EnhancedEmergencyButton() {
     });
   };
 
-
-
   const triggerEmergencyProtocol = async (triggerType: string, additionalData?: any) => {
     setIsTriggering(true);
     setEmergencyActive(true);
@@ -245,21 +194,18 @@ export default function EnhancedEmergencyButton() {
 
           // Auto-start live streaming
           setShowLiveStream(true);
-          const streamId = Date.now();
-          const streamUrl = `${window.location.origin}/emergency-stream/stream_${streamId}_emergency`;
-          emergencyData.streamUrl = streamUrl;
 
-          // Create emergency alert in database and get alert ID
+          // Send emergency alert to backend
           try {
-            const alertResponse = await fetch('/api/emergency-alerts', {
+            const alertResponse = await fetch('/api/emergency-alert', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 triggerType,
-                latitude: emergencyData.location.lat,
-                longitude: emergencyData.location.lng,
-                address: emergencyData.location.address,
-                deviceInfo: additionalData ? JSON.stringify(additionalData) : null
+                latitude,
+                longitude,
+                deviceInfo: JSON.stringify(additionalData || {}),
+                timestamp: timestamp.toISOString()
               })
             });
 
@@ -286,301 +232,139 @@ export default function EnhancedEmergencyButton() {
             console.error('Failed to create emergency alert:', error);
           }
 
-          // Send emergency messages to all contacts via device messaging
           await sendEmergencyMessages(emergencyData);
-          
-          // Trigger direct iPhone messaging interface
-          const contacts = emergencyContacts.filter(contact => contact.isActive && contact.phoneNumber);
-          if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iOS')) {
-            console.log('iPhone detected - triggering direct messaging interface');
-            setEmergencyMessageText(`🚨 EMERGENCY ALERT 🚨
-I need immediate help! This is an automated SOS from Sakhi Suraksha app.
-
-📍 LOCATION: ${emergencyData.location.address}
-⏰ TIME: ${emergencyData.timestamp.toLocaleString()}
-📹 LIVE STREAM: ${emergencyData.streamUrl || 'Starting...'}
-
-Please contact me immediately or call emergency services.`);
-            setShowDirectMessaging(true);
-          } else {
-            MobileMessaging.sendEmergencyMessages(contacts, emergencyData);
-          }
-          
-          // Show native notification
-          MobileMessaging.showNativeNotification(
-            "Emergency Alert Activated",
-            `Messaging ${contacts.length} emergency contacts with live location`
-          );
-
-          // Show success notification
-          toast({
-            title: "🚨 Emergency Alert Activated",
-            description: "All emergency contacts notified with live location and video stream",
-            variant: "default",
-          });
-
-          // Auto-call emergency services after delay
-          setTimeout(() => {
-            toast({
-              title: "📞 Calling Emergency Services",
-              description: "Connecting to Police (100) and Women's Helpline (1091)",
-              variant: "default",
-            });
-          }, 3000);
-
-        }, (error) => {
-          console.error('Geolocation error:', error);
-          // Still send emergency without precise location
-          const emergencyData: EmergencyAlert = {
-            triggerType,
-            scenario: getEmergencyScenario(triggerType),
-            location: {
-              lat: 0,
-              lng: 0,
-              address: "Location unavailable - GPS disabled"
-            },
-            timestamp: new Date()
-          };
-          sendEmergencyMessages(emergencyData);
+          setIsTriggering(false);
         });
       }
     } catch (error) {
-      toast({
-        title: "Emergency Alert Failed",
-        description: "Please try again or call emergency services directly",
-        variant: "destructive",
-      });
-    } finally {
+      console.error('Emergency protocol failed:', error);
       setIsTriggering(false);
     }
   };
 
-  const getEmergencyScenario = (triggerType: string): string => {
-    const scenarios = {
-      'manual_button': 'Manual SOS button pressed - User actively requested emergency assistance',
-      'voice_activation': 'Voice distress detected - User said emergency keywords indicating need for help',
-      'shake_detection': 'Device shake pattern detected - Possible struggle or distress situation',
-      'panic_hold': 'Extended button hold detected - User confirmed emergency situation',
-      'location_unsafe': 'User in potentially unsafe location - Proactive safety alert triggered'
-    };
-    
-    return scenarios[triggerType as keyof typeof scenarios] || 'Emergency assistance requested through Sakhi Suraksha app';
-  };
-
   const sendEmergencyMessages = async (emergencyData: EmergencyAlert) => {
-    const messageTemplate = `🚨 URGENT EMERGENCY ALERT 🚨
-
-${emergencyData.scenario}
-
-📍 LIVE LOCATION: 
-${emergencyData.location.address}
-Google Maps: https://maps.google.com/?q=${emergencyData.location.lat},${emergencyData.location.lng}
-
-🕒 TIME: ${emergencyData.timestamp.toLocaleString()}
-
-📹 LIVE VIDEO STREAM: 
-${emergencyData.streamUrl || 'Starting video stream...'}
-
-⚠️ EMERGENCY DETAILS:
-- Trigger: ${emergencyData.triggerType.replace('_', ' ').toUpperCase()}
-- App: Sakhi Suraksha Safety App
-- Auto-generated alert
-
-🆘 IMMEDIATE ACTION REQUIRED:
-1. Contact me immediately
-2. Call emergency services if no response
-3. Share this location with authorities
-
-Emergency Contacts:
-🚔 Police: 100
-👩‍⚕️ Women's Helpline: 1091
-🏥 Medical: 108
-
-This is an automated safety alert. Please respond urgently.`;
-
-    // Send SMS from device to all emergency contacts from database
-    const activeContacts = emergencyContacts.filter(contact => contact.isActive && contact.phoneNumber);
-    
-    if (activeContacts.length === 0) {
-      toast({
-        title: "No Emergency Contacts",
-        description: "Please add emergency contacts in your profile to receive alerts",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Send messages through device's native SMS and WhatsApp apps
-    try {
-      const contacts = activeContacts.map(contact => ({
-        name: contact.name,
-        phoneNumber: contact.phoneNumber!,
-        email: contact.email
-      }));
-
-      // Detect device and use direct messaging for iPhone 13 Pro Max
-      console.log('Opening emergency messaging for contacts:', contacts);
-      
-      setEmergencyMessageText(messageTemplate);
-      
-      // Use direct messaging for iPhone 13 Pro Max
-      if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iOS')) {
-        setShowDirectMessaging(true);
-        toast({
-          title: "Opening Messages App",
-          description: `Direct messaging to emergency contacts`,
-          variant: "default",
-        });
-      } else {
-        setShowMobileInterface(true);
-        toast({
-          title: "Emergency Interface Opened",
-          description: `Tap buttons to send messages via native apps`,
-          variant: "default",
-        });
-      }
-    } catch (error) {
-      console.error('Device messaging error:', error);
-    }
+    const activeContacts = emergencyContacts.filter(contact => contact.isActive);
 
     for (const contact of activeContacts) {
       try {
-        // Send actual SMS message via backend API
-        const response = await fetch('/api/emergency/send-alert', {
+        // Send SMS alert
+        await fetch('/api/send-emergency-sms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contactId: contact.id,
-            contactName: contact.name,
             phoneNumber: contact.phoneNumber,
-            email: contact.email,
-            message: messageTemplate,
-            emergencyData: emergencyData
+            location: emergencyData.location.address,
+            whatsappNumber: contact.whatsappNumber || '+917892937490'
           })
         });
 
-        if (response.ok) {
-          // Show success notification
-          setTimeout(() => {
-            toast({
-              title: `Alert sent to ${contact.name}`,
-              description: `${contact.relationship} notified via SMS and email with emergency details`,
-              variant: "default",
-            });
-          }, 1000 * (activeContacts.indexOf(contact) + 1));
-        } else {
-          throw new Error('Failed to send emergency alert');
-        }
-        
-      } catch (error) {
-        console.error(`Failed to send message to ${contact.name}:`, error);
-        toast({
-          title: `Failed to notify ${contact.name}`,
-          description: `Error sending emergency alert to ${contact.relationship}`,
-          variant: "destructive",
-        });
-      }
-    }
-
-    // Log emergency record for demo
-    console.log('🚨 EMERGENCY RECORD CREATED:', emergencyData);
-  };
-
-  const startHold = () => {
-    if (holdTimeoutRef.current) return;
-    
-    setHoldProgress(0);
-    
-    // Progress animation
-    progressIntervalRef.current = setInterval(() => {
-      setHoldProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(progressIntervalRef.current!);
-          return 100;
-        }
-        return prev + (100 / 30); // 3 seconds = 30 intervals of 100ms
-      });
-    }, 100);
-    
-    // Trigger emergency after 3 seconds
-    holdTimeoutRef.current = setTimeout(() => {
-      triggerEmergencyProtocol('panic_hold');
-      setHoldProgress(0);
-    }, 3000);
-  };
-
-  const endHold = () => {
-    if (holdTimeoutRef.current) {
-      clearTimeout(holdTimeoutRef.current);
-      holdTimeoutRef.current = null;
-    }
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
-    }
-    setHoldProgress(0);
-  };
-
-  const quickEmergencyCall = (number: string, service: string) => {
-    window.location.href = `tel:${number}`;
-    toast({
-      title: `Calling ${service}`,
-      description: `Connecting to ${number}`,
-    });
-  };
-
-  const deactivateEmergency = async () => {
-    // Stop video recording if active and upload the complete session
-    if (videoRecorder && videoRecorder.state === 'recording') {
-      stopVideoRecording();
-      
-      // Wait for recording to complete and upload
-      setTimeout(async () => {
-        if (recordedVideoBlob && currentAlertId) {
-          const videoUrl = await uploadVideoRecording(currentAlertId, recordedVideoBlob);
-          console.log('Complete emergency video uploaded:', videoUrl);
-          
-          toast({
-            title: "Emergency Video Saved",
-            description: "Complete recording stored in history",
-            variant: "default",
+        // Send WhatsApp message if WhatsApp number available
+        if (contact.whatsappNumber) {
+          await fetch('/api/send-whatsapp-emergency', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phoneNumber: contact.whatsappNumber,
+              message: `🚨 EMERGENCY ALERT 🚨\n\nSakhi Suraksha emergency detected!\n\nLocation: ${emergencyData.location.address}\nTime: ${emergencyData.timestamp.toLocaleString()}\nTrigger: ${emergencyData.triggerType}\n\nPlease check immediately!`
+            })
           });
         }
-      }, 2000);
+      } catch (error) {
+        console.error(`Failed to send emergency message to ${contact.name}:`, error);
+      }
+    }
+  };
+
+  const handleEmergencyResolution = () => {
+    console.log('Emergency resolved, stopping all activities');
+    
+    // Stop video recording and upload if active
+    if (videoRecorder && videoRecorder.state === 'recording' && currentAlertId) {
+      videoRecorder.stop();
+      
+      // Upload video after recording stops
+      videoRecorder.onstop = async () => {
+        if (recordedVideoBlob && currentAlertId) {
+          const videoUrl = await uploadVideoRecording(currentAlertId, recordedVideoBlob);
+          console.log('Emergency video uploaded:', videoUrl);
+        }
+      };
     }
     
     setEmergencyActive(false);
     setShowLiveStream(false);
-    setVideoRecorder(null);
-    setRecordedVideoBlob(null);
+    setCurrentAlertId(null);
     
     toast({
-      title: "Emergency Deactivated",
-      description: "You can notify contacts that you are safe",
+      title: "Emergency Resolved",
+      description: "All emergency activities have been stopped",
+      variant: "default",
     });
   };
 
+  const sendLiveLocationAlert = async (phoneNumber: string, streamUrl: string, location: any, whatsappNumber?: string) => {
+    try {
+      await fetch('/api/send-live-location-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumber,
+          locationUrl: `https://maps.google.com/maps?q=${location.lat},${location.lng}`,
+          streamUrl,
+          whatsappNumber
+        })
+      });
+    } catch (error) {
+      console.error('Failed to send live location alert:', error);
+    }
+  };
+
+  const getEmergencyScenario = (triggerType: string): string => {
+    const scenarios: Record<string, string> = {
+      'voice-distress': 'Voice distress detected - potential threat situation',
+      'button-hold': 'Manual emergency button activation',
+      'smartwatch-panic': 'Smartwatch panic button pressed',
+      'automatic-fall': 'Automatic fall detection triggered',
+      'location-unsafe': 'Unsafe location detected'
+    };
+    return scenarios[triggerType] || 'Emergency situation detected';
+  };
+
   return (
-    <div className="flex flex-col items-center space-y-6">
+    <div className="flex flex-col items-center space-y-6 p-6">
+      {/* Emergency Status Display */}
+      {emergencyActive && (
+        <Card className="w-full max-w-md border-red-500 bg-red-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-red-700 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Emergency Active
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-red-600">Alert ID: {currentAlertId}</span>
+              <Button 
+                onClick={handleEmergencyResolution}
+                variant="outline" 
+                size="sm"
+                className="border-red-500 text-red-700 hover:bg-red-100"
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />
+                Resolve
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Emergency Button */}
       <div className="relative">
         <Button
-          onMouseDown={startHold}
-          onMouseUp={endHold}
-          onMouseLeave={endHold}
-          onTouchStart={startHold}
-          onTouchEnd={endHold}
-          disabled={isTriggering}
           className={`
-            w-44 h-44 rounded-full 
-            ${emergencyActive 
-              ? 'bg-gradient-to-br from-red-600 via-red-700 to-red-800 animate-pulse' 
-              : 'bg-gradient-to-br from-red-500 via-red-600 to-red-700'
-            }
-            hover:from-red-600 hover:via-red-700 hover:to-red-800
-            shadow-2xl hover:shadow-red-500/50
-            border-8 border-white
-            transition-all duration-300
+            w-48 h-48 rounded-full bg-gradient-to-br from-red-500 to-red-700 
+            hover:from-red-600 hover:to-red-800 text-white font-bold text-xl
+            shadow-2xl transition-all duration-300 border-4 border-red-400
             relative overflow-hidden
             ${isTriggering ? 'scale-110' : 'hover:scale-105'}
             ${holdProgress > 0 ? 'ring-4 ring-yellow-400 animate-pulse' : ''}
@@ -624,83 +408,28 @@ This is an automated safety alert. Please respond urgently.`;
         <br />📍 Live location • 📹 Video stream • 📱 SMS to contacts
       </p>
 
-      {/* Emergency Status */}
-      {emergencyActive && (
-        <div className="w-full max-w-md p-4 bg-red-50 border-2 border-red-200 rounded-lg">
-          <div className="text-center">
-            <p className="font-bold text-red-700 mb-2">🚨 EMERGENCY ACTIVE 🚨</p>
-            <p className="text-sm text-red-600 mb-3">
-              All contacts notified • Live stream active • Location shared
-            </p>
-            <Button 
-              onClick={deactivateEmergency}
-              variant="outline"
-              size="sm"
-              className="text-red-600 border-red-300"
-            >
-              Mark as Safe
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Quick Emergency Calls */}
-      <div className="flex space-x-3">
-        <Button
-          onClick={() => quickEmergencyCall('100', 'Police')}
-          variant="outline"
-          size="sm"
-          className="flex items-center space-x-1 border-red-200 text-red-600 hover:bg-red-50"
-        >
-          <Phone className="w-3 h-3" />
-          <span className="text-xs">Police 100</span>
-        </Button>
-        
-        <Button
-          onClick={() => quickEmergencyCall('1091', "Women's Helpline")}
-          variant="outline"
-          size="sm"
-          className="flex items-center space-x-1 border-pink-200 text-pink-600 hover:bg-pink-50"
-        >
-          <Phone className="w-3 h-3" />
-          <span className="text-xs">Women 1091</span>
-        </Button>
-        
-        <Button
-          onClick={() => quickEmergencyCall('108', 'Medical Emergency')}
-          variant="outline"
-          size="sm"
-          className="flex items-center space-x-1 border-blue-200 text-blue-600 hover:bg-blue-50"
-        >
-          <Phone className="w-3 h-3" />
-          <span className="text-xs">Medical 108</span>
-        </Button>
-      </div>
-
-      {/* Emergency Contacts Preview */}
+      {/* Emergency Contacts Display */}
       <div className="w-full max-w-md">
-        <p className="text-sm font-medium text-gray-700 mb-2">Emergency Contacts ({emergencyContacts.filter(c => c.isActive).length})</p>
-        <div className="space-y-2">
-          {emergencyContacts.filter(contact => contact.isActive).length === 0 ? (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
-              <p className="text-sm text-yellow-700">No emergency contacts added</p>
-              <p className="text-xs text-yellow-600 mt-1">Add contacts in your profile to enable emergency messaging</p>
-            </div>
+        <div className="bg-white rounded-lg border p-4">
+          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Emergency Contacts ({emergencyContacts.filter(c => c.isActive).length})
+          </h3>
+          {emergencyContacts.length === 0 ? (
+            <p className="text-sm text-gray-500 italic">No emergency contacts configured</p>
           ) : (
-            emergencyContacts.filter(contact => contact.isActive).slice(0, 3).map((contact) => (
-              <div key={contact.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+            emergencyContacts.filter(contact => contact.isActive).map((contact) => (
+              <div key={contact.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
                 <div>
-                  <p className="text-sm font-medium">{contact.name}</p>
-                  <p className="text-xs text-gray-500">{contact.relationship}</p>
+                  <p className="font-medium text-sm">{contact.name}</p>
+                  <p className="text-xs text-gray-500">{contact.phoneNumber}</p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {contact.isPrimary && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Primary</span>
-                  )}
+                <div className="flex gap-1">
                   <Button
+                    variant="ghost"
                     size="sm"
-                    variant="outline"
-                    onClick={() => quickEmergencyCall(contact.phoneNumber.replace(/[^\d]/g, ''), contact.name)}
+                    className="h-6 w-6 p-0"
+                    onClick={() => window.open(`tel:${contact.phoneNumber}`)}
                   >
                     <Phone className="w-3 h-3" />
                   </Button>
@@ -715,7 +444,6 @@ This is an automated safety alert. Please respond urgently.`;
       {showLiveStream && (
         <div className="w-full max-w-md">
           <LiveStreaming 
-            isEmergency={true}
             onStreamStart={(streamUrl: string) => {
               // Send live location alerts via device messaging
               if (emergencyContacts.length > 0) {
@@ -754,73 +482,29 @@ This is an automated safety alert. Please respond urgently.`;
               if (videoRecorder && videoRecorder.state === 'recording') {
                 stopVideoRecording();
                 
-                // Wait for recording to complete and upload
-                setTimeout(async () => {
-                  if (recordedVideoBlob && currentAlertId) {
-                    const videoUrl = await uploadVideoRecording(currentAlertId, recordedVideoBlob);
-                    console.log('Emergency stream ended - video uploaded:', videoUrl);
-                    
-                    toast({
-                      title: "Emergency Recording Saved",
-                      description: "Complete video stored in emergency history",
-                      variant: "default",
-                    });
-                  }
-                }, 2000);
+                // Upload recorded video
+                if (recordedVideoBlob && currentAlertId) {
+                  const videoUrl = await uploadVideoRecording(currentAlertId, recordedVideoBlob);
+                  console.log('Emergency video uploaded:', videoUrl);
+                  
+                  toast({
+                    title: "Video Uploaded",
+                    description: "Emergency recording saved successfully",
+                  });
+                }
               }
               
               setShowLiveStream(false);
-              setVideoRecorder(null);
-              setRecordedVideoBlob(null);
             }}
           />
         </div>
       )}
 
-      {/* Mobile Emergency Interface */}
-      {showMobileInterface && (
-        <MobileEmergencyInterface
-          contacts={emergencyContacts.filter(contact => contact.isActive).map(contact => ({
-            name: contact.name,
-            phoneNumber: contact.phoneNumber!
-          }))}
-          emergencyMessage={emergencyMessageText}
-          onClose={() => setShowMobileInterface(false)}
-        />
-      )}
-
-      {/* Auto SOS Sender for iPhone 13 Pro Max */}
-      {showAutoSOS && (
-        <AutoSOSSender
-          contacts={emergencyContacts.filter(contact => contact.isActive).map(contact => ({
-            name: contact.name,
-            phoneNumber: contact.phoneNumber!
-          }))}
-          emergencyMessage={emergencyMessageText}
-          onComplete={() => setShowAutoSOS(false)}
-          autoSend={true}
-        />
-      )}
-
-      {/* Direct iPhone Messaging */}
-      {showDirectMessaging && (
-        <IPhoneDirectMessaging
-          contacts={emergencyContacts.filter(contact => contact.isActive).map(contact => ({
-            name: contact.name,
-            phoneNumber: contact.phoneNumber!
-          }))}
-          emergencyMessage={emergencyMessageText}
-          onComplete={() => setShowDirectMessaging(false)}
-        />
-      )}
-
-
-
-      {/* Voice Detection for Automatic SOS */}
+      {/* Voice Detection Component */}
       <div className="w-full max-w-md">
-        <FixedVoiceDetector
+        <FixedVoiceDetector 
           onDistressDetected={(confidence, keywords) => {
-            console.log('Voice distress detected:', { confidence, keywords });
+            console.log(`Distress detected with ${confidence}% confidence. Keywords: ${keywords.join(', ')}`);
           }}
           onVoiceSOSDetected={handleVoiceSOSDetected}
           onEmergencyTriggered={() => {
