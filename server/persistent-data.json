@@ -291,6 +291,17 @@
         "updatedAt": "2025-06-09T16:13:27.565Z",
         "isResolved": true,
         "videoRecordingUrl": "/api/emergency-recordings/emergency_1749485594331/video.mp4"
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "button",
+        "latitude": 13.034563523971986,
+        "longitude": 77.56237238800719,
+        "address": "13.0346, 77.5624",
+        "id": 1749486987919,
+        "createdAt": "2025-06-09T16:36:27.919Z",
+        "updatedAt": "2025-06-09T16:36:27.919Z",
+        "isResolved": false
       }
     ]
   },
@@ -342,5 +353,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-09T16:13:27.571Z"
+  "timestamp": "2025-06-09T16:36:27.925Z"
 }

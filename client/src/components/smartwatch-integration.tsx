@@ -238,18 +238,24 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
   };
 
   const addOrUpdateDevice = (device: SmartWatchDevice) => {
+    console.log('addOrUpdateDevice called with:', device);
+    
     setConnectedDevices(prev => {
+      console.log('Previous devices:', prev);
       const existingIndex = prev.findIndex(d => d.id === device.id);
       let updated;
       
       if (existingIndex >= 0) {
         updated = [...prev];
         updated[existingIndex] = { ...updated[existingIndex], ...device };
+        console.log('Updated existing device at index:', existingIndex);
       } else {
         updated = [...prev, device];
+        console.log('Added new device, total devices:', updated.length);
       }
       
       localStorage.setItem('sakhi-smartwatch-devices', JSON.stringify(updated));
+      console.log('Saved to localStorage:', updated);
       return updated;
     });
   };
@@ -347,6 +353,8 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
   };
 
   const addManualDevice = (type: SmartWatchDevice['type'], name: string) => {
+    console.log('Adding manual device:', type, name);
+    
     const device: SmartWatchDevice = {
       id: `manual-${type}-${Date.now()}`,
       name,
@@ -355,6 +363,8 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
       sosEnabled: true,
       lastSync: new Date()
     };
+    
+    console.log('Created device object:', device);
     addOrUpdateDevice(device);
     
     toast({
