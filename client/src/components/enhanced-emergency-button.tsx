@@ -79,18 +79,36 @@ export default function EnhancedEmergencyButton() {
   const handleVoiceSOSDetected = async (triggerType: string, scenario: string, detectedText: string) => {
     console.log('Voice SOS detected, starting photo capture and emergency protocol');
     
+    // Show emergency notification immediately
+    toast({
+      title: "🚨 Voice SOS Detected",
+      description: "Capturing emergency photo and alerting contacts...",
+      variant: "destructive",
+    });
+    
     // Directly capture photo without modal for seamless emergency response
     try {
+      console.log('Requesting camera access for emergency photo...');
       const photoDataUrl = await captureEmergencyPhoto();
-      console.log('Emergency photo captured successfully');
       
-      // Create emergency alert and get the ID for photo association
-      await triggerEmergencyProtocol(triggerType, {
-        scenario,
-        detectedText,
-        autoPhotoCapture: true,
-        capturedPhotoUrl: photoDataUrl
-      });
+      if (photoDataUrl) {
+        console.log('Emergency photo captured successfully, length:', photoDataUrl.length);
+        
+        // Create emergency alert and get the ID for photo association
+        await triggerEmergencyProtocol(triggerType, {
+          scenario,
+          detectedText,
+          autoPhotoCapture: true,
+          capturedPhotoUrl: photoDataUrl
+        });
+      } else {
+        console.log('Photo capture returned null, proceeding without photo');
+        await triggerEmergencyProtocol(triggerType, {
+          scenario,
+          detectedText,
+          autoPhotoCapture: true
+        });
+      }
     } catch (error) {
       console.error('Photo capture failed during voice SOS:', error);
       // Continue with emergency protocol even if photo fails

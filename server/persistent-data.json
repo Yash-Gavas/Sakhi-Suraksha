@@ -103,8 +103,8 @@
         "audioRecordingUrl": "{\"detectedText\":\"help me\",\"scenario\":\"Voice Distress Alert\",\"confidence\":0.95}",
         "id": 1749470148075,
         "createdAt": "2025-06-09T11:55:48.075Z",
-        "updatedAt": "2025-06-09T11:56:13.205Z",
-        "isResolved": false,
+        "updatedAt": "2025-06-09T14:11:20.713Z",
+        "isResolved": true,
         "photoUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
       },
       {
@@ -116,8 +116,8 @@
         "audioRecordingUrl": "{\"detectedText\":\"bachao\",\"scenario\":\"Voice Distress Alert - Hindi keyword detected\",\"confidence\":0.92}",
         "id": 1749470258554,
         "createdAt": "2025-06-09T11:57:38.554Z",
-        "updatedAt": "2025-06-09T11:57:38.554Z",
-        "isResolved": false
+        "updatedAt": "2025-06-09T14:11:22.269Z",
+        "isResolved": true
       },
       {
         "userId": "demo-user",
@@ -127,7 +127,31 @@
         "address": "13.0345, 77.5626",
         "id": 1749470286566,
         "createdAt": "2025-06-09T11:58:06.566Z",
-        "updatedAt": "2025-06-09T11:58:06.566Z",
+        "updatedAt": "2025-06-09T14:11:19.169Z",
+        "isResolved": true
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034650054771978,
+        "longitude": 77.5623918604828,
+        "address": "Voice Detection Location: 13.034650, 77.562392",
+        "audioRecordingUrl": "{\"detectedText\":\"help\",\"scenario\":\"Voice Distress Alert: \\\"help\\\" detected in speech. Audio Analysis: \\\"help\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
+        "id": 1749478296725,
+        "createdAt": "2025-06-09T14:11:36.725Z",
+        "updatedAt": "2025-06-09T14:12:00.996Z",
+        "isResolved": true
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034659,
+        "longitude": 77.562401,
+        "address": "Voice SOS Photo Test",
+        "audioRecordingUrl": "{\"detectedText\":\"help\",\"scenario\":\"Voice Distress Test\",\"confidence\":0.95}",
+        "id": 1749478378898,
+        "createdAt": "2025-06-09T14:12:58.898Z",
+        "updatedAt": "2025-06-09T14:12:58.898Z",
         "isResolved": false
       }
     ]
@@ -180,5 +204,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-09T11:58:06.582Z"
+  "timestamp": "2025-06-09T14:12:58.902Z"
 }

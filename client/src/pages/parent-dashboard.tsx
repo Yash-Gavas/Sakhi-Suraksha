@@ -435,7 +435,7 @@ export default function ParentDashboard() {
                 </div>
 
                 {/* Emergency Photo Display for Voice SOS */}
-                {selectedAlert.photoUrl && (
+                {selectedAlert.photoUrl ? (
                   <div className="mt-6">
                     <h3 className="font-semibold mb-2 text-red-700">Emergency Photo Captured</h3>
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -448,9 +448,10 @@ export default function ParentDashboard() {
                           alt="Emergency capture" 
                           className="w-full rounded-lg shadow-lg border-2 border-red-300"
                           style={{ maxHeight: '300px', objectFit: 'contain' }}
+                          onLoad={() => console.log('Emergency photo loaded successfully')}
                           onError={(e) => {
                             console.error('Photo load error:', e);
-                            e.currentTarget.style.display = 'none';
+                            console.log('Photo URL:', selectedAlert.photoUrl?.substring(0, 100) + '...');
                           }}
                         />
                         <p className="text-xs text-gray-500 mt-2 text-center">
@@ -459,7 +460,15 @@ export default function ParentDashboard() {
                       </div>
                     </div>
                   </div>
-                )}
+                ) : selectedAlert.type === 'voice_detection' ? (
+                  <div className="mt-6">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-sm text-yellow-700">
+                        Voice SOS detected but no photo captured. This may occur if camera permissions are denied.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
                 
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Button onClick={() => window.open(`https://maps.google.com/?q=${selectedAlert.latitude},${selectedAlert.longitude}`, '_blank')}>
