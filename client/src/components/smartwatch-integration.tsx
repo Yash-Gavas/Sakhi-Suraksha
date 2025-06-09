@@ -135,7 +135,8 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
     };
 
     const handleClick = (event: MouseEvent) => {
-      if (event.ctrlKey && event.shiftKey) { // Simulating watch button
+      // Only handle watch button simulation, don't interfere with UI clicks
+      if (event.ctrlKey && event.shiftKey && event.target === document.body) {
         buttonPresses++;
         setTimeout(() => buttonPresses = 0, 3000);
       }
@@ -501,45 +502,39 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
               <Bluetooth className="w-4 h-4" />
               <span>{isScanning ? 'Scanning...' : 'Scan Bluetooth'}</span>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
+            <button
+              type="button"
+              onClick={() => {
                 console.log('Boat Lunar Embrace button clicked!');
                 addManualDevice('boat', 'Boat Lunar Embrace');
               }}
-              className="flex items-center space-x-2 bg-blue-50 border-blue-200 hover:bg-blue-100"
+              className="p-3 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center space-x-2 transition-colors"
             >
               <span>⛵</span>
               <span>Boat Lunar Embrace</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 console.log('Apple Watch button clicked!');
                 addManualDevice('apple', 'Apple Watch');
               }}
-              className="flex items-center space-x-2"
+              className="p-3 border border-gray-200 hover:bg-gray-50 rounded-lg flex items-center space-x-2 transition-colors"
             >
               <span>⌚</span>
               <span>Add Apple Watch</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 console.log('Samsung Galaxy Watch button clicked!');
                 addManualDevice('samsung', 'Galaxy Watch');
               }}
-              className="flex items-center space-x-2"
+              className="p-3 border border-gray-200 hover:bg-gray-50 rounded-lg flex items-center space-x-2 transition-colors"
             >
               <span>🌌</span>
               <span>Add Samsung</span>
-            </Button>
+            </button>
           </div>
         </div>
 
