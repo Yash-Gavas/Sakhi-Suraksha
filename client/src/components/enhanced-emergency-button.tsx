@@ -32,6 +32,8 @@ export default function EnhancedEmergencyButton() {
   const [emergencyMessageText, setEmergencyMessageText] = useState("");
   const [holdProgress, setHoldProgress] = useState(0);
   const [emergencyActive, setEmergencyActive] = useState(false);
+  const [showPhotoCapture, setShowPhotoCapture] = useState(false);
+  const [currentAlertId, setCurrentAlertId] = useState<number | null>(null);
   
   const { toast } = useToast();
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -48,6 +50,41 @@ export default function EnhancedEmergencyButton() {
       deviceName: deviceInfo.name,
       batteryLevel: deviceInfo.batteryLevel,
       lastSync: deviceInfo.lastSync
+    });
+  };
+
+  const handlePhotoCapture = async (photoDataUrl: string) => {
+    if (currentAlertId) {
+      try {
+        const photoUrl = await uploadEmergencyPhoto(photoDataUrl, currentAlertId);
+        if (photoUrl) {
+          toast({
+            title: "Emergency Photo Captured",
+            description: "Photo saved and sent to parent dashboard",
+            variant: "default",
+          });
+        }
+        setShowPhotoCapture(false);
+      } catch (error) {
+        console.error('Photo upload error:', error);
+        toast({
+          title: "Photo Upload Failed",
+          description: "Failed to save emergency photo",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleVoiceSOSDetected = async (triggerType: string, scenario: string, detectedText: string) => {
+    // Automatically trigger photo capture for voice SOS
+    setShowPhotoCapture(true);
+    
+    // Create emergency alert and get the ID for photo association
+    await triggerEmergencyProtocol(triggerType, {
+      scenario,
+      detectedText,
+      autoPhotoCapture: true
     });
   };
 
@@ -79,6 +116,33 @@ export default function EnhancedEmergencyButton() {
           const streamId = Date.now();
           const streamUrl = `${window.location.origin}/emergency-stream/stream_${streamId}_emergency`;
           emergencyData.streamUrl = streamUrl;
+
+          // Create emergency alert in database and get alert ID
+          try {
+            const alertResponse = await fetch('/api/emergency-alerts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                triggerType,
+                latitude: emergencyData.location.lat,
+                longitude: emergencyData.location.lng,
+                address: emergencyData.location.address,
+                deviceInfo: additionalData ? JSON.stringify(additionalData) : null
+              })
+            });
+
+            if (alertResponse.ok) {
+              const alert = await alertResponse.json();
+              setCurrentAlertId(alert.id);
+              
+              // Auto-capture photo for voice SOS triggers
+              if (triggerType === 'voice_detection' || additionalData?.autoPhotoCapture) {
+                setShowPhotoCapture(true);
+              }
+            }
+          } catch (error) {
+            console.error('Failed to create emergency alert:', error);
+          }
 
           // Send emergency messages to all contacts via device messaging
           await sendEmergencyMessages(emergencyData);
@@ -560,6 +624,16 @@ This is an automated safety alert. Please respond urgently.`;
           }))}
           emergencyMessage={emergencyMessageText}
           onComplete={() => setShowDirectMessaging(false)}
+        />
+      )}
+
+      {/* Photo Capture for Emergency Alerts */}
+      {showPhotoCapture && (
+        <PhotoCapture
+          onPhotoCapture={handlePhotoCapture}
+          onCancel={() => setShowPhotoCapture(false)}
+          emergencyMode={true}
+          autoCapture={true}
         />
       )}
     </div>

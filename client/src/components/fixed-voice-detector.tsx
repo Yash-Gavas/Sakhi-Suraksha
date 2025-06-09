@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface FixedVoiceDetectorProps {
   onDistressDetected: (confidence: number, keywords: string[]) => void;
   onEmergencyTriggered?: () => void;
+  onVoiceSOSDetected?: (triggerType: string, scenario: string, detectedText: string) => void;
   emergencyMode?: boolean;
 }
 
