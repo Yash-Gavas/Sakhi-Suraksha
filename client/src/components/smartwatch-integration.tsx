@@ -32,13 +32,19 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
     setWebBluetoothSupported('bluetooth' in navigator);
     
     // Load saved devices from localStorage
-    const savedDevices = localStorage.getItem('sakhi-smartwatch-devices');
-    if (savedDevices) {
-      const devices = JSON.parse(savedDevices).map((device: any) => ({
-        ...device,
-        lastSync: device.lastSync ? new Date(device.lastSync) : undefined
-      }));
-      setConnectedDevices(devices);
+    try {
+      const savedDevices = localStorage.getItem('sakhi-smartwatch-devices');
+      if (savedDevices) {
+        const devices = JSON.parse(savedDevices).map((device: any) => ({
+          ...device,
+          lastSync: device.lastSync ? new Date(device.lastSync) : undefined
+        }));
+        setConnectedDevices(devices);
+        console.log('Loaded devices from localStorage:', devices);
+      }
+    } catch (error) {
+      console.error('Error loading devices from localStorage:', error);
+      localStorage.removeItem('sakhi-smartwatch-devices');
     }
 
     // Set up smartwatch SOS listeners
@@ -254,8 +260,16 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
         console.log('Added new device, total devices:', updated.length);
       }
       
-      localStorage.setItem('sakhi-smartwatch-devices', JSON.stringify(updated));
-      console.log('Saved to localStorage:', updated);
+      try {
+        const serialized = updated.map(device => ({
+          ...device,
+          lastSync: device.lastSync ? device.lastSync.toISOString() : undefined
+        }));
+        localStorage.setItem('sakhi-smartwatch-devices', JSON.stringify(serialized));
+        console.log('Saved to localStorage:', updated);
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+      }
       return updated;
     });
   };
@@ -267,7 +281,15 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
           ? { ...device, sosEnabled: !device.sosEnabled }
           : device
       );
-      localStorage.setItem('sakhi-smartwatch-devices', JSON.stringify(updated));
+      try {
+        const serialized = updated.map(device => ({
+          ...device,
+          lastSync: device.lastSync ? device.lastSync.toISOString() : undefined
+        }));
+        localStorage.setItem('sakhi-smartwatch-devices', JSON.stringify(serialized));
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+      }
       return updated;
     });
   };
@@ -344,6 +366,7 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
   };
 
   const clearAllDevices = () => {
+    console.log('Clear All Devices button clicked!');
     setConnectedDevices([]);
     localStorage.removeItem('sakhi-smartwatch-devices');
     toast({
@@ -481,7 +504,11 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
             <Button
               variant="outline"
               size="sm"
-              onClick={() => addManualDevice('boat', 'Boat Lunar Embrace')}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('Boat Lunar Embrace button clicked!');
+                addManualDevice('boat', 'Boat Lunar Embrace');
+              }}
               className="flex items-center space-x-2 bg-blue-50 border-blue-200 hover:bg-blue-100"
             >
               <span>⛵</span>
@@ -490,7 +517,11 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
             <Button
               variant="outline"
               size="sm"
-              onClick={() => addManualDevice('apple', 'Apple Watch')}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('Apple Watch button clicked!');
+                addManualDevice('apple', 'Apple Watch');
+              }}
               className="flex items-center space-x-2"
             >
               <span>⌚</span>
@@ -499,7 +530,11 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
             <Button
               variant="outline"
               size="sm"
-              onClick={() => addManualDevice('samsung', 'Galaxy Watch')}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('Samsung Galaxy Watch button clicked!');
+                addManualDevice('samsung', 'Galaxy Watch');
+              }}
               className="flex items-center space-x-2"
             >
               <span>🌌</span>
