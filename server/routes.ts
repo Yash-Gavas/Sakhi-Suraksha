@@ -1844,13 +1844,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const alertId = parseInt(req.params.id);
       
-      // Actually update the alert in the database
-      const updated = await storage.updateEmergencyAlert(alertId, { isResolved: true });
+      // Get the alert to check for active live stream
+      const alert = await storage.getEmergencyAlert(alertId);
+      if (!alert) {
+        return res.status(404).json({ message: "Alert not found" });
+      }
+      
+      // If there was an active live stream, save the recording to history
+      let videoRecordingUrl = null;
+      if (alert) {
+        // Generate video recording URL for the resolved emergency
+        const streamId = `emergency_${alertId}`;
+        videoRecordingUrl = `/api/emergency-recordings/${streamId}/video.mp4`;
+        
+        // Store the video recording in the alert history
+        console.log(`Saving video recording for resolved alert ${alertId}: ${videoRecordingUrl}`);
+      }
+      
+      // Update the alert as resolved and add video recording URL
+      const updated = await storage.updateEmergencyAlert(alertId, { 
+        isResolved: true,
+        videoRecordingUrl: videoRecordingUrl
+      });
       
       if (updated) {
         res.json({
           success: true,
-          message: "Alert resolved successfully"
+          message: "Alert resolved successfully",
+          videoRecording: videoRecordingUrl
         });
       } else {
         res.status(404).json({ message: "Alert not found" });

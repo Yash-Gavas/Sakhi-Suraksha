@@ -53,126 +53,27 @@ export default function EnhancedEmergencyButton() {
     });
   };
 
-  const handlePhotoCapture = async (photoDataUrl: string) => {
-    if (currentAlertId) {
-      try {
-        const photoUrl = await uploadEmergencyPhoto(photoDataUrl, currentAlertId);
-        if (photoUrl) {
-          toast({
-            title: "Emergency Photo Captured",
-            description: "Photo saved and sent to parent dashboard",
-            variant: "default",
-          });
-        }
-        setShowPhotoCapture(false);
-      } catch (error) {
-        console.error('Photo upload error:', error);
-        toast({
-          title: "Photo Upload Failed",
-          description: "Failed to save emergency photo",
-          variant: "destructive",
-        });
-      }
-    }
-  };
+
 
   const handleVoiceSOSDetected = async (triggerType: string, scenario: string, detectedText: string) => {
-    console.log('Voice SOS detected, starting photo capture and emergency protocol');
+    console.log('Voice SOS detected, starting emergency protocol with video recording');
     
     // Show emergency notification immediately
     toast({
       title: "🚨 Voice SOS Detected",
-      description: "Capturing emergency photo and alerting contacts...",
+      description: "Starting video recording and alerting contacts...",
       variant: "destructive",
     });
     
-    // Directly capture photo without modal for seamless emergency response
-    try {
-      console.log('Requesting camera access for emergency photo...');
-      const photoDataUrl = await captureEmergencyPhoto();
-      
-      if (photoDataUrl) {
-        console.log('Emergency photo captured successfully, length:', photoDataUrl.length);
-        
-        // Create emergency alert and get the ID for photo association
-        await triggerEmergencyProtocol(triggerType, {
-          scenario,
-          detectedText,
-          autoPhotoCapture: true,
-          capturedPhotoUrl: photoDataUrl
-        });
-      } else {
-        console.log('Photo capture returned null, proceeding without photo');
-        await triggerEmergencyProtocol(triggerType, {
-          scenario,
-          detectedText,
-          autoPhotoCapture: true
-        });
-      }
-    } catch (error) {
-      console.error('Photo capture failed during voice SOS:', error);
-      // Continue with emergency protocol even if photo fails
-      await triggerEmergencyProtocol(triggerType, {
-        scenario,
-        detectedText,
-        autoPhotoCapture: true
-      });
-    }
+    // Trigger emergency protocol with video recording
+    await triggerEmergencyProtocol(triggerType, {
+      scenario,
+      detectedText,
+      autoVideoRecording: true
+    });
   };
 
-  const captureEmergencyPhoto = async (): Promise<string | null> => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user' // Front camera for emergency
-        } 
-      });
 
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.play();
-
-      // Wait for video to be ready
-      await new Promise((resolve) => {
-        video.onloadedmetadata = resolve;
-      });
-
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const context = canvas.getContext('2d');
-
-      if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Add emergency overlay
-        context.fillStyle = 'rgba(220, 38, 38, 0.8)';
-        context.fillRect(0, 0, canvas.width, 40);
-        context.fillStyle = 'white';
-        context.font = 'bold 24px Arial';
-        context.textAlign = 'center';
-        context.fillText('VOICE SOS EMERGENCY', canvas.width / 2, 28);
-        
-        // Add timestamp
-        const timestamp = new Date().toLocaleString();
-        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        context.fillRect(0, canvas.height - 40, canvas.width, 40);
-        context.fillStyle = 'white';
-        context.font = '16px Arial';
-        context.fillText(timestamp, canvas.width / 2, canvas.height - 15);
-      }
-
-      // Stop camera stream
-      stream.getTracks().forEach(track => track.stop());
-
-      return canvas.toDataURL('image/jpeg', 0.9);
-    } catch (error) {
-      console.error('Emergency photo capture failed:', error);
-      return null;
-    }
-  };
 
   const triggerEmergencyProtocol = async (triggerType: string, additionalData?: any) => {
     setIsTriggering(true);
@@ -220,34 +121,7 @@ export default function EnhancedEmergencyButton() {
             if (alertResponse.ok) {
               const alert = await alertResponse.json();
               setCurrentAlertId(alert.id);
-              
-              // Upload captured photo if available
-              if (additionalData?.capturedPhotoUrl) {
-                try {
-                  const photoUploadResponse = await fetch('/api/upload-emergency-photo', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      photoDataUrl: additionalData.capturedPhotoUrl,
-                      alertId: alert.id,
-                      timestamp: new Date().toISOString()
-                    })
-                  });
-
-                  if (photoUploadResponse.ok) {
-                    const photoResult = await photoUploadResponse.json();
-                    console.log('Emergency photo uploaded successfully:', photoResult.photoUrl);
-                    
-                    toast({
-                      title: "Emergency Photo Captured",
-                      description: "Voice SOS photo saved and sent to parent dashboard",
-                      variant: "default",
-                    });
-                  }
-                } catch (photoError) {
-                  console.error('Failed to upload emergency photo:', photoError);
-                }
-              }
+              console.log('Emergency alert created:', alert.id);
             }
           } catch (error) {
             console.error('Failed to create emergency alert:', error);
@@ -736,15 +610,7 @@ This is an automated safety alert. Please respond urgently.`;
         />
       )}
 
-      {/* Photo Capture for Emergency Alerts */}
-      {showPhotoCapture && (
-        <PhotoCapture
-          onPhotoCapture={handlePhotoCapture}
-          onCancel={() => setShowPhotoCapture(false)}
-          emergencyMode={true}
-          autoCapture={true}
-        />
-      )}
+
 
       {/* Voice Detection for Automatic SOS */}
       <div className="w-full max-w-md">

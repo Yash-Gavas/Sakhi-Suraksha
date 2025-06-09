@@ -32,9 +32,9 @@ interface EmergencyAlert {
   resolvedAt?: string;
   childName?: string;
   streamUrl?: string;
-  photoUrl?: string;
   message?: string;
   timestamp?: string;
+  videoUrl?: string;
 }
 
 interface ChildProfile {
@@ -434,41 +434,28 @@ export default function ParentDashboard() {
                   </div>
                 </div>
 
-                {/* Emergency Photo Display for Voice SOS */}
-                {selectedAlert.photoUrl ? (
+                {/* Emergency Video Recording Display */}
+                {selectedAlert.videoUrl && (
                   <div className="mt-6">
-                    <h3 className="font-semibold mb-2 text-red-700">Emergency Photo Captured</h3>
+                    <h3 className="font-semibold mb-2 text-red-700">Emergency Video Recording</h3>
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                       <p className="text-sm text-red-600 mb-3">
-                        Photo automatically captured during voice distress detection
+                        Video automatically recorded during emergency alert
                       </p>
                       <div className="max-w-md mx-auto">
-                        <img 
-                          src={selectedAlert.photoUrl} 
-                          alt="Emergency capture" 
+                        <video 
+                          src={selectedAlert.videoUrl} 
+                          controls
                           className="w-full rounded-lg shadow-lg border-2 border-red-300"
-                          style={{ maxHeight: '300px', objectFit: 'contain' }}
-                          onLoad={() => console.log('Emergency photo loaded successfully')}
-                          onError={(e) => {
-                            console.error('Photo load error:', e);
-                            console.log('Photo URL:', selectedAlert.photoUrl?.substring(0, 100) + '...');
-                          }}
+                          style={{ maxHeight: '300px' }}
                         />
                         <p className="text-xs text-gray-500 mt-2 text-center">
-                          Captured: {new Date(selectedAlert.timestamp || selectedAlert.createdAt).toLocaleString()}
+                          Recorded: {new Date(selectedAlert.timestamp || selectedAlert.createdAt).toLocaleString()}
                         </p>
                       </div>
                     </div>
                   </div>
-                ) : selectedAlert.type === 'voice_detection' ? (
-                  <div className="mt-6">
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <p className="text-sm text-yellow-700">
-                        Voice SOS detected but no photo captured. This may occur if camera permissions are denied.
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
+                )}
                 
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Button onClick={() => window.open(`https://maps.google.com/?q=${selectedAlert.latitude},${selectedAlert.longitude}`, '_blank')}>
