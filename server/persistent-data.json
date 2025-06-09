@@ -262,8 +262,9 @@
         "audioRecordingUrl": "{\"detectedText\":\"what else can be done i think so it would be like hell\",\"scenario\":\"Voice Distress Alert: \\\"help\\\" detected in speech. Audio Analysis: \\\"what else can be done i think so it would be like hell\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
         "id": 1749484509917,
         "createdAt": "2025-06-09T15:55:09.917Z",
-        "updatedAt": "2025-06-09T15:55:09.917Z",
-        "isResolved": false
+        "updatedAt": "2025-06-09T16:04:00.000Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749484509917/video.mp4"
       }
     ]
   },

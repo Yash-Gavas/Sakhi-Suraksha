@@ -50,6 +50,27 @@ export default function EnhancedEmergencyButton() {
     queryKey: ["/api/emergency-contacts"]
   });
 
+  // Check for active emergency alerts on component mount
+  const { data: activeAlerts = [] } = useQuery({
+    queryKey: ["/api/parent/emergency-alerts", "active"],
+    refetchInterval: 5000 // Check every 5 seconds
+  });
+
+  // Update emergency state based on active alerts
+  useEffect(() => {
+    const hasActiveAlert = activeAlerts.some((alert: any) => !alert.isResolved);
+    if (hasActiveAlert && !emergencyActive) {
+      const activeAlert = activeAlerts.find((alert: any) => !alert.isResolved);
+      setEmergencyActive(true);
+      setCurrentAlertId(activeAlert?.id || null);
+      setShowLiveStream(true);
+    } else if (!hasActiveAlert && emergencyActive) {
+      setEmergencyActive(false);
+      setCurrentAlertId(null);
+      setShowLiveStream(false);
+    }
+  }, [activeAlerts, emergencyActive]);
+
   // WebSocket connection for emergency resolution
   useEffect(() => {
     if (emergencyActive && !wsRef.current) {

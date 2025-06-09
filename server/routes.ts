@@ -1816,6 +1816,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Emergency resolution route for parent dashboard
+  app.patch("/api/emergency-alerts/:id/resolve", async (req, res) => {
+    try {
+      const alertId = parseInt(req.params.id);
+      
+      // Update the alert as resolved
+      const updated = await storage.updateEmergencyAlert(alertId, { 
+        isResolved: true
+      });
+      
+      if (updated) {
+        // Send WebSocket message to child device to stop video recording
+        wss.clients.forEach(client => {
+          if (client.readyState === 1) { // WebSocket.OPEN
+            client.send(JSON.stringify({
+              type: 'emergencyResolved',
+              alertId: alertId,
+              message: 'Emergency resolved by parent'
+            }));
+          }
+        });
+        
+        console.log(`Emergency resolved signal sent to child devices for alert ${alertId}`);
+        
+        res.json({
+          success: true,
+          message: "Alert resolved successfully"
+        });
+      } else {
+        res.status(404).json({ message: "Alert not found" });
+      }
+    } catch (error) {
+      console.error('Error resolving alert:', error);
+      res.status(500).json({ message: "Failed to resolve alert" });
+    }
+  });
+
   app.post("/api/parent/emergency-alerts/:id/resolve", async (req, res) => {
     try {
       const alertId = parseInt(req.params.id);

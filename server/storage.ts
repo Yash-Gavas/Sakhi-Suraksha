@@ -890,6 +890,10 @@ class MemoryStorage implements IStorage {
       const alertIndex = alerts.findIndex(a => a.id === id);
       if (alertIndex >= 0) {
         alerts[alertIndex] = { ...alerts[alertIndex], ...updates, updatedAt: new Date() };
+        
+        // Save to persistent storage immediately to prevent data loss on restart
+        await this.savePersistentData();
+        
         return alerts[alertIndex];
       }
     }
