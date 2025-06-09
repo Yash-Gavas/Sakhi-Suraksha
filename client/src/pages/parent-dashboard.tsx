@@ -177,7 +177,7 @@ export default function ParentDashboard() {
         </div>
 
         {/* Active Emergency Alerts */}
-        {emergencyAlerts.some((alert: EmergencyAlert) => alert.status === 'active') && (
+        {emergencyAlerts?.some((alert: EmergencyAlert) => alert.status === 'active') && (
           <Alert className="border-red-200 bg-red-50">
             <AlertTriangle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800">
@@ -208,7 +208,7 @@ export default function ParentDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {emergencyAlerts.map((alert: EmergencyAlert) => (
+                    {emergencyAlerts?.map((alert: EmergencyAlert) => (
                       <div 
                         key={alert.id}
                         className={`p-4 border rounded-lg cursor-pointer transition-colors ${
@@ -320,7 +320,7 @@ export default function ParentDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {children.map((child: ChildProfile) => (
+                  {children?.map((child: ChildProfile) => (
                     <div key={child.id} className="p-3 border rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold">{child.name}</span>
