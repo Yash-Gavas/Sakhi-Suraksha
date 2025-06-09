@@ -1717,7 +1717,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.createIotDevice(device));
     } catch {
-      return this.memStorage.createIotDevice();
+      return this.memStorage.createIotDevice(device);
     }
   }
 
@@ -1725,7 +1725,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.updateIotDevice(id, updates));
     } catch {
-      return this.memStorage.updateIotDevice();
+      return this.memStorage.updateIotDevice(id, updates);
     }
   }
 
@@ -1733,7 +1733,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.deleteIotDevice(id));
     } catch {
-      return this.memStorage.deleteIotDevice();
+      return this.memStorage.deleteIotDevice(id);
     }
   }
 
@@ -1741,7 +1741,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.connectDevice(id));
     } catch {
-      return this.memStorage.connectDevice();
+      return this.memStorage.connectDevice(id);
     }
   }
 
@@ -1749,7 +1749,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.disconnectDevice(id));
     } catch {
-      return this.memStorage.disconnectDevice();
+      return this.memStorage.disconnectDevice(id);
     }
   }
 
