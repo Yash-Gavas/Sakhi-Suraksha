@@ -489,32 +489,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Photo data is required" });
       }
 
-      // Convert base64 to buffer
-      const base64Data = photoDataUrl.replace(/^data:image\/\w+;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
+      // Store photo data directly in the emergency alert for simplicity
+      // In a production environment, you would save to file storage or cloud storage
+      const photoUrl = `data:emergency_photo_${alertId}_${Date.now()}`;
       
-      // Create unique filename
-      const filename = `emergency_${alertId}_${Date.now()}.jpg`;
-      const filepath = `./uploads/emergency_photos/${filename}`;
-      
-      // Ensure directory exists
-      const fs = require('fs');
-      const path = require('path');
-      const dir = path.dirname(filepath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      
-      // Save file
-      fs.writeFileSync(filepath, buffer);
-      
-      const photoUrl = `/uploads/emergency_photos/${filename}`;
-      
-      // Update emergency alert with photo URL
+      // Update emergency alert with photo URL and data
       if (alertId) {
         await storage.updateEmergencyAlert(parseInt(alertId), {
-          photoUrl: photoUrl
+          photoUrl: photoDataUrl // Store the full data URL for now
         });
+        
+        console.log(`Emergency photo saved for alert ${alertId} at ${timestamp}`);
       }
       
       res.json({ 

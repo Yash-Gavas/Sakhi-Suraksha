@@ -23,7 +23,43 @@
     "demo-user": []
   },
   "emergencyAlerts": {
-    "demo-user": []
+    "demo-user": [
+      {
+        "userId": "demo-user",
+        "triggerType": "button",
+        "latitude": 13.034661789436857,
+        "longitude": 77.56241415634524,
+        "address": "13.0347, 77.5624",
+        "id": 1749469383128,
+        "createdAt": "2025-06-09T11:43:03.128Z",
+        "updatedAt": "2025-06-09T11:43:07.388Z",
+        "isResolved": true
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034662338233199,
+        "longitude": 77.56241418378441,
+        "address": "Voice Detection Location: 13.034662, 77.562414",
+        "audioRecordingUrl": "{\"detectedText\":\"danger\",\"scenario\":\"Voice Distress Alert: \\\"danger\\\" detected in speech. Audio Analysis: \\\"danger\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
+        "id": 1749469407463,
+        "createdAt": "2025-06-09T11:43:27.463Z",
+        "updatedAt": "2025-06-09T11:43:27.463Z",
+        "isResolved": false
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034662,
+        "longitude": 77.562414,
+        "address": "Voice Detection Test Location",
+        "audioRecordingUrl": "{\"detectedText\":\"help me\",\"scenario\":\"Voice Distress Alert\",\"confidence\":0.9}",
+        "id": 1749469536126,
+        "createdAt": "2025-06-09T11:45:36.126Z",
+        "updatedAt": "2025-06-09T11:45:36.126Z",
+        "isResolved": false
+      }
+    ]
   },
   "communityAlerts": [
     {
@@ -73,5 +109,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-07T17:14:11.311Z"
+  "timestamp": "2025-06-09T11:45:36.134Z"
 }
