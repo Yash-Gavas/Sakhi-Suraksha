@@ -163,8 +163,9 @@
         "audioRecordingUrl": "{\"detectedText\":\"hi help\",\"scenario\":\"Voice Distress Alert: \\\"help\\\" detected in speech. Audio Analysis: \\\"hi help\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
         "id": 1749481299661,
         "createdAt": "2025-06-09T15:01:39.661Z",
-        "updatedAt": "2025-06-09T15:01:39.661Z",
-        "isResolved": false
+        "updatedAt": "2025-06-09T15:41:01.173Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749481299661/video.mp4"
       },
       {
         "userId": "demo-user",
@@ -174,8 +175,9 @@
         "address": "13.0347, 77.5624",
         "id": 1749483460549,
         "createdAt": "2025-06-09T15:37:40.549Z",
-        "updatedAt": "2025-06-09T15:37:40.549Z",
-        "isResolved": false
+        "updatedAt": "2025-06-09T15:40:59.943Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749483460549/video.mp4"
       },
       {
         "userId": "demo-user",
@@ -185,7 +187,43 @@
         "address": "Bangalore, Karnataka",
         "id": 1749483578043,
         "createdAt": "2025-06-09T15:39:38.043Z",
-        "updatedAt": "2025-06-09T15:39:38.043Z",
+        "updatedAt": "2025-06-09T15:40:58.830Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749483578043/video.mp4"
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "button",
+        "latitude": 13.034509097554528,
+        "longitude": 77.56240048170316,
+        "address": "13.0345, 77.5624",
+        "id": 1749483664994,
+        "createdAt": "2025-06-09T15:41:04.994Z",
+        "updatedAt": "2025-06-09T15:41:08.380Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749483664994/video.mp4"
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034560149336496,
+        "longitude": 77.56242250522672,
+        "address": "Voice Detection Location: 13.034560, 77.562423",
+        "audioRecordingUrl": "{\"detectedText\":\"help\",\"scenario\":\"Voice Distress Alert: \\\"help\\\" detected in speech. Audio Analysis: \\\"help\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
+        "id": 1749483697068,
+        "createdAt": "2025-06-09T15:41:37.068Z",
+        "updatedAt": "2025-06-09T15:41:37.068Z",
+        "isResolved": false
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "button",
+        "latitude": 13.034552860838607,
+        "longitude": 77.56243396479755,
+        "address": "13.0346, 77.5624",
+        "id": 1749483727624,
+        "createdAt": "2025-06-09T15:42:07.624Z",
+        "updatedAt": "2025-06-09T15:42:07.624Z",
         "isResolved": false
       }
     ]
@@ -238,5 +276,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-09T15:39:38.049Z"
+  "timestamp": "2025-06-09T15:42:07.629Z"
 }

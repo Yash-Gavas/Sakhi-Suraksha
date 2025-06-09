@@ -55,13 +55,88 @@ export default function EnhancedEmergencyButton() {
 
 
 
+  const [videoRecorder, setVideoRecorder] = useState<MediaRecorder | null>(null);
+  const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
+
+  const startVideoRecording = async (): Promise<MediaRecorder | null> => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: 1280, height: 720 }, 
+        audio: true 
+      });
+      
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9'
+      });
+      
+      const chunks: BlobPart[] = [];
+      
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+      
+      recorder.onstop = () => {
+        const videoBlob = new Blob(chunks, { type: 'video/webm' });
+        setRecordedVideoBlob(videoBlob);
+        
+        // Stop all tracks to release camera
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      recorder.start();
+      setVideoRecorder(recorder);
+      
+      console.log('Video recording started for emergency');
+      return recorder;
+    } catch (error) {
+      console.error('Failed to start video recording:', error);
+      return null;
+    }
+  };
+
+  const stopVideoRecording = () => {
+    if (videoRecorder && videoRecorder.state === 'recording') {
+      videoRecorder.stop();
+      console.log('Video recording stopped');
+    }
+  };
+
+  const uploadVideoRecording = async (alertId: number, videoBlob: Blob): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('video', videoBlob, `emergency_${alertId}_${Date.now()}.webm`);
+      formData.append('alertId', alertId.toString());
+      formData.append('timestamp', new Date().toISOString());
+
+      const response = await fetch('/api/emergency-video-upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload video recording');
+      }
+
+      const data = await response.json();
+      return data.videoUrl;
+    } catch (error) {
+      console.error('Video upload error:', error);
+      return null;
+    }
+  };
+
   const handleVoiceSOSDetected = async (triggerType: string, scenario: string, detectedText: string) => {
     console.log('Voice SOS detected, starting emergency protocol with video recording');
     
+    // Start video recording immediately
+    const recorder = await startVideoRecording();
+    
     // Show emergency notification immediately
     toast({
-      title: "🚨 Voice SOS Detected",
-      description: "Starting video recording and alerting contacts...",
+      title: "Voice SOS Detected",
+      description: "Recording video and alerting contacts...",
       variant: "destructive",
     });
     
@@ -69,7 +144,8 @@ export default function EnhancedEmergencyButton() {
     await triggerEmergencyProtocol(triggerType, {
       scenario,
       detectedText,
-      autoVideoRecording: true
+      autoVideoRecording: true,
+      videoRecorder: recorder
     });
   };
 
@@ -122,6 +198,28 @@ export default function EnhancedEmergencyButton() {
               const alert = await alertResponse.json();
               setCurrentAlertId(alert.id);
               console.log('Emergency alert created:', alert.id);
+
+              // Handle video recording for voice-triggered emergencies
+              if (additionalData?.autoVideoRecording && additionalData?.videoRecorder) {
+                // Record for 30 seconds then upload
+                setTimeout(async () => {
+                  stopVideoRecording();
+                  
+                  // Wait for recording to stop and blob to be ready
+                  setTimeout(async () => {
+                    if (recordedVideoBlob) {
+                      const videoUrl = await uploadVideoRecording(alert.id, recordedVideoBlob);
+                      console.log('Voice-triggered video uploaded:', videoUrl);
+                      
+                      toast({
+                        title: "Video Recorded",
+                        description: "Emergency video saved to history",
+                        variant: "default",
+                      });
+                    }
+                  }, 1000);
+                }, 30000); // Record for 30 seconds
+              }
             }
           } catch (error) {
             console.error('Failed to create emergency alert:', error);

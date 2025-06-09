@@ -2,6 +2,8 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import path from "path";
+import fs from "fs";
+import multer from "multer";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { familyConnections, emergencyAlerts } from "@shared/schema";
@@ -25,6 +27,21 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Configure multer for file uploads
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 50 * 1024 * 1024, // 50MB limit for video files
+    },
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith('video/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only video files are allowed'));
+      }
+    }
+  });
   
   // WhatsApp webhook endpoints (must be first to avoid middleware interference)
   app.get('/webhook/whatsapp', (req, res) => {
@@ -2309,6 +2326,57 @@ Please respond immediately if you can assist.`;
     } catch (error) {
       console.error('Error fetching stream:', error);
       res.status(500).json({ message: 'Failed to fetch stream' });
+    }
+  });
+
+  // Emergency video upload endpoint
+  app.post('/api/emergency-video-upload', upload.single('video'), async (req: any, res) => {
+    try {
+      const { alertId, timestamp } = req.body;
+      const videoFile = req.file;
+
+      if (!videoFile || !alertId) {
+        return res.status(400).json({ message: 'Video file and alert ID required' });
+      }
+
+      // Create recordings directory if it doesn't exist
+      const recordingsDir = path.join(__dirname, 'emergency-recordings');
+      const alertDir = path.join(recordingsDir, `emergency_${alertId}`);
+      
+      if (!fs.existsSync(recordingsDir)) {
+        fs.mkdirSync(recordingsDir, { recursive: true });
+      }
+      
+      if (!fs.existsSync(alertDir)) {
+        fs.mkdirSync(alertDir, { recursive: true });
+      }
+
+      // Save video file
+      const videoPath = path.join(alertDir, 'video.webm');
+      fs.writeFileSync(videoPath, videoFile.buffer);
+
+      // Generate video URL
+      const videoUrl = `/api/emergency-recordings/emergency_${alertId}/video.webm`;
+
+      // Update emergency alert with actual video recording URL
+      const alert = await storage.getEmergencyAlert(parseInt(alertId));
+      if (alert) {
+        await storage.updateEmergencyAlert(parseInt(alertId), {
+          videoRecordingUrl: videoUrl
+        });
+      }
+
+      console.log(`Voice-triggered video saved for alert ${alertId}: ${videoUrl}`);
+
+      res.json({
+        success: true,
+        message: 'Video recording saved successfully',
+        videoUrl: videoUrl,
+        alertId: alertId
+      });
+    } catch (error) {
+      console.error('Emergency video upload error:', error);
+      res.status(500).json({ message: 'Failed to save video recording' });
     }
   });
 
