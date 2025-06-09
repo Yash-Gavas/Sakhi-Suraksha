@@ -59,6 +59,7 @@ export interface IStorage {
 
   // Emergency alerts operations
   createEmergencyAlert(alert: InsertEmergencyAlert): Promise<EmergencyAlert>;
+  getEmergencyAlert(id: number): Promise<EmergencyAlert | undefined>;
   getEmergencyAlerts(userId: string): Promise<EmergencyAlert[]>;
   updateEmergencyAlert(id: number, updates: Partial<InsertEmergencyAlert>): Promise<EmergencyAlert | undefined>;
 
@@ -223,6 +224,14 @@ export class DatabaseStorage implements IStorage {
       .values(alert)
       .returning();
     return newAlert;
+  }
+
+  async getEmergencyAlert(id: number): Promise<EmergencyAlert | undefined> {
+    const [alert] = await db
+      .select()
+      .from(emergencyAlerts)
+      .where(eq(emergencyAlerts.id, id));
+    return alert || undefined;
   }
 
   async getEmergencyAlerts(userId: string): Promise<EmergencyAlert[]> {
@@ -864,6 +873,14 @@ class MemoryStorage implements IStorage {
     return newAlert;
   }
 
+  async getEmergencyAlert(id: number): Promise<EmergencyAlert | undefined> {
+    for (const [userId, alerts] of this.emergencyAlertsMap) {
+      const alert = alerts.find(a => a.id === id);
+      if (alert) return alert;
+    }
+    return undefined;
+  }
+
   async getEmergencyAlerts(userId: string): Promise<EmergencyAlert[]> {
     return this.emergencyAlertsMap.get(userId) || [];
   }
@@ -1383,6 +1400,14 @@ class SmartStorage implements IStorage {
       return await this.tryDatabase(() => this.dbStorage.createEmergencyAlert(alert));
     } catch {
       return this.memStorage.createEmergencyAlert(alert);
+    }
+  }
+
+  async getEmergencyAlert(id: number): Promise<EmergencyAlert | undefined> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.getEmergencyAlert(id));
+    } catch {
+      return this.memStorage.getEmergencyAlert(id);
     }
   }
 
