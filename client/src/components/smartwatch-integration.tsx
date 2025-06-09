@@ -34,7 +34,11 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
     // Load saved devices from localStorage
     const savedDevices = localStorage.getItem('sakhi-smartwatch-devices');
     if (savedDevices) {
-      setConnectedDevices(JSON.parse(savedDevices));
+      const devices = JSON.parse(savedDevices).map((device: any) => ({
+        ...device,
+        lastSync: device.lastSync ? new Date(device.lastSync) : undefined
+      }));
+      setConnectedDevices(devices);
     }
 
     // Set up smartwatch SOS listeners
@@ -387,7 +391,7 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
                       </p>
                       {device.lastSync && (
                         <p className="text-xs text-gray-400">
-                          Last sync: {device.lastSync.toLocaleTimeString()}
+                          Last sync: {new Date(device.lastSync).toLocaleTimeString()}
                         </p>
                       )}
                     </div>
