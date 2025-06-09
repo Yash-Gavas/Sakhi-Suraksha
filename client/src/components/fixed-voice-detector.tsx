@@ -14,6 +14,7 @@ interface FixedVoiceDetectorProps {
 export default function FixedVoiceDetector({ 
   onDistressDetected, 
   onEmergencyTriggered,
+  onVoiceSOSDetected,
   emergencyMode = false 
 }: FixedVoiceDetectorProps) {
   const [isListening, setIsListening] = useState(false);
