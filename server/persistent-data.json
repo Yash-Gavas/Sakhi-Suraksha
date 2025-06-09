@@ -118,6 +118,17 @@
         "createdAt": "2025-06-09T11:57:38.554Z",
         "updatedAt": "2025-06-09T11:57:38.554Z",
         "isResolved": false
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "button",
+        "latitude": 13.034455123023884,
+        "longitude": 77.56259149163061,
+        "address": "13.0345, 77.5626",
+        "id": 1749470286566,
+        "createdAt": "2025-06-09T11:58:06.566Z",
+        "updatedAt": "2025-06-09T11:58:06.566Z",
+        "isResolved": false
       }
     ]
   },
@@ -169,5 +180,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-09T11:57:38.559Z"
+  "timestamp": "2025-06-09T11:58:06.582Z"
 }
