@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import { storage } from "./storage";
@@ -478,6 +479,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Emergency contacts routes
 
+
+  // Photo upload endpoint for emergency alerts
+  app.post("/api/upload-emergency-photo", async (req, res) => {
+    try {
+      const { photoDataUrl, alertId, timestamp } = req.body;
+      
+      if (!photoDataUrl) {
+        return res.status(400).json({ message: "Photo data is required" });
+      }
+
+      // Convert base64 to buffer
+      const base64Data = photoDataUrl.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      // Create unique filename
+      const filename = `emergency_${alertId}_${Date.now()}.jpg`;
+      const filepath = `./uploads/emergency_photos/${filename}`;
+      
+      // Ensure directory exists
+      const fs = require('fs');
+      const path = require('path');
+      const dir = path.dirname(filepath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      
+      // Save file
+      fs.writeFileSync(filepath, buffer);
+      
+      const photoUrl = `/uploads/emergency_photos/${filename}`;
+      
+      // Update emergency alert with photo URL
+      if (alertId) {
+        await storage.updateEmergencyAlert(parseInt(alertId), {
+          photoUrl: photoUrl
+        });
+      }
+      
+      res.json({ 
+        success: true, 
+        photoUrl,
+        message: "Emergency photo saved successfully" 
+      });
+    } catch (error) {
+      console.error('Error uploading emergency photo:', error);
+      res.status(500).json({ 
+        message: "Failed to upload emergency photo",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Serve uploaded emergency photos
+  app.use('/uploads/emergency_photos', express.static('./uploads/emergency_photos'));
 
   // Emergency alerts routes (no authentication required for emergency situations)
   app.post("/api/emergency-alerts", async (req, res) => {

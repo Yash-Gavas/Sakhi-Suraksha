@@ -857,6 +857,10 @@ class MemoryStorage implements IStorage {
     } as EmergencyAlert;
     alerts.push(newAlert);
     this.emergencyAlertsMap.set(alert.userId, alerts);
+    
+    // Save to persistent storage immediately to prevent data loss on restart
+    await this.savePersistentData();
+    
     return newAlert;
   }
 

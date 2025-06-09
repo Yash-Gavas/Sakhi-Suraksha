@@ -13,6 +13,7 @@ import { MobileMessaging } from "@/lib/mobileMessaging";
 import MobileEmergencyInterface from "@/components/mobile-emergency-interface";
 import AutoSOSSender from "@/components/auto-sos-sender";
 import IPhoneDirectMessaging from "@/components/iphone-direct-messaging";
+import { PhotoCapture, uploadEmergencyPhoto } from "./photo-capture";
 
 interface EmergencyAlert {
   triggerType: string;

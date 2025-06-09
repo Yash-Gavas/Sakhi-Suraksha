@@ -50,12 +50,14 @@ export const emergencyContacts = pgTable("emergency_contacts", {
 export const emergencyAlerts = pgTable("emergency_alerts", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id),
-  triggerType: text("trigger_type").notNull(), // 'button', 'voice', 'shake'
+  triggerType: text("trigger_type").notNull(), // 'button', 'voice', 'shake', 'smartwatch'
   latitude: real("latitude"),
   longitude: real("longitude"),
   address: text("address"),
   audioRecordingUrl: text("audio_recording_url"),
   videoRecordingUrl: text("video_recording_url"),
+  photoUrl: text("photo_url"), // Photo captured during voice SOS
+  deviceInfo: text("device_info"), // Smartwatch or device details
   isResolved: boolean("is_resolved").default(false),
   createdAt: timestamp("created_at").defaultNow()
 });
