@@ -1732,11 +1732,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             canStartStream: !alert.isResolved
           };
 
-        // Filter based on status query parameter
-        if (!status || 
-            (status === 'active' && !alert.isResolved) ||
-            (status === 'resolved' && alert.isResolved)) {
-          alerts.push(alertData);
+          // Filter based on status query parameter
+          if (!status || 
+              (status === 'active' && !alert.isResolved) ||
+              (status === 'resolved' && alert.isResolved)) {
+            alerts.push(alertData);
+          }
+        } catch (alertError) {
+          console.error('Error processing alert:', alert.id, alertError);
         }
       });
       

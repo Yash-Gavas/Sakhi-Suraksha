@@ -79,7 +79,19 @@
         "audioRecordingUrl": "{\"detectedText\":\"danger\",\"scenario\":\"Voice Distress Alert: \\\"danger\\\" detected in speech. Audio Analysis: \\\"danger\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
         "id": 1749469859988,
         "createdAt": "2025-06-09T11:50:59.988Z",
-        "updatedAt": "2025-06-09T11:50:59.988Z",
+        "updatedAt": "2025-06-09T11:52:56.858Z",
+        "isResolved": true
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034546780405307,
+        "longitude": 77.56241236162919,
+        "address": "Voice Detection Location: 13.034547, 77.562412",
+        "audioRecordingUrl": "{\"detectedText\":\"cho\",\"scenario\":\"Voice Distress Alert: \\\"chor\\\" detected in speech. Audio Analysis: \\\"cho\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
+        "id": 1749469986101,
+        "createdAt": "2025-06-09T11:53:06.101Z",
+        "updatedAt": "2025-06-09T11:53:06.101Z",
         "isResolved": false
       }
     ]
@@ -132,5 +144,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-09T11:50:59.995Z"
+  "timestamp": "2025-06-09T11:53:06.106Z"
 }
