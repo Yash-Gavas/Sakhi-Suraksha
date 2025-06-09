@@ -32,6 +32,9 @@ interface EmergencyAlert {
   resolvedAt?: string;
   childName?: string;
   streamUrl?: string;
+  photoUrl?: string;
+  message?: string;
+  timestamp?: string;
 }
 
 interface ChildProfile {
@@ -445,9 +448,13 @@ export default function ParentDashboard() {
                           alt="Emergency capture" 
                           className="w-full rounded-lg shadow-lg border-2 border-red-300"
                           style={{ maxHeight: '300px', objectFit: 'contain' }}
+                          onError={(e) => {
+                            console.error('Photo load error:', e);
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                         <p className="text-xs text-gray-500 mt-2 text-center">
-                          Captured: {new Date(selectedAlert.createdAt).toLocaleString()}
+                          Captured: {new Date(selectedAlert.timestamp || selectedAlert.createdAt).toLocaleString()}
                         </p>
                       </div>
                     </div>

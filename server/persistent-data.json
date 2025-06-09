@@ -103,7 +103,20 @@
         "audioRecordingUrl": "{\"detectedText\":\"help me\",\"scenario\":\"Voice Distress Alert\",\"confidence\":0.95}",
         "id": 1749470148075,
         "createdAt": "2025-06-09T11:55:48.075Z",
-        "updatedAt": "2025-06-09T11:55:48.075Z",
+        "updatedAt": "2025-06-09T11:56:13.205Z",
+        "isResolved": false,
+        "photoUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034659,
+        "longitude": 77.562401,
+        "address": "Voice SOS Test with Photo",
+        "audioRecordingUrl": "{\"detectedText\":\"bachao\",\"scenario\":\"Voice Distress Alert - Hindi keyword detected\",\"confidence\":0.92}",
+        "id": 1749470258554,
+        "createdAt": "2025-06-09T11:57:38.554Z",
+        "updatedAt": "2025-06-09T11:57:38.554Z",
         "isResolved": false
       }
     ]
@@ -156,5 +169,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-09T11:55:48.080Z"
+  "timestamp": "2025-06-09T11:57:38.559Z"
 }
