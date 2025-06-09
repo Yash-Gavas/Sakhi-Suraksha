@@ -1702,9 +1702,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           childName: user?.firstName || user?.email?.split('@')[0] || 'Sharanya',
           childId: 1,
           type: alert.triggerType,
-          message: getAlertMessage(alert.triggerType, location, alert.createdAt?.toISOString(), alert.audioRecordingUrl),
+          message: getAlertMessage(alert.triggerType, location, alert.createdAt ? new Date(alert.createdAt).toISOString() : new Date().toISOString(), alert.audioRecordingUrl),
           location,
-          timestamp: alert.createdAt,
+          timestamp: alert.createdAt ? new Date(alert.createdAt) : new Date(),
           status: alert.isResolved ? 'resolved' : 'active',
           isResolved: alert.isResolved || false,
           audioRecordingUrl: alert.audioRecordingUrl,
@@ -2266,7 +2266,7 @@ Please respond immediately if you can assist.`;
         ...stream,
         userName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User' : 'User',
         userEmail: user?.email || 'user@example.com',
-        startedAt: stream.createdAt?.toISOString() || new Date().toISOString()
+        startedAt: stream.createdAt ? new Date(stream.createdAt).toISOString() : new Date().toISOString()
       };
 
       res.json(streamWithUserDetails);
