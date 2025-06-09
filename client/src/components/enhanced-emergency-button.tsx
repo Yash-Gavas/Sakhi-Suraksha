@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Phone, Camera, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -201,24 +201,9 @@ export default function EnhancedEmergencyButton() {
 
               // Handle video recording for voice-triggered emergencies
               if (additionalData?.autoVideoRecording && additionalData?.videoRecorder) {
-                // Record for 30 seconds then upload
-                setTimeout(async () => {
-                  stopVideoRecording();
-                  
-                  // Wait for recording to stop and blob to be ready
-                  setTimeout(async () => {
-                    if (recordedVideoBlob) {
-                      const videoUrl = await uploadVideoRecording(alert.id, recordedVideoBlob);
-                      console.log('Voice-triggered video uploaded:', videoUrl);
-                      
-                      toast({
-                        title: "Video Recorded",
-                        description: "Emergency video saved to history",
-                        variant: "default",
-                      });
-                    }
-                  }, 1000);
-                }, 30000); // Record for 30 seconds
+                console.log('Voice-triggered emergency - continuous video recording started');
+                // Video recording will continue until emergency is manually stopped or resolved
+                // No automatic timeout - recording persists for the entire emergency duration
               }
             }
           } catch (error) {
@@ -468,9 +453,31 @@ This is an automated safety alert. Please respond urgently.`;
     });
   };
 
-  const deactivateEmergency = () => {
+  const deactivateEmergency = async () => {
+    // Stop video recording if active and upload the complete session
+    if (videoRecorder && videoRecorder.state === 'recording') {
+      stopVideoRecording();
+      
+      // Wait for recording to complete and upload
+      setTimeout(async () => {
+        if (recordedVideoBlob && currentAlertId) {
+          const videoUrl = await uploadVideoRecording(currentAlertId, recordedVideoBlob);
+          console.log('Complete emergency video uploaded:', videoUrl);
+          
+          toast({
+            title: "Emergency Video Saved",
+            description: "Complete recording stored in history",
+            variant: "default",
+          });
+        }
+      }, 2000);
+    }
+    
     setEmergencyActive(false);
     setShowLiveStream(false);
+    setVideoRecorder(null);
+    setRecordedVideoBlob(null);
+    
     toast({
       title: "Emergency Deactivated",
       description: "You can notify contacts that you are safe",
@@ -666,7 +673,30 @@ This is an automated safety alert. Please respond urgently.`;
                 description: "Live video and location shared with emergency contacts via SMS and WhatsApp",
               });
             }}
-            onStreamEnd={() => setShowLiveStream(false)}
+            onStreamEnd={async () => {
+              // Stop video recording and upload when stream ends
+              if (videoRecorder && videoRecorder.state === 'recording') {
+                stopVideoRecording();
+                
+                // Wait for recording to complete and upload
+                setTimeout(async () => {
+                  if (recordedVideoBlob && currentAlertId) {
+                    const videoUrl = await uploadVideoRecording(currentAlertId, recordedVideoBlob);
+                    console.log('Emergency stream ended - video uploaded:', videoUrl);
+                    
+                    toast({
+                      title: "Emergency Recording Saved",
+                      description: "Complete video stored in emergency history",
+                      variant: "default",
+                    });
+                  }
+                }, 2000);
+              }
+              
+              setShowLiveStream(false);
+              setVideoRecorder(null);
+              setRecordedVideoBlob(null);
+            }}
           />
         </div>
       )}

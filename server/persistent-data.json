@@ -236,6 +236,18 @@
         "createdAt": "2025-06-09T15:45:57.695Z",
         "updatedAt": "2025-06-09T15:45:57.695Z",
         "isResolved": false
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034672195620805,
+        "longitude": 77.56244248343684,
+        "address": "Voice Detection Location: 13.034672, 77.562442",
+        "audioRecordingUrl": "{\"detectedText\":\"hey bro danger\",\"scenario\":\"Voice Distress Alert: \\\"danger\\\" detected in speech. Audio Analysis: \\\"hey bro danger\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
+        "id": 1749484124890,
+        "createdAt": "2025-06-09T15:48:44.890Z",
+        "updatedAt": "2025-06-09T15:48:44.890Z",
+        "isResolved": false
       }
     ]
   },
@@ -287,5 +299,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-09T15:45:57.700Z"
+  "timestamp": "2025-06-09T15:48:44.894Z"
 }

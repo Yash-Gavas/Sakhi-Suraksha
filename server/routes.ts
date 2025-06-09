@@ -1844,6 +1844,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       if (updated) {
+        // Send WebSocket message to child device to stop video recording
+        wss.clients.forEach(client => {
+          if (client.readyState === 1) { // WebSocket.OPEN
+            client.send(JSON.stringify({
+              type: 'emergency_resolved',
+              alertId: alertId,
+              message: 'Emergency resolved - stop recording and upload video',
+              videoRecordingUrl: videoRecordingUrl
+            }));
+          }
+        });
+        
+        console.log(`Emergency resolved signal sent to child devices for alert ${alertId}`);
+        
         res.json({
           success: true,
           message: "Alert resolved successfully",
