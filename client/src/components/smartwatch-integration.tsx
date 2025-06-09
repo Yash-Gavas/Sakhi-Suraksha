@@ -337,6 +337,15 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
     }
   };
 
+  const clearAllDevices = () => {
+    setConnectedDevices([]);
+    localStorage.removeItem('sakhi-smartwatch-devices');
+    toast({
+      title: "All Devices Removed",
+      description: "All smartwatch connections have been cleared.",
+    });
+  };
+
   const addManualDevice = (type: SmartWatchDevice['type'], name: string) => {
     const device: SmartWatchDevice = {
       id: `manual-${type}-${Date.now()}`,
@@ -350,7 +359,20 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
     
     toast({
       title: "Device Added",
-      description: `${name} has been added manually. Use the companion app for full integration.`,
+      description: `${name} has been added successfully. SOS functionality is now active.`,
+    });
+  };
+
+  const removeDevice = (deviceId: string) => {
+    setConnectedDevices(prev => {
+      const updated = prev.filter(device => device.id !== deviceId);
+      localStorage.setItem('sakhi-smartwatch-devices', JSON.stringify(updated));
+      return updated;
+    });
+    
+    toast({
+      title: "Device Removed",
+      description: "Smartwatch has been disconnected.",
     });
   };
 
@@ -403,12 +425,34 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
                       checked={device.sosEnabled}
                       onCheckedChange={() => toggleSosForDevice(device.id)}
                     />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeDevice(device.id)}
+                      className="ml-2 h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                    >
+                      ×
+                    </Button>
                   </div>
                 </div>
               ))
             )}
           </div>
         </div>
+
+        {/* Device Management */}
+        {connectedDevices.length > 0 && (
+          <div className="flex justify-end">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={clearAllDevices}
+              className="flex items-center space-x-2"
+            >
+              <span>Clear All Devices</span>
+            </Button>
+          </div>
+        )}
 
         {/* Add Device Options */}
         <div>
@@ -427,6 +471,15 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
             <Button
               variant="outline"
               size="sm"
+              onClick={() => addManualDevice('boat', 'Boat Lunar Embrace')}
+              className="flex items-center space-x-2 bg-blue-50 border-blue-200 hover:bg-blue-100"
+            >
+              <span>⛵</span>
+              <span>Boat Lunar Embrace</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => addManualDevice('apple', 'Apple Watch')}
               className="flex items-center space-x-2"
             >
@@ -441,15 +494,6 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
             >
               <span>🌌</span>
               <span>Add Samsung</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => addManualDevice('boat', 'Boat Watch')}
-              className="flex items-center space-x-2"
-            >
-              <span>⛵</span>
-              <span>Add Boat</span>
             </Button>
           </div>
         </div>
@@ -478,8 +522,8 @@ export default function SmartwatchIntegration({ onSosTriggered }: SmartwatchInte
             <div className="flex items-start space-x-2">
               <span>⛵</span>
               <div>
-                <p className="font-medium">Boat Watch:</p>
-                <p>Long press power button for 5 seconds</p>
+                <p className="font-medium">Boat Lunar Embrace:</p>
+                <p>Press and hold power button for 5 seconds or triple tap crown</p>
               </div>
             </div>
             <div className="flex items-start space-x-2">
