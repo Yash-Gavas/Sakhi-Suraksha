@@ -1709,7 +1709,7 @@ class SmartStorage implements IStorage {
     try {
       return await this.tryDatabase(() => this.dbStorage.getIotDevices(userId));
     } catch {
-      return this.memStorage.getIotDevices();
+      return this.memStorage.getIotDevices(userId);
     }
   }
 
