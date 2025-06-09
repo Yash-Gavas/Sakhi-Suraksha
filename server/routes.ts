@@ -35,11 +35,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       fileSize: 50 * 1024 * 1024, // 50MB limit for video files
     },
     fileFilter: (req, file, cb) => {
-      if (file.mimetype.startsWith('video/')) {
-        cb(null, true);
-      } else {
-        cb(new Error('Only video files are allowed'));
-      }
+      // Accept all file types for emergency video uploads
+      cb(null, true);
     }
   });
   
@@ -2340,7 +2337,7 @@ Please respond immediately if you can assist.`;
       }
 
       // Create recordings directory if it doesn't exist
-      const recordingsDir = path.join(__dirname, 'emergency-recordings');
+      const recordingsDir = path.join(process.cwd(), 'server', 'emergency-recordings');
       const alertDir = path.join(recordingsDir, `emergency_${alertId}`);
       
       if (!fs.existsSync(recordingsDir)) {

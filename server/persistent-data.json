@@ -225,6 +225,17 @@
         "createdAt": "2025-06-09T15:42:07.624Z",
         "updatedAt": "2025-06-09T15:42:07.624Z",
         "isResolved": false
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 12.9716,
+        "longitude": 77.5946,
+        "address": "Bangalore, Karnataka",
+        "id": 1749483957695,
+        "createdAt": "2025-06-09T15:45:57.695Z",
+        "updatedAt": "2025-06-09T15:45:57.695Z",
+        "isResolved": false
       }
     ]
   },
@@ -276,5 +287,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-09T15:42:07.629Z"
+  "timestamp": "2025-06-09T15:45:57.700Z"
 }
