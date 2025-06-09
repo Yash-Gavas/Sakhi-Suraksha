@@ -127,10 +127,7 @@ export default function Settings() {
     },
   });
 
-  // Fetch emergency contacts
-  const { data: emergencyContacts = [] } = useQuery({
-    queryKey: ["/api/emergency-contacts"],
-  });
+
 
   useEffect(() => {
     if (homeLocation) {
@@ -571,84 +568,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      {/* Emergency Contacts */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Phone className="w-5 h-5 mr-2" />
-            Emergency Contacts
-          </CardTitle>
-          <CardDescription>
-            Manage trusted contacts who will be notified during emergencies
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {emergencyContacts.length === 0 ? (
-            <div className="text-center py-6">
-              <Phone className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-              <p className="text-gray-600 mb-2">No emergency contacts added</p>
-              <p className="text-sm text-gray-500 mb-4">
-                Add trusted contacts who will receive emergency alerts and location updates
-              </p>
-              <Button
-                onClick={() => window.location.href = '/contacts'}
-                className="bg-red-600 hover:bg-red-700 text-white"
-              >
-                Add Emergency Contact
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-gray-600">
-                  {emergencyContacts.filter(c => c.isActive).length} active contact{emergencyContacts.filter(c => c.isActive).length !== 1 ? 's' : ''}
-                </p>
-                <Button
-                  size="sm"
-                  onClick={() => window.location.href = '/contacts'}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Manage Contacts
-                </Button>
-              </div>
-              
-              {emergencyContacts.filter(contact => contact.isActive).slice(0, 3).map((contact) => (
-                <div key={contact.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-1 min-w-0 pr-3">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <p className="font-medium text-gray-900 truncate">{contact.name}</p>
-                      {contact.isPrimary && (
-                        <Badge variant="default" className="text-xs bg-orange-100 text-orange-700 flex-shrink-0">
-                          Primary
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 truncate">{contact.relationship}</p>
-                    <p className="text-xs text-gray-500 truncate">{contact.phoneNumber}</p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex items-center space-x-1 flex-shrink-0"
-                    onClick={() => window.location.href = `tel:${contact.phoneNumber}`}
-                  >
-                    <Phone className="w-4 h-4" />
-                    <span className="text-xs hidden sm:inline">Call</span>
-                  </Button>
-                </div>
-              ))}
-              
-              {emergencyContacts.filter(c => c.isActive).length > 3 && (
-                <div className="text-center pt-2">
-                  <p className="text-sm text-gray-500">
-                    +{emergencyContacts.filter(c => c.isActive).length - 3} more contacts
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
 
       {/* IoT Device Settings */}
       <Card>
