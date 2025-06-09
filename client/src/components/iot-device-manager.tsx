@@ -210,7 +210,9 @@ export default function IoTDeviceManager() {
           { namePrefix: 'Apple Watch' },
           { namePrefix: 'Samsung' },
           { namePrefix: 'Fitbit' },
-          { namePrefix: 'Garmin' }
+          { namePrefix: 'Garmin' },
+          { namePrefix: 'EMBRACE' },
+          { name: 'EMBRACE_C869' }
         ],
         optionalServices: [
           'battery_service',
@@ -231,14 +233,58 @@ export default function IoTDeviceManager() {
         setBluetoothDevices(prev => [...prev, bluetoothDevice]);
         setSelectedBluetoothDevice(bluetoothDevice);
         
-        // Pre-fill form with device information
-        form.setValue('deviceName', bluetoothDevice.name);
-        form.setValue('bluetoothId', bluetoothDevice.id);
-        
-        toast({
-          title: "Device Found",
-          description: `Found ${bluetoothDevice.name}. Ready to add to your devices.`,
-        });
+        // Try to connect and read device information
+        try {
+          if (device.gatt) {
+            const server = await device.gatt.connect();
+            let batteryLevel = 100; // Default
+            let firmwareVersion = "1.0.0"; // Default
+            
+            // Try to read battery level
+            try {
+              const batteryService = await server.getPrimaryService('battery_service');
+              const batteryCharacteristic = await batteryService.getCharacteristic('battery_level');
+              const batteryData = await batteryCharacteristic.readValue();
+              batteryLevel = batteryData.getUint8(0);
+              console.log('Real battery level:', batteryLevel);
+            } catch (batteryError) {
+              console.log('Battery service not available for', device.name);
+            }
+            
+            // Try to read device information
+            try {
+              const deviceInfoService = await server.getPrimaryService('device_information');
+              const firmwareCharacteristic = await deviceInfoService.getCharacteristic('firmware_revision_string');
+              const firmwareData = await firmwareCharacteristic.readValue();
+              firmwareVersion = new TextDecoder().decode(firmwareData);
+            } catch (firmwareError) {
+              console.log('Device info service not available for', device.name);
+            }
+            
+            // Pre-fill form with real device information
+            form.setValue('deviceName', bluetoothDevice.name);
+            form.setValue('bluetoothId', bluetoothDevice.id);
+            form.setValue('batteryLevel', batteryLevel);
+            form.setValue('firmwareVersion', firmwareVersion);
+            form.setValue('isConnected', true);
+            form.setValue('connectionStatus', 'connected');
+            
+            toast({
+              title: "Device Connected",
+              description: `Connected to ${bluetoothDevice.name}. Battery: ${batteryLevel}%`,
+            });
+          }
+        } catch (connectionError) {
+          console.log('Failed to connect for initial reading:', connectionError);
+          // Pre-fill form with basic device information
+          form.setValue('deviceName', bluetoothDevice.name);
+          form.setValue('bluetoothId', bluetoothDevice.id);
+          
+          toast({
+            title: "Device Found",
+            description: `Found ${bluetoothDevice.name}. Ready to add to your devices.`,
+          });
+        }
       }
     } catch (error) {
       console.error('Bluetooth scan error:', error);
@@ -256,10 +302,14 @@ export default function IoTDeviceManager() {
   const connectToBluetoothDevice = async (device: BluetoothDevice) => {
     try {
       if (device.gatt && !device.gatt.connected) {
-        await device.gatt.connect();
+        const server = await device.gatt.connect();
         setBluetoothDevices(prev =>
           prev.map(d => d.id === device.id ? { ...d, connected: true } : d)
         );
+        
+        // Start battery monitoring for this device
+        startBatteryMonitoring(device, server);
+        
         toast({
           title: "Connected",
           description: `Connected to ${device.name} via Bluetooth.`,
@@ -273,6 +323,44 @@ export default function IoTDeviceManager() {
         variant: "destructive",
       });
     }
+  };
+
+  // Battery monitoring for connected devices
+  const startBatteryMonitoring = async (device: BluetoothDevice, server: BluetoothRemoteGATTServer) => {
+    const monitorBattery = async () => {
+      try {
+        const batteryService = await server.getPrimaryService('battery_service');
+        const batteryCharacteristic = await batteryService.getCharacteristic('battery_level');
+        const batteryData = await batteryCharacteristic.readValue();
+        const batteryLevel = batteryData.getUint8(0);
+        
+        // Update the device in the devices list with new battery level
+        queryClient.setQueryData(["/api/iot-devices"], (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((iotDevice: any) => 
+            iotDevice.bluetoothId === device.id 
+              ? { ...iotDevice, batteryLevel }
+              : iotDevice
+          );
+        });
+        
+        console.log(`Battery update for ${device.name}: ${batteryLevel}%`);
+      } catch (error) {
+        console.log(`Battery monitoring failed for ${device.name}:`, error);
+      }
+    };
+
+    // Monitor battery every 30 seconds
+    const intervalId = setInterval(monitorBattery, 30000);
+    
+    // Stop monitoring when device disconnects
+    device.addEventListener('gattserverdisconnected', () => {
+      clearInterval(intervalId);
+      console.log(`Stopped battery monitoring for ${device.name}`);
+    });
+    
+    // Initial battery read
+    monitorBattery();
   };
 
   const getDeviceIcon = (deviceType: string) => {

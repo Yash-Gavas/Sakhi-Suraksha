@@ -1040,6 +1040,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update device battery level
+  app.patch("/api/iot-devices/:id/battery", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.id);
+      const { batteryLevel } = req.body;
+      
+      if (typeof batteryLevel !== 'number' || batteryLevel < 0 || batteryLevel > 100) {
+        return res.status(400).json({ message: "Invalid battery level" });
+      }
+      
+      const success = await storage.updateDeviceBattery(deviceId, batteryLevel);
+      
+      if (success) {
+        res.json({ message: "Battery level updated successfully" });
+      } else {
+        res.status(404).json({ message: "Device not found" });
+      }
+    } catch (error) {
+      console.error('Error updating device battery:', error);
+      res.status(500).json({ message: "Failed to update battery level" });
+    }
+  });
+
   // Health Metrics Routes
   app.get("/api/health-metrics", async (req, res) => {
     try {
