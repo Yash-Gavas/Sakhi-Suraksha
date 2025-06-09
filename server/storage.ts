@@ -632,6 +632,10 @@ class MemoryStorage implements IStorage {
   private familyConnectionsMap = new Map<string, FamilyConnection[]>();
   private alertHistoryMap = new Map<string, any[]>();
   private communityAlertsMap = new Map<number, CommunityAlert>();
+  private iotDevicesMap = new Map<string, IotDevice[]>();
+  private healthMetricsMap = new Map<string, HealthMetric[]>();
+  private stressAnalysisMap = new Map<string, StressAnalysis[]>();
+  private iotEmergencyTriggersMap = new Map<string, IotEmergencyTrigger[]>();
 
   constructor() {
     // Initialize with demo user data
@@ -1013,24 +1017,149 @@ class MemoryStorage implements IStorage {
       }
     }
   }
-  async getIotDevices(): Promise<IotDevice[]> { return []; }
-  async createIotDevice(): Promise<IotDevice> { throw new Error('Not implemented'); }
-  async updateIotDevice(): Promise<IotDevice | undefined> { return undefined; }
-  async deleteIotDevice(): Promise<boolean> { return false; }
-  async connectDevice(): Promise<boolean> { return false; }
-  async disconnectDevice(): Promise<boolean> { return false; }
-  async getHealthMetrics(): Promise<HealthMetric[]> { return []; }
-  async createHealthMetric(): Promise<HealthMetric> { throw new Error('Not implemented'); }
-  async getLatestHealthMetrics(): Promise<HealthMetric | undefined> { return undefined; }
-  async getStressAnalysis(): Promise<StressAnalysis[]> { return []; }
-  async createStressAnalysis(): Promise<StressAnalysis> { throw new Error('Not implemented'); }
-  async getLatestStressAnalysis(): Promise<StressAnalysis | undefined> { return undefined; }
-  async getIotEmergencyTriggers(): Promise<IotEmergencyTrigger[]> { return []; }
-  async createIotEmergencyTrigger(): Promise<IotEmergencyTrigger> { throw new Error('Not implemented'); }
-  async resolveIotEmergencyTrigger(): Promise<boolean> { return false; }
-  private familyConnectionsMap = new Map<string, FamilyConnection[]>();
-  private familyConnectionsByCode = new Map<string, FamilyConnection>();
-  private alertHistoryMap = new Map<string, any[]>();
+  async getIotDevices(userId: string): Promise<IotDevice[]> {
+    return this.iotDevicesMap.get(userId) || [];
+  }
+
+  async createIotDevice(device: InsertIotDevice): Promise<IotDevice> {
+    const devices = this.iotDevicesMap.get(device.userId) || [];
+    const newDevice = {
+      ...device,
+      id: Date.now(),
+      isConnected: false,
+      connectionStatus: "disconnected",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastConnected: null
+    } as IotDevice;
+    
+    devices.push(newDevice);
+    this.iotDevicesMap.set(device.userId, devices);
+    this.savePersistentData();
+    return newDevice;
+  }
+
+  async updateIotDevice(id: number, updates: Partial<InsertIotDevice>): Promise<IotDevice | undefined> {
+    for (const [userId, devices] of this.iotDevicesMap) {
+      const deviceIndex = devices.findIndex(d => d.id === id);
+      if (deviceIndex >= 0) {
+        devices[deviceIndex] = { ...devices[deviceIndex], ...updates, updatedAt: new Date() };
+        this.savePersistentData();
+        return devices[deviceIndex];
+      }
+    }
+    return undefined;
+  }
+
+  async deleteIotDevice(id: number): Promise<boolean> {
+    for (const [userId, devices] of this.iotDevicesMap) {
+      const deviceIndex = devices.findIndex(d => d.id === id);
+      if (deviceIndex >= 0) {
+        devices.splice(deviceIndex, 1);
+        this.savePersistentData();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async connectDevice(id: number): Promise<boolean> {
+    const device = await this.updateIotDevice(id, {
+      isConnected: true,
+      connectionStatus: "connected",
+      lastConnected: new Date()
+    });
+    return !!device;
+  }
+
+  async disconnectDevice(id: number): Promise<boolean> {
+    const device = await this.updateIotDevice(id, {
+      isConnected: false,
+      connectionStatus: "disconnected"
+    });
+    return !!device;
+  }
+
+  async getHealthMetrics(userId: string, limit?: number): Promise<HealthMetric[]> {
+    const metrics = this.healthMetricsMap.get(userId) || [];
+    return limit ? metrics.slice(0, limit) : metrics;
+  }
+
+  async createHealthMetric(metric: InsertHealthMetric): Promise<HealthMetric> {
+    const metrics = this.healthMetricsMap.get(metric.userId) || [];
+    const newMetric = {
+      ...metric,
+      id: Date.now(),
+      timestamp: new Date(),
+      createdAt: new Date()
+    } as HealthMetric;
+    
+    metrics.unshift(newMetric); // Add to beginning for latest first
+    this.healthMetricsMap.set(metric.userId, metrics);
+    this.savePersistentData();
+    return newMetric;
+  }
+
+  async getLatestHealthMetrics(userId: string): Promise<HealthMetric | undefined> {
+    const metrics = this.healthMetricsMap.get(userId) || [];
+    return metrics[0]; // First item is latest
+  }
+
+  async getStressAnalysis(userId: string, limit?: number): Promise<StressAnalysis[]> {
+    const analysis = this.stressAnalysisMap.get(userId) || [];
+    return limit ? analysis.slice(0, limit) : analysis;
+  }
+
+  async createStressAnalysis(analysis: InsertStressAnalysis): Promise<StressAnalysis> {
+    const analyses = this.stressAnalysisMap.get(analysis.userId) || [];
+    const newAnalysis = {
+      ...analysis,
+      id: Date.now(),
+      analysisTimestamp: new Date(),
+      createdAt: new Date()
+    } as StressAnalysis;
+    
+    analyses.unshift(newAnalysis);
+    this.stressAnalysisMap.set(analysis.userId, analyses);
+    this.savePersistentData();
+    return newAnalysis;
+  }
+
+  async getLatestStressAnalysis(userId: string): Promise<StressAnalysis | undefined> {
+    const analysis = this.stressAnalysisMap.get(userId) || [];
+    return analysis[0];
+  }
+
+  async getIotEmergencyTriggers(userId: string): Promise<IotEmergencyTrigger[]> {
+    return this.iotEmergencyTriggersMap.get(userId) || [];
+  }
+
+  async createIotEmergencyTrigger(trigger: InsertIotEmergencyTrigger): Promise<IotEmergencyTrigger> {
+    const triggers = this.iotEmergencyTriggersMap.get(trigger.userId) || [];
+    const newTrigger = {
+      ...trigger,
+      id: Date.now(),
+      timestamp: new Date(),
+      createdAt: new Date()
+    } as IotEmergencyTrigger;
+    
+    triggers.push(newTrigger);
+    this.iotEmergencyTriggersMap.set(trigger.userId, triggers);
+    this.savePersistentData();
+    return newTrigger;
+  }
+
+  async resolveIotEmergencyTrigger(id: number): Promise<boolean> {
+    for (const [userId, triggers] of this.iotEmergencyTriggersMap) {
+      const triggerIndex = triggers.findIndex(t => t.id === id);
+      if (triggerIndex >= 0) {
+        triggers[triggerIndex].isResolved = true;
+        this.savePersistentData();
+        return true;
+      }
+    }
+    return false;
+  }
 
   // Initialize persistent storage on startup
   private initializePersistentStorage() {

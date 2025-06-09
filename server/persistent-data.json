@@ -302,6 +302,29 @@
         "createdAt": "2025-06-09T16:36:27.919Z",
         "updatedAt": "2025-06-09T16:36:27.919Z",
         "isResolved": false
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "button",
+        "latitude": 13.034526954026292,
+        "longitude": 77.56229268818873,
+        "address": "13.0345, 77.5623",
+        "id": 1749488283462,
+        "createdAt": "2025-06-09T16:58:03.462Z",
+        "updatedAt": "2025-06-09T16:58:03.462Z",
+        "isResolved": false
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034654534214946,
+        "longitude": 77.56244147567564,
+        "address": "Voice Detection Location: 13.034655, 77.562441",
+        "audioRecordingUrl": "{\"detectedText\":\"help\",\"scenario\":\"Voice Distress Alert: \\\"help\\\" detected in speech. Audio Analysis: \\\"help\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
+        "id": 1749488291488,
+        "createdAt": "2025-06-09T16:58:11.488Z",
+        "updatedAt": "2025-06-09T16:58:11.488Z",
+        "isResolved": false
       }
     ]
   },
@@ -353,5 +376,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-09T16:36:27.925Z"
+  "timestamp": "2025-06-09T16:58:11.492Z"
 }
