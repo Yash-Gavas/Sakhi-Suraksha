@@ -413,6 +413,12 @@ export default function ParentDashboard() {
                       <div><span className="font-medium">Time:</span> {new Date(selectedAlert.createdAt).toLocaleString()}</div>
                       <div><span className="font-medium">Type:</span> {selectedAlert.triggerType}</div>
                       <div><span className="font-medium">Status:</span> {selectedAlert.status}</div>
+                      {selectedAlert.triggerType === 'voice_detection' && (
+                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                          <span className="font-medium text-red-800">Voice SOS:</span>
+                          <span className="text-red-700 ml-1">Automatic distress detection triggered</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -424,6 +430,29 @@ export default function ParentDashboard() {
                     </div>
                   </div>
                 </div>
+
+                {/* Emergency Photo Display for Voice SOS */}
+                {selectedAlert.photoUrl && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-2 text-red-700">Emergency Photo Captured</h3>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <p className="text-sm text-red-600 mb-3">
+                        Photo automatically captured during voice distress detection
+                      </p>
+                      <div className="max-w-md mx-auto">
+                        <img 
+                          src={selectedAlert.photoUrl} 
+                          alt="Emergency capture" 
+                          className="w-full rounded-lg shadow-lg border-2 border-red-300"
+                          style={{ maxHeight: '300px', objectFit: 'contain' }}
+                        />
+                        <p className="text-xs text-gray-500 mt-2 text-center">
+                          Captured: {new Date(selectedAlert.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Button onClick={() => window.open(`https://maps.google.com/?q=${selectedAlert.latitude},${selectedAlert.longitude}`, '_blank')}>

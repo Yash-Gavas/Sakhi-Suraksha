@@ -1691,27 +1691,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Format emergency alerts using correct schema fields
       childAlerts.forEach(alert => {
-        const location = alert.latitude && alert.longitude ? {
-          lat: parseFloat(alert.latitude.toString()),
-          lng: parseFloat(alert.longitude.toString()),
-          address: alert.address || 'Location not available'
-        } : null;
+        try {
+          const location = alert.latitude && alert.longitude ? {
+            lat: parseFloat(alert.latitude.toString()),
+            lng: parseFloat(alert.longitude.toString()),
+            address: alert.address || 'Location not available'
+          } : null;
 
-        const alertData = {
-          id: alert.id,
-          childName: user?.firstName || user?.email?.split('@')[0] || 'Sharanya',
-          childId: 1,
-          type: alert.triggerType,
-          message: getAlertMessage(alert.triggerType, location, alert.createdAt ? new Date(alert.createdAt).toISOString() : new Date().toISOString(), alert.audioRecordingUrl),
-          location,
-          timestamp: alert.createdAt ? new Date(alert.createdAt) : new Date(),
-          status: alert.isResolved ? 'resolved' : 'active',
-          isResolved: alert.isResolved || false,
-          audioRecordingUrl: alert.audioRecordingUrl,
-          videoUrl: alert.videoRecordingUrl,
-          liveStreamUrl: alert.isResolved ? null : `${req.protocol}://${req.get('host')}/watch/emergency_${alert.id}`,
-          canStartStream: !alert.isResolved
-        };
+          // Safely handle timestamp conversion
+          let timestampStr;
+          let timestampDate;
+          try {
+            if (alert.createdAt) {
+              timestampDate = new Date(alert.createdAt);
+              timestampStr = timestampDate.toISOString();
+            } else {
+              timestampDate = new Date();
+              timestampStr = timestampDate.toISOString();
+            }
+          } catch (dateError) {
+            console.error('Date conversion error for alert:', alert.id, dateError);
+            timestampDate = new Date();
+            timestampStr = timestampDate.toISOString();
+          }
+
+          const alertData = {
+            id: alert.id,
+            childName: user?.firstName || user?.email?.split('@')[0] || 'Sharanya',
+            childId: 1,
+            type: alert.triggerType,
+            message: getAlertMessage(alert.triggerType, location, timestampStr, alert.audioRecordingUrl),
+            location,
+            timestamp: timestampDate,
+            status: alert.isResolved ? 'resolved' : 'active',
+            isResolved: alert.isResolved || false,
+            audioRecordingUrl: alert.audioRecordingUrl,
+            videoUrl: alert.videoRecordingUrl,
+            photoUrl: alert.photoUrl, // Include photo URL for voice SOS alerts
+            liveStreamUrl: alert.isResolved ? null : `${req.protocol}://${req.get('host')}/watch/emergency_${alert.id}`,
+            canStartStream: !alert.isResolved
+          };
 
         // Filter based on status query parameter
         if (!status || 
