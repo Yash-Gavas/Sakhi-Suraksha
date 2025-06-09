@@ -480,44 +480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Emergency contacts routes
 
 
-  // Photo upload endpoint for emergency alerts
-  app.post("/api/upload-emergency-photo", async (req, res) => {
-    try {
-      const { photoDataUrl, alertId, timestamp } = req.body;
-      
-      if (!photoDataUrl) {
-        return res.status(400).json({ message: "Photo data is required" });
-      }
 
-      // Store photo data directly in the emergency alert for simplicity
-      // In a production environment, you would save to file storage or cloud storage
-      const photoUrl = `data:emergency_photo_${alertId}_${Date.now()}`;
-      
-      // Update emergency alert with photo URL and data
-      if (alertId) {
-        await storage.updateEmergencyAlert(parseInt(alertId), {
-          photoUrl: photoDataUrl // Store the full data URL for now
-        });
-        
-        console.log(`Emergency photo saved for alert ${alertId} at ${timestamp}`);
-      }
-      
-      res.json({ 
-        success: true, 
-        photoUrl,
-        message: "Emergency photo saved successfully" 
-      });
-    } catch (error) {
-      console.error('Error uploading emergency photo:', error);
-      res.status(500).json({ 
-        message: "Failed to upload emergency photo",
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
-
-  // Serve uploaded emergency photos
-  app.use('/uploads/emergency_photos', express.static('./uploads/emergency_photos'));
 
   // Emergency alerts routes (no authentication required for emergency situations)
   app.post("/api/emergency-alerts", async (req, res) => {

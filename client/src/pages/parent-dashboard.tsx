@@ -59,14 +59,14 @@ export default function ParentDashboard() {
   const queryClient = useQueryClient();
 
   // Fetch active emergency alerts for all children
-  const { data: emergencyAlerts = [], isLoading } = useQuery({
+  const { data: emergencyAlerts = [], isLoading } = useQuery<EmergencyAlert[]>({
     queryKey: ["/api/parent/emergency-alerts"],
     refetchInterval: 5000, // Check for new alerts every 5 seconds
     refetchOnWindowFocus: true,
   });
 
   // Fetch children profiles and their status
-  const { data: children = [] } = useQuery({
+  const { data: children = [] } = useQuery<ChildProfile[]>({
     queryKey: ["/api/parent/children"],
     refetchInterval: 30000, // Update children status every 30 seconds
   });
@@ -113,7 +113,7 @@ export default function ParentDashboard() {
 
   // Auto-play emergency notification sound
   useEffect(() => {
-    const activeAlerts = emergencyAlerts.filter((alert: EmergencyAlert) => alert.status === 'active');
+    const activeAlerts = emergencyAlerts?.filter((alert: EmergencyAlert) => alert.status === 'active') || [];
     if (activeAlerts.length > 0) {
       // Play notification sound
       const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmUCBzqN1/HNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmUCBz6N1/HNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmU=');
@@ -165,8 +165,8 @@ export default function ParentDashboard() {
               <p className="text-gray-600">Monitor and respond to your children's safety alerts</p>
             </div>
             <div className="flex items-center space-x-4">
-              <Badge variant={emergencyAlerts.some((a: EmergencyAlert) => a.status === 'active') ? 'destructive' : 'secondary'}>
-                {emergencyAlerts.filter((a: EmergencyAlert) => a.status === 'active').length} Active Alerts
+              <Badge variant={emergencyAlerts?.some((a: EmergencyAlert) => a.status === 'active') ? 'destructive' : 'secondary'}>
+                {emergencyAlerts?.filter((a: EmergencyAlert) => a.status === 'active').length || 0} Active Alerts
               </Badge>
               <Button variant="outline" size="sm">
                 <Bell className="w-4 h-4 mr-2" />
