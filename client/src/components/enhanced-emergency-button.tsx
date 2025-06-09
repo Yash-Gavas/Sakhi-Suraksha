@@ -82,6 +82,7 @@ export default function EnhancedEmergencyButton() {
     // Directly capture photo without modal for seamless emergency response
     try {
       const photoDataUrl = await captureEmergencyPhoto();
+      console.log('Emergency photo captured successfully');
       
       // Create emergency alert and get the ID for photo association
       await triggerEmergencyProtocol(triggerType, {
