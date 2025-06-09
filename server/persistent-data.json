@@ -22,6 +22,9 @@
   "alertHistory": {
     "demo-user": []
   },
+  "emergencyAlerts": {
+    "demo-user": []
+  },
   "communityAlerts": [
     {
       "id": 1749315609711,

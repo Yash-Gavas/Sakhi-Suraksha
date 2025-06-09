@@ -726,6 +726,13 @@ class MemoryStorage implements IStorage {
           }
         }
         
+        // Load emergency alerts
+        if (data.emergencyAlerts) {
+          for (const [userId, alerts] of Object.entries(data.emergencyAlerts)) {
+            this.emergencyAlertsMap.set(userId, alerts as EmergencyAlert[]);
+          }
+        }
+        
         // Load destinations
         if (data.destinations) {
           for (const [userId, userDestinations] of Object.entries(data.destinations)) {
@@ -774,6 +781,7 @@ class MemoryStorage implements IStorage {
       const data = {
         familyConnections: Object.fromEntries(this.familyConnectionsMap),
         alertHistory: Object.fromEntries(this.alertHistoryMap),
+        emergencyAlerts: Object.fromEntries(this.emergencyAlertsMap),
         communityAlerts: Array.from(this.communityAlertsMap.values()),
         destinations: Object.fromEntries(this.destinationsMap),
         timestamp: new Date().toISOString()
