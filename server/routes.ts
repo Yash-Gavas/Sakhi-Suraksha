@@ -1727,7 +1727,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isResolved: alert.isResolved || false,
             audioRecordingUrl: alert.audioRecordingUrl,
             videoUrl: alert.videoRecordingUrl,
-            photoUrl: alert.photoUrl, // Include photo URL for voice SOS alerts
             liveStreamUrl: alert.isResolved ? null : `${req.protocol}://${req.get('host')}/watch/emergency_${alert.id}`,
             canStartStream: !alert.isResolved
           };
@@ -1879,6 +1878,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error resolving alert:', error);
       res.status(500).json({ message: "Failed to resolve alert" });
+    }
+  });
+
+  // Emergency recording video endpoint
+  app.get("/api/emergency-recordings/:streamId/:filename", async (req, res) => {
+    try {
+      const { streamId, filename } = req.params;
+      
+      // For demo purposes, serve a placeholder video file
+      // In production, this would serve actual recorded video files
+      const videoPath = `/recordings/${streamId}/${filename}`;
+      
+      // Set appropriate headers for video streaming
+      res.set({
+        'Content-Type': 'video/mp4',
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'no-cache'
+      });
+      
+      // For demo, return a success response indicating video availability
+      res.status(200).json({
+        message: "Video recording available",
+        streamId,
+        filename,
+        url: videoPath,
+        recordedAt: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('Error serving emergency recording:', error);
+      res.status(404).json({ message: "Recording not found" });
     }
   });
 
