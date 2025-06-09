@@ -102,71 +102,154 @@ export default function EnhancedEmergencyButton() {
 
   const startVideoRecording = async (): Promise<MediaRecorder | null> => {
     try {
-      // Request camera and microphone permissions
+      console.log('Requesting camera access for emergency recording...');
+      
+      // Request camera and microphone permissions with specific constraints
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          width: { ideal: 1280 }, 
-          height: { ideal: 720 },
-          facingMode: 'user'
+          width: { min: 640, ideal: 1280, max: 1920 }, 
+          height: { min: 480, ideal: 720, max: 1080 },
+          facingMode: 'user',
+          frameRate: { ideal: 30, min: 15 }
         }, 
         audio: {
           echoCancellation: true,
-          noiseSuppression: true
+          noiseSuppression: true,
+          autoGainControl: true
         }
       });
       
-      // Use a more compatible MIME type
-      let mimeType = 'video/webm;codecs=vp8,opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm';
+      console.log('Camera stream acquired:', stream.getTracks().map(t => `${t.kind}: ${t.label}`));
+      
+      // Test MIME types in order of preference
+      const mimeTypes = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus', 
+        'video/webm;codecs=h264,opus',
+        'video/webm',
+        'video/mp4;codecs=h264,aac',
+        'video/mp4'
+      ];
+      
+      let supportedMimeType = '';
+      for (const type of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          supportedMimeType = type;
+          console.log('Using MIME type:', type);
+          break;
+        }
       }
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/mp4';
+      
+      if (!supportedMimeType) {
+        throw new Error('No supported video MIME type found');
       }
       
       const recorder = new MediaRecorder(stream, {
-        mimeType: mimeType,
-        videoBitsPerSecond: 2500000, // 2.5 Mbps
-        audioBitsPerSecond: 128000   // 128 kbps
+        mimeType: supportedMimeType,
+        videoBitsPerSecond: 1000000, // 1 Mbps for better compatibility
+        audioBitsPerSecond: 64000    // 64 kbps
       });
       
       const chunks: Blob[] = [];
+      let recordingStartTime = Date.now();
       
       recorder.ondataavailable = (event) => {
-        console.log('Video data available:', event.data.size, 'bytes');
-        if (event.data.size > 0) {
+        const chunkSize = event.data.size;
+        console.log(`Video chunk received: ${chunkSize} bytes at ${Date.now() - recordingStartTime}ms`);
+        
+        if (chunkSize > 0) {
           chunks.push(event.data);
+          console.log(`Total chunks collected: ${chunks.length}, Total size: ${chunks.reduce((sum, chunk) => sum + chunk.size, 0)} bytes`);
         }
       };
       
       recorder.onstop = async () => {
-        console.log('Video recording stopped, total chunks:', chunks.length);
-        const videoBlob = new Blob(chunks, { type: mimeType });
-        console.log('Final video blob size:', videoBlob.size, 'bytes');
+        const recordingDuration = Date.now() - recordingStartTime;
+        console.log(`Recording stopped after ${recordingDuration}ms, chunks: ${chunks.length}`);
+        
+        if (chunks.length === 0) {
+          console.error('CRITICAL: No video chunks captured during recording');
+          toast({
+            title: "Video Recording Failed",
+            description: "No video data was captured",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        const videoBlob = new Blob(chunks, { type: supportedMimeType });
+        const blobSize = videoBlob.size;
+        console.log(`Final video blob: ${blobSize} bytes, type: ${supportedMimeType}`);
+        
+        if (blobSize === 0) {
+          console.error('CRITICAL: Video blob is empty despite having chunks');
+          return;
+        }
+        
         setRecordedVideoBlob(videoBlob);
         
         // Upload video immediately after recording stops
-        if (currentAlertId && videoBlob.size > 0) {
-          const videoUrl = await uploadVideoRecording(currentAlertId, videoBlob);
-          console.log('Video uploaded to:', videoUrl);
+        if (currentAlertId && blobSize > 1000) { // At least 1KB of data
+          console.log(`Uploading ${blobSize} byte video for alert:`, currentAlertId);
+          
+          try {
+            const videoUrl = await uploadVideoRecording(currentAlertId, videoBlob);
+            console.log('SUCCESS: Video uploaded to:', videoUrl);
+            
+            toast({
+              title: "Video Uploaded",
+              description: `Emergency recording saved (${Math.round(blobSize/1024)}KB)`,
+              variant: "default"
+            });
+          } catch (uploadError) {
+            console.error('Video upload failed:', uploadError);
+            toast({
+              title: "Upload Failed",
+              description: "Could not save emergency recording",
+              variant: "destructive"
+            });
+          }
+        } else {
+          console.error(`Cannot upload video - alertId: ${currentAlertId}, size: ${blobSize}`);
         }
         
         // Stop all tracks to release camera
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach(track => {
+          track.stop();
+          console.log(`Stopped ${track.kind} track:`, track.label);
+        });
       };
       
-      recorder.onerror = (event) => {
-        console.error('MediaRecorder error:', event);
+      recorder.onerror = (event: any) => {
+        console.error('MediaRecorder error:', event.error);
+        toast({
+          title: "Recording Error",
+          description: "Video recording encountered an error",
+          variant: "destructive"
+        });
       };
       
-      // Start recording with time slice to ensure data is captured
-      recorder.start(1000); // Capture data every 1 second
+      recorder.onstart = () => {
+        console.log('MediaRecorder started successfully');
+        recordingStartTime = Date.now();
+      };
+      
+      // Start recording with frequent data capture
+      recorder.start(500); // Capture data every 500ms for better reliability
       setVideoRecorder(recorder);
       
-      console.log('Video recording started for emergency with MIME type:', mimeType);
+      console.log('Video recording initiated with MIME type:', supportedMimeType);
       return recorder;
-    } catch (error) {
+      
+    } catch (error: any) {
       console.error('Failed to start video recording:', error);
+      
+      toast({
+        title: "Camera Access Failed",
+        description: error.message || "Could not access camera for recording",
+        variant: "destructive"
+      });
+      
       return null;
     }
   };
