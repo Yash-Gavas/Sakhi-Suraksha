@@ -334,17 +334,28 @@ export default function IoTDeviceManager() {
         const batteryData = await batteryCharacteristic.readValue();
         const batteryLevel = batteryData.getUint8(0);
         
-        // Update the device in the devices list with new battery level
-        queryClient.setQueryData(["/api/iot-devices"], (oldData: any) => {
-          if (!oldData) return oldData;
-          return oldData.map((iotDevice: any) => 
-            iotDevice.bluetoothId === device.id 
-              ? { ...iotDevice, batteryLevel }
-              : iotDevice
-          );
-        });
+        // Update the device battery level via API
+        const matchingDevice = queryClient.getQueryData(["/api/iot-devices"]) as any[];
+        const deviceToUpdate = matchingDevice?.find((iotDevice: any) => 
+          iotDevice.bluetoothId === device.id
+        );
         
-        console.log(`Battery update for ${device.name}: ${batteryLevel}%`);
+        if (deviceToUpdate) {
+          try {
+            await fetch(`/api/iot-devices/${deviceToUpdate.id}/battery`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ batteryLevel })
+            });
+            
+            // Invalidate cache to refresh the UI with updated battery level
+            queryClient.invalidateQueries({ queryKey: ["/api/iot-devices"] });
+            
+            console.log(`Battery update for ${device.name}: ${batteryLevel}%`);
+          } catch (error) {
+            console.error(`Failed to update battery for ${device.name}:`, error);
+          }
+        }
       } catch (error) {
         console.log(`Battery monitoring failed for ${device.name}:`, error);
       }

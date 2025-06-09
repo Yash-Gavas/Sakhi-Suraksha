@@ -97,6 +97,7 @@ export interface IStorage {
   getIotDevices(userId: string): Promise<IotDevice[]>;
   createIotDevice(device: InsertIotDevice): Promise<IotDevice>;
   updateIotDevice(id: number, updates: Partial<InsertIotDevice>): Promise<IotDevice | undefined>;
+  updateDeviceBattery(id: number, batteryLevel: number): Promise<boolean>;
   deleteIotDevice(id: number): Promise<boolean>;
   connectDevice(id: number): Promise<boolean>;
   disconnectDevice(id: number): Promise<boolean>;
@@ -445,6 +446,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(iotDevices.id, id))
       .returning();
     return device || undefined;
+  }
+
+  async updateDeviceBattery(id: number, batteryLevel: number): Promise<boolean> {
+    const [device] = await db
+      .update(iotDevices)
+      .set({ batteryLevel, updatedAt: new Date() })
+      .where(eq(iotDevices.id, id))
+      .returning();
+    return !!device;
   }
 
   async deleteIotDevice(id: number): Promise<boolean> {
@@ -1068,6 +1078,14 @@ class MemoryStorage implements IStorage {
       isConnected: true,
       connectionStatus: "connected",
       lastConnected: new Date()
+    });
+    return !!device;
+  }
+
+  async updateDeviceBattery(id: number, batteryLevel: number): Promise<boolean> {
+    const device = await this.updateIotDevice(id, {
+      batteryLevel,
+      updatedAt: new Date()
     });
     return !!device;
   }
@@ -1726,6 +1744,14 @@ class SmartStorage implements IStorage {
       return await this.tryDatabase(() => this.dbStorage.updateIotDevice(id, updates));
     } catch {
       return this.memStorage.updateIotDevice(id, updates);
+    }
+  }
+
+  async updateDeviceBattery(id: number, batteryLevel: number): Promise<boolean> {
+    try {
+      return await this.tryDatabase(() => this.dbStorage.updateDeviceBattery(id, batteryLevel));
+    } catch {
+      return this.memStorage.updateDeviceBattery(id, batteryLevel);
     }
   }
 
