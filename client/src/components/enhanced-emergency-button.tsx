@@ -34,6 +34,8 @@ export default function EnhancedEmergencyButton() {
   const [emergencyActive, setEmergencyActive] = useState(false);
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [currentAlertId, setCurrentAlertId] = useState<number | null>(null);
+  const [videoRecorder, setVideoRecorder] = useState<MediaRecorder | null>(null);
+  const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
   
   const { toast } = useToast();
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -124,11 +126,6 @@ export default function EnhancedEmergencyButton() {
       lastSync: deviceInfo.lastSync
     });
   };
-
-
-
-  const [videoRecorder, setVideoRecorder] = useState<MediaRecorder | null>(null);
-  const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
 
   const startVideoRecording = async (): Promise<MediaRecorder | null> => {
     try {
@@ -274,8 +271,15 @@ export default function EnhancedEmergencyButton() {
               // Handle video recording for voice-triggered emergencies
               if (additionalData?.autoVideoRecording && additionalData?.videoRecorder) {
                 console.log('Voice-triggered emergency - continuous video recording started');
-                // Video recording will continue until emergency is manually stopped or resolved
-                // No automatic timeout - recording persists for the entire emergency duration
+                setEmergencyActive(true);
+                setShowLiveStream(true);
+                
+                // Show immediate feedback that recording has started
+                toast({
+                  title: "Video Recording Started",
+                  description: "Continuous recording until emergency is resolved",
+                  variant: "default",
+                });
               }
             }
           } catch (error) {

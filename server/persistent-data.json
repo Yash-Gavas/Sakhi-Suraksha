@@ -212,8 +212,9 @@
         "audioRecordingUrl": "{\"detectedText\":\"help\",\"scenario\":\"Voice Distress Alert: \\\"help\\\" detected in speech. Audio Analysis: \\\"help\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
         "id": 1749483697068,
         "createdAt": "2025-06-09T15:41:37.068Z",
-        "updatedAt": "2025-06-09T15:41:37.068Z",
-        "isResolved": false
+        "updatedAt": "2025-06-09T15:54:57.539Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749483697068/video.mp4"
       },
       {
         "userId": "demo-user",
@@ -223,8 +224,9 @@
         "address": "13.0346, 77.5624",
         "id": 1749483727624,
         "createdAt": "2025-06-09T15:42:07.624Z",
-        "updatedAt": "2025-06-09T15:42:07.624Z",
-        "isResolved": false
+        "updatedAt": "2025-06-09T15:55:01.991Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749483727624/video.mp4"
       },
       {
         "userId": "demo-user",
@@ -234,8 +236,9 @@
         "address": "Bangalore, Karnataka",
         "id": 1749483957695,
         "createdAt": "2025-06-09T15:45:57.695Z",
-        "updatedAt": "2025-06-09T15:45:57.695Z",
-        "isResolved": false
+        "updatedAt": "2025-06-09T15:54:59.091Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749483957695/video.mp4"
       },
       {
         "userId": "demo-user",
@@ -246,7 +249,20 @@
         "audioRecordingUrl": "{\"detectedText\":\"hey bro danger\",\"scenario\":\"Voice Distress Alert: \\\"danger\\\" detected in speech. Audio Analysis: \\\"hey bro danger\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
         "id": 1749484124890,
         "createdAt": "2025-06-09T15:48:44.890Z",
-        "updatedAt": "2025-06-09T15:48:44.890Z",
+        "updatedAt": "2025-06-09T15:55:03.748Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749484124890/video.mp4"
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034659820262448,
+        "longitude": 77.5624330700982,
+        "address": "Voice Detection Location: 13.034660, 77.562433",
+        "audioRecordingUrl": "{\"detectedText\":\"what else can be done i think so it would be like hell\",\"scenario\":\"Voice Distress Alert: \\\"help\\\" detected in speech. Audio Analysis: \\\"what else can be done i think so it would be like hell\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
+        "id": 1749484509917,
+        "createdAt": "2025-06-09T15:55:09.917Z",
+        "updatedAt": "2025-06-09T15:55:09.917Z",
         "isResolved": false
       }
     ]
@@ -299,5 +315,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-09T15:48:44.894Z"
+  "timestamp": "2025-06-09T15:55:09.922Z"
 }
