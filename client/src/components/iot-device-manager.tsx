@@ -55,12 +55,15 @@ export default function IoTDeviceManager() {
   const form = useForm<InsertIotDevice>({
     resolver: zodResolver(insertIotDeviceSchema),
     defaultValues: {
+      userId: "demo-user",
       deviceName: "",
       deviceType: "smartwatch",
       macAddress: "",
       bluetoothId: "",
+      isConnected: false,
       batteryLevel: 100,
-      firmwareVersion: ""
+      firmwareVersion: "",
+      connectionStatus: "disconnected"
     }
   });
 
@@ -299,7 +302,30 @@ export default function IoTDeviceManager() {
   };
 
   const handleSubmit = (data: InsertIotDevice) => {
-    addDeviceMutation.mutate(data);
+    console.log('Form submission started:', data);
+    console.log('Form errors:', form.formState.errors);
+    
+    // Validate required fields
+    if (!data.deviceName || data.deviceName.trim() === '') {
+      console.error('Device name is required');
+      toast({
+        title: "Validation Error",
+        description: "Device name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Add userId from session to the device data
+    const deviceData = {
+      ...data,
+      userId: "demo-user",
+      connectionStatus: "disconnected",
+      isConnected: false
+    };
+    
+    console.log('Submitting device data:', deviceData);
+    addDeviceMutation.mutate(deviceData);
   };
 
   if (isLoading) {
@@ -329,7 +355,17 @@ export default function IoTDeviceManager() {
                 <Button 
                   className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
                   onClick={() => {
-                    form.reset();
+                    form.reset({
+                      userId: "demo-user",
+                      deviceName: "EMBRACE_C869",
+                      deviceType: "smartwatch",
+                      macAddress: "",
+                      bluetoothId: "",
+                      isConnected: false,
+                      batteryLevel: 100,
+                      firmwareVersion: "1.0.0",
+                      connectionStatus: "disconnected"
+                    });
                     setSelectedBluetoothDevice(null);
                   }}
                 >
