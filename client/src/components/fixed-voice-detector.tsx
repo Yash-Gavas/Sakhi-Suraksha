@@ -107,8 +107,19 @@ export default function FixedVoiceDetector({
         setLastDetection(`Detected: ${detectedKeywords.join(', ')}`);
         onDistressDetected(confidence, detectedKeywords);
         
-        if (confidence > 0.7 && onEmergencyTriggered) {
-          onEmergencyTriggered();
+        if (confidence > 0.7) {
+          // Trigger emergency protocol with photo capture and streaming
+          if (onVoiceSOSDetected) {
+            onVoiceSOSDetected(
+              'voice_detection',
+              `Voice distress detected - Keywords: ${detectedKeywords.join(', ')}`,
+              currentTranscript
+            );
+          }
+          
+          if (onEmergencyTriggered) {
+            onEmergencyTriggered();
+          }
         }
       }
     };

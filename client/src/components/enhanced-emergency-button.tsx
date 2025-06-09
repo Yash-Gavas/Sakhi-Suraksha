@@ -636,6 +636,20 @@ This is an automated safety alert. Please respond urgently.`;
           autoCapture={true}
         />
       )}
+
+      {/* Voice Detection for Automatic SOS */}
+      <div className="w-full max-w-md">
+        <FixedVoiceDetector
+          onDistressDetected={(confidence, keywords) => {
+            console.log('Voice distress detected:', { confidence, keywords });
+          }}
+          onVoiceSOSDetected={handleVoiceSOSDetected}
+          onEmergencyTriggered={() => {
+            console.log('Emergency triggered by voice detection');
+          }}
+          emergencyMode={emergencyActive}
+        />
+      </div>
     </div>
   );
 }
