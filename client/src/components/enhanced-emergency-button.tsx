@@ -102,35 +102,68 @@ export default function EnhancedEmergencyButton() {
 
   const startVideoRecording = async (): Promise<MediaRecorder | null> => {
     try {
+      // Request camera and microphone permissions
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: 1280, height: 720 }, 
-        audio: true 
+        video: { 
+          width: { ideal: 1280 }, 
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }, 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true
+        }
       });
+      
+      // Use a more compatible MIME type
+      let mimeType = 'video/webm;codecs=vp8,opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm';
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/mp4';
+      }
       
       const recorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9'
+        mimeType: mimeType,
+        videoBitsPerSecond: 2500000, // 2.5 Mbps
+        audioBitsPerSecond: 128000   // 128 kbps
       });
       
-      const chunks: BlobPart[] = [];
+      const chunks: Blob[] = [];
       
       recorder.ondataavailable = (event) => {
+        console.log('Video data available:', event.data.size, 'bytes');
         if (event.data.size > 0) {
           chunks.push(event.data);
         }
       };
       
-      recorder.onstop = () => {
-        const videoBlob = new Blob(chunks, { type: 'video/webm' });
+      recorder.onstop = async () => {
+        console.log('Video recording stopped, total chunks:', chunks.length);
+        const videoBlob = new Blob(chunks, { type: mimeType });
+        console.log('Final video blob size:', videoBlob.size, 'bytes');
         setRecordedVideoBlob(videoBlob);
+        
+        // Upload video immediately after recording stops
+        if (currentAlertId && videoBlob.size > 0) {
+          const videoUrl = await uploadVideoRecording(currentAlertId, videoBlob);
+          console.log('Video uploaded to:', videoUrl);
+        }
         
         // Stop all tracks to release camera
         stream.getTracks().forEach(track => track.stop());
       };
       
-      recorder.start();
+      recorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+      };
+      
+      // Start recording with time slice to ensure data is captured
+      recorder.start(1000); // Capture data every 1 second
       setVideoRecorder(recorder);
       
-      console.log('Video recording started for emergency');
+      console.log('Video recording started for emergency with MIME type:', mimeType);
       return recorder;
     } catch (error) {
       console.error('Failed to start video recording:', error);
@@ -151,7 +184,7 @@ export default function EnhancedEmergencyButton() {
       formData.append('video', videoBlob, `emergency_${alertId}_${Date.now()}.webm`);
       formData.append('alertId', alertId.toString());
 
-      const response = await fetch('/api/upload/emergency-video', {
+      const response = await fetch('/api/emergency-video-upload', {
         method: 'POST',
         body: formData
       });
@@ -171,22 +204,86 @@ export default function EnhancedEmergencyButton() {
   const handleVoiceSOSDetected = async (triggerType: string, scenario: string, detectedText: string) => {
     console.log('Voice SOS detected, starting emergency protocol with video recording');
     
-    // Start video recording immediately
-    const recorder = await startVideoRecording();
-    
-    // Show emergency notification immediately
-    toast({
-      title: "Voice SOS Detected",
-      description: "Recording video and alerting contacts...",
-      variant: "destructive",
-    });
-    
-    // Trigger emergency protocol with video recording
-    await triggerEmergencyProtocol(triggerType, {
-      scenario,
-      detectedText,
-      autoVideoRecording: true,
-      videoRecorder: recorder
+    // Get current location for emergency alert
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const location = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        address: `Voice Detection Location: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`
+      };
+
+      // Create emergency alert data
+      const emergencyData: EmergencyAlert = {
+        triggerType,
+        scenario,
+        location,
+        timestamp: new Date(),
+      };
+
+      try {
+        // Create emergency alert in backend
+        const response = await fetch('/api/voice-distress-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            triggerType,
+            scenario,
+            detectedText,
+            location,
+            timestamp: new Date().toISOString()
+          })
+        });
+
+        if (response.ok) {
+          const alertData = await response.json();
+          const alertId = alertData.alertId;
+          
+          // Set emergency state
+          setEmergencyActive(true);
+          setCurrentAlertId(alertId);
+          setShowLiveStream(true);
+          
+          // Start video recording immediately
+          const recorder = await startVideoRecording();
+          console.log('Voice-triggered video recording started for alert:', alertId);
+          
+          // Show emergency notification
+          toast({
+            title: "Voice SOS Detected",
+            description: "Recording video and alerting contacts...",
+            variant: "destructive",
+          });
+
+          // Send emergency messages to contacts
+          await sendEmergencyMessages(emergencyData);
+        }
+      } catch (error) {
+        console.error('Failed to create voice emergency alert:', error);
+        toast({
+          title: "Emergency Alert Failed",
+          description: "Could not create emergency alert",
+          variant: "destructive",
+        });
+      }
+    }, (error) => {
+      console.error('Geolocation error:', error);
+      // Handle emergency without location
+      const emergencyData: EmergencyAlert = {
+        triggerType,
+        scenario,
+        location: { lat: 0, lng: 0, address: "Location unavailable" },
+        timestamp: new Date(),
+      };
+      
+      setEmergencyActive(true);
+      setShowLiveStream(true);
+      startVideoRecording();
+      
+      toast({
+        title: "Voice SOS Detected",
+        description: "Recording video (location unavailable)...",
+        variant: "destructive",
+      });
     });
   };
 

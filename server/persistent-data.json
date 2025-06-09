@@ -265,6 +265,19 @@
         "updatedAt": "2025-06-09T16:04:00.000Z",
         "isResolved": true,
         "videoRecordingUrl": "/api/emergency-recordings/emergency_1749484509917/video.mp4"
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034526954026292,
+        "longitude": 77.56229268818873,
+        "address": "Voice Detection Location: 13.034527, 77.562293",
+        "audioRecordingUrl": "{\"detectedText\":\"help\",\"scenario\":\"Voice Distress Alert: \\\"help\\\" detected in speech. Audio Analysis: \\\"help\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
+        "id": 1749485179956,
+        "createdAt": "2025-06-09T16:06:19.956Z",
+        "updatedAt": "2025-06-09T16:06:41.789Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749485179956/video.mp4"
       }
     ]
   },
@@ -316,5 +329,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-09T15:55:09.922Z"
+  "timestamp": "2025-06-09T16:06:41.794Z"
 }
