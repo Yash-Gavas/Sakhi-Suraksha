@@ -38,11 +38,83 @@ export default function EnhancedEmergencyButton() {
   const { toast } = useToast();
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   // Fetch real emergency contacts from database
   const { data: emergencyContacts = [] } = useQuery<EmergencyContact[]>({
     queryKey: ["/api/emergency-contacts"]
   });
+
+  // WebSocket connection for emergency resolution signals
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    try {
+      wsRef.current = new WebSocket(wsUrl);
+      
+      wsRef.current.onopen = () => {
+        console.log('WebSocket connected for emergency signals');
+      };
+      
+      wsRef.current.onmessage = async (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'emergency_resolved' && data.alertId === currentAlertId) {
+            console.log(`Emergency ${data.alertId} resolved from parent dashboard - stopping video recording`);
+            
+            // Stop video recording and upload when emergency is resolved
+            if (videoRecorder && videoRecorder.state === 'recording') {
+              stopVideoRecording();
+              
+              // Wait for recording to complete and upload
+              setTimeout(async () => {
+                if (recordedVideoBlob && currentAlertId) {
+                  const videoUrl = await uploadVideoRecording(currentAlertId, recordedVideoBlob);
+                  console.log('Emergency resolved - video uploaded:', videoUrl);
+                  
+                  toast({
+                    title: "Emergency Resolved",
+                    description: "Video recording saved automatically",
+                    variant: "default",
+                  });
+                }
+              }, 2000);
+            }
+            
+            // Reset emergency state
+            setEmergencyActive(false);
+            setShowLiveStream(false);
+            setVideoRecorder(null);
+            setRecordedVideoBlob(null);
+            setCurrentAlertId(null);
+            
+            toast({
+              title: "Emergency Resolved by Parent",
+              description: "Your safety alert has been resolved",
+              variant: "default",
+            });
+          }
+        } catch (error) {
+          console.error('Error processing WebSocket message:', error);
+        }
+      };
+      
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+      
+    } catch (error) {
+      console.error('Failed to establish WebSocket connection:', error);
+    }
+    
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [currentAlertId, videoRecorder, recordedVideoBlob, toast]);
 
   const handleSmartwatchSOS = async (source: string, deviceInfo: any) => {
     const triggerType = `smartwatch-${deviceInfo.type}`;
