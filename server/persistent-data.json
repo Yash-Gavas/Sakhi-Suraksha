@@ -300,8 +300,9 @@
         "address": "13.0346, 77.5624",
         "id": 1749486987919,
         "createdAt": "2025-06-09T16:36:27.919Z",
-        "updatedAt": "2025-06-09T16:36:27.919Z",
-        "isResolved": false
+        "updatedAt": "2025-06-10T05:16:45.360Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749486987919/video.mp4"
       },
       {
         "userId": "demo-user",
@@ -311,8 +312,9 @@
         "address": "13.0345, 77.5623",
         "id": 1749488283462,
         "createdAt": "2025-06-09T16:58:03.462Z",
-        "updatedAt": "2025-06-09T16:58:03.462Z",
-        "isResolved": false
+        "updatedAt": "2025-06-10T05:16:44.848Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749488283462/video.mp4"
       },
       {
         "userId": "demo-user",
@@ -323,8 +325,22 @@
         "audioRecordingUrl": "{\"detectedText\":\"help\",\"scenario\":\"Voice Distress Alert: \\\"help\\\" detected in speech. Audio Analysis: \\\"help\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
         "id": 1749488291488,
         "createdAt": "2025-06-09T16:58:11.488Z",
-        "updatedAt": "2025-06-09T16:58:11.488Z",
-        "isResolved": false
+        "updatedAt": "2025-06-10T05:16:43.732Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749488291488/video.mp4"
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034683014460699,
+        "longitude": 77.56239965653191,
+        "address": "Voice Detection Location: 13.034683, 77.562400",
+        "audioRecordingUrl": "{\"detectedText\":\"police\",\"scenario\":\"Voice Distress Alert: \\\"police\\\" detected in speech. Audio Analysis: \\\"police\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
+        "id": 1749532652565,
+        "createdAt": "2025-06-10T05:17:32.565Z",
+        "updatedAt": "2025-06-10T05:18:07.103Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749532652565/video.mp4"
       }
     ]
   },
@@ -373,8 +389,18 @@
         "address": "Bangalore, Karnataka, India",
         "isFavorite": true,
         "createdAt": "2025-06-07T17:14:11.306Z"
+      },
+      {
+        "id": 1749532616787,
+        "userId": "demo-user",
+        "name": "Home",
+        "latitude": 13.034680675291654,
+        "longitude": 77.56241781649557,
+        "address": "Bangalore, Karnataka, India",
+        "isFavorite": true,
+        "createdAt": "2025-06-10T05:16:56.787Z"
       }
     ]
   },
-  "timestamp": "2025-06-09T17:04:22.801Z"
+  "timestamp": "2025-06-10T05:18:07.108Z"
 }
