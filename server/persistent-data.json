@@ -341,6 +341,31 @@
         "updatedAt": "2025-06-10T05:18:07.103Z",
         "isResolved": true,
         "videoRecordingUrl": "/api/emergency-recordings/emergency_1749532652565/video.mp4"
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "button",
+        "latitude": 13.034579049789242,
+        "longitude": 77.56236225620056,
+        "address": "13.0346, 77.5624",
+        "id": 1749532802962,
+        "createdAt": "2025-06-10T05:20:02.962Z",
+        "updatedAt": "2025-06-10T05:20:09.528Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749532802962/video.mp4"
+      },
+      {
+        "userId": "demo-user",
+        "triggerType": "voice_detection",
+        "latitude": 13.034630101394582,
+        "longitude": 77.56238184836263,
+        "address": "Voice Detection Location: 13.034630, 77.562382",
+        "audioRecordingUrl": "{\"detectedText\":\"se bacha\",\"scenario\":\"Voice Distress Alert: \\\"bachao\\\" detected in speech. Audio Analysis: \\\"se bacha\\\". Stress Level: HIGH - Automatic trigger activated.\",\"confidence\":0.9}",
+        "id": 1749532813785,
+        "createdAt": "2025-06-10T05:20:13.785Z",
+        "updatedAt": "2025-06-10T05:20:22.568Z",
+        "isResolved": true,
+        "videoRecordingUrl": "/api/emergency-recordings/emergency_1749532813785/video.mp4"
       }
     ]
   },
@@ -402,5 +427,5 @@
       }
     ]
   },
-  "timestamp": "2025-06-10T05:18:07.108Z"
+  "timestamp": "2025-06-10T05:20:22.577Z"
 }
