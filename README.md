@@ -1,4 +1,4 @@
-# Sakhi Suraksha - AI-Powered Women's Safety Application
+# Sakhi Suraksha - AI-Powered Women's Safety Applications
 
 > **Advanced safety application with real-time voice distress detection, emergency coordination, and family monitoring**
 
