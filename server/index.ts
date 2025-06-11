@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { envValidator } from "./config/environment";
 
 const app = express();
 app.use(express.json());
@@ -12,7 +13,7 @@ app.get('/webhook/whatsapp', (req, res) => {
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
   
-  const VERIFY_TOKEN = 'sakhi_suraksha_webhook_token_2024';
+  const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'sakhi_suraksha_webhook_token_2024';
   
   console.log('WhatsApp webhook verification:', { mode, token, challenge });
   
@@ -103,6 +104,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Print environment configuration status
+  envValidator.printConfigurationStatus();
+  
   const server = await registerRoutes(app);
   
   // Initialize default connections and data on server start
